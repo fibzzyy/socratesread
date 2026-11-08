@@ -25,7 +25,7 @@
                 <a class="nav-link" href="{{ route('challenge') }}"><x-icon name="circle-help" /><span>Socratic Challenge</span></a>
                 <a class="nav-link" href="{{ route('progress') }}"><x-icon name="chart-no-axes-combined" /><span>Progress</span></a>
                 <a class="nav-link {{ request()->routeIs('classrooms.*') ? 'is-active' : '' }}" href="{{ route('classrooms.index') }}"><x-icon name="users" /><span>Kelas saya</span></a>
-                <a class="nav-link {{ request()->routeIs('settings.profile', 'profile') ? 'is-active' : '' }}" href="{{ route('settings.profile') }}"><x-icon name="user" /><span>Profil</span></a>
+                <a class="nav-link {{ request()->routeIs('settings.profile', 'profile') ? 'is-active' : '' }}" href="{{ route('profile') }}"><x-icon name="user" /><span>Profil</span></a>
             </nav>
 
             <div class="nav-label nav-label-spaced">BELAJAR</div>
@@ -41,7 +41,7 @@
                 <p>Setiap pertanyaan adalah langkah menuju pemahaman baru.</p>
                 <a href="{{ $activeSession ? route('challenge') : route('reading') }}">{{ $activeSession ? 'Mulai tantangan' : 'Pilih bacaan' }} <x-icon name="arrow-right" /></a>
             </div>
-            <div class="profile-button"><a href="{{ route('settings.profile') }}" class="avatar avatar-sidebar avatar-link" title="Profil">@if (auth()->user()->avatarUrl())<img src="{{ auth()->user()->avatarUrl() }}" alt="{{ auth()->user()->name }}" class="avatar-image">@else{{ mb_strtoupper($userInitials) }}@endif</a><span class="profile-copy"><strong>{{ auth()->user()->name }}</strong><small>Siswa SocratesRead</small></span><form method="POST" action="{{ route('logout') }}">@csrf<button class="logout-button" type="submit">Keluar</button></form></div>
+            <div class="profile-button"><a href="{{ route('profile') }}" class="avatar avatar-sidebar avatar-link" title="Profil">@if (auth()->user()->avatarUrl())<img src="{{ auth()->user()->avatarUrl() }}" alt="{{ auth()->user()->name }}" class="avatar-image">@else{{ mb_strtoupper($userInitials) }}@endif</a><span class="profile-copy"><strong>{{ auth()->user()->name }}</strong><small>Siswa SocratesRead</small></span><form method="POST" action="{{ route('logout') }}">@csrf<button class="logout-button" type="submit">Keluar</button></form></div>
         </aside>
 
         <main class="main-content" id="dashboard">
@@ -51,7 +51,7 @@
                 <div class="topbar-actions">
                     <span class="today-label">{{ now()->locale('id')->translatedFormat('l, d F Y') }}</span>
                     <button class="icon-button notification-button" type="button" aria-label="Notifikasi"><x-icon name="bell" /><i></i></button>
-                    <a href="{{ route('settings.profile') }}" class="avatar avatar-top avatar-link" aria-label="Pengaturan profil {{ auth()->user()->name }}" title="Pengaturan profil">@if (auth()->user()->avatarUrl())<img src="{{ auth()->user()->avatarUrl() }}" alt="{{ auth()->user()->name }}" class="avatar-image">@else{{ mb_strtoupper($userInitials) }}@endif</a>
+                    <a href="{{ route('profile') }}" class="avatar avatar-top avatar-link" aria-label="Profil {{ auth()->user()->name }}" title="Profil">@if (auth()->user()->avatarUrl())<img src="{{ auth()->user()->avatarUrl() }}" alt="{{ auth()->user()->name }}" class="avatar-image">@else{{ mb_strtoupper($userInitials) }}@endif</a>
                 </div>
             </header>
 

@@ -40,6 +40,7 @@ class ExampleTest extends TestCase
         $response->assertOk();
         $response->assertSee('Ruang belajar');
         $response->assertSee('Kelas 10');
+        $response->assertSee('href="'.route('profile').'"', false);
     }
 
     public function test_transfer_student_sees_empty_state_for_prior_grade(): void

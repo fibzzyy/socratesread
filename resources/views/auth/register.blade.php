@@ -102,12 +102,10 @@
                     @error('entry_grade') <span class="text-[11px] text-red-600 mt-1 block">{{ $message }}</span> @enderror
                 </div>
 
-                <!-- Field NIP / NUPTK (Hanya untuk Guru) -->
-                <div id="fieldNip" class="{{ old('role') === 'teacher' ? 'block' : 'hidden' }}">
-                    <label class="block text-xs font-semibold text-[#344054] mb-1" for="nip_nuptk">
-                        NIP / NUPTK <span class="text-[11px] font-normal text-slate-500">(Nomor Identitas Pendidik)</span>
-                    </label>
-                    <input class="min-h-[42px] w-full rounded-lg border border-[#d0d5dd] bg-white px-3 text-[13px] text-[#172033] outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-600/10 @error('nip_nuptk') border-red-500 @enderror" id="nip_nuptk" name="nip_nuptk" type="text" value="{{ old('nip_nuptk') }}" maxlength="50" placeholder="Nomor NIP atau NUPTK">
+                <!-- Field NUPTK (Hanya untuk Guru) -->
+                <div id="fieldNuptk" class="{{ old('role') === 'teacher' ? 'block' : 'hidden' }}">
+                    <label class="block text-xs font-semibold text-[#344054] mb-1" for="nip_nuptk">NUPTK</label>
+                    <input class="min-h-[42px] w-full rounded-lg border border-[#d0d5dd] bg-white px-3 text-[13px] text-[#172033] outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-600/10 @error('nip_nuptk') border-red-500 @enderror" id="nip_nuptk" name="nip_nuptk" type="text" value="{{ old('nip_nuptk') }}" maxlength="50" placeholder="Masukkan NUPTK">
                     @error('nip_nuptk') <span class="text-[11px] text-red-600 mt-1 block">{{ $message }}</span> @enderror
                 </div>
 
@@ -157,9 +155,9 @@
             const btnTeacher = document.getElementById('btnRoleTeacher');
             const fieldNisn = document.getElementById('fieldNisn');
             const fieldGrade = document.getElementById('fieldGrade');
-            const fieldNip = document.getElementById('fieldNip');
+            const fieldNuptk = document.getElementById('fieldNuptk');
             const inputNisn = document.getElementById('nisn');
-            const inputNip = document.getElementById('nip_nuptk');
+            const inputNuptk = document.getElementById('nip_nuptk');
 
             function setRole(role) {
                 roleInput.value = role;
@@ -170,9 +168,9 @@
                     btnStudent.classList.remove('border-blue-600', 'bg-blue-50/70', 'text-blue-700', 'shadow-sm');
                     btnStudent.classList.add('border-slate-200', 'bg-white', 'text-slate-600');
 
-                    fieldNip.classList.remove('hidden');
-                    fieldNip.classList.add('block');
-                    inputNip.setAttribute('required', 'required');
+                    fieldNuptk.classList.remove('hidden');
+                    fieldNuptk.classList.add('block');
+                    inputNuptk.setAttribute('required', 'required');
 
                     fieldNisn.classList.add('hidden');
                     fieldNisn.classList.remove('block');
@@ -193,9 +191,9 @@
                     fieldNisn.classList.add('block');
                     inputNisn.setAttribute('required', 'required');
 
-                    fieldNip.classList.add('hidden');
-                    fieldNip.classList.remove('block');
-                    inputNip.removeAttribute('required');
+                    fieldNuptk.classList.add('hidden');
+                    fieldNuptk.classList.remove('block');
+                    inputNuptk.removeAttribute('required');
 
                     if (fieldGrade) {
                         fieldGrade.classList.remove('hidden');
