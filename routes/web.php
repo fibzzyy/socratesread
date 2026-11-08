@@ -50,6 +50,8 @@ Route::middleware('auth')->group(function () {
 
 Route::middleware(['auth', 'role:student'])->group(function () {
     Route::get('/classrooms', [ClassroomEnrollmentController::class, 'index'])->name('classrooms.index');
+    Route::get('/classrooms/{classroom}', [ClassroomEnrollmentController::class, 'show'])->whereNumber('classroom')->name('classrooms.show');
+    Route::post('/classrooms/{classroom}/materials/{document}/start', [ClassroomEnrollmentController::class, 'start'])->whereNumber('classroom')->whereNumber('document')->name('classrooms.materials.start');
     Route::post('/classrooms/join', [ClassroomEnrollmentController::class, 'store'])->middleware('throttle:6,1')->name('classrooms.join');
     Route::get('/reading/{document?}', [ReadingController::class, 'show'])->whereNumber('document')->name('reading');
     Route::post('/reading/progress', [ReadingController::class, 'updateProgress'])->name('reading.progress');

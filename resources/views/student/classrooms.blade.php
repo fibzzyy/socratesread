@@ -34,14 +34,9 @@
                     <span class="text-xs text-red-600 font-medium">{{ $message }}</span>
                 @enderror
             </div>
-            <button type="submit" class="challenge-button h-11">
-                <span>Gabung kelas</span>
-                <x-icon name="arrow-right" />
-            </button>
+            <button type="submit" class="challenge-button h-11"><span>Gabung kelas</span><x-icon name="arrow-right" /></button>
         </form>
-        <p class="mt-3 text-xs leading-5 text-slate-500">
-            Guru dapat melihat keterlibatan dan progres sesi pada bacaan yang mereka unggah, bukan isi jawaban pribadimu.
-        </p>
+        <p class="mt-3 text-xs leading-5 text-slate-500">Guru dapat melihat keterlibatan dan progres sesi pada bacaan yang mereka unggah, bukan isi jawaban pribadimu.</p>
     </section>
 
     <section class="mt-6" aria-labelledby="enrolled-classes-heading">
@@ -59,28 +54,26 @@
                     <div class="flex items-start justify-between gap-3">
                         <div>
                             <div class="flex items-center gap-2">
-                                <span class="rounded bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
-                                    {{ $classroom->targetGradeLabel() }}
-                                </span>
+                                <span class="rounded bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700">{{ $classroom->targetGradeLabel() }}</span>
                             </div>
                             <h3 class="mt-1 text-base font-bold text-slate-900">{{ $classroom->name }}</h3>
                             <p class="text-xs text-slate-500 mt-0.5">{{ $classroom->teacher?->name ?? 'Guru SocratesRead' }}</p>
                         </div>
-                        <span class="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 border border-emerald-200/60">
-                            Aktif
-                        </span>
+                        <span class="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 border border-emerald-200/60">Aktif</span>
                     </div>
 
-                    <div class="border-t border-slate-100 pt-3 text-xs text-slate-500 flex items-center justify-between">
-                        <span>Anggota kelas</span>
-                        <strong class="text-slate-700">{{ $classroom->students_count }} siswa</strong>
+                    <div class="grid grid-cols-2 gap-3 border-t border-slate-100 pt-3 text-xs">
+                        <div class="text-slate-500"><span class="block">Materi dibagikan</span><strong class="mt-1 block text-sm text-slate-800">{{ $classroom->materials_count }} materi</strong></div>
+                        <div class="text-slate-500"><span class="block">Progres belajarmu</span><strong class="mt-1 block text-sm text-slate-800">{{ $classroom->completed_materials_count }}/{{ $classroom->materials_count }} selesai</strong></div>
                     </div>
+                    <div class="progress-track" role="progressbar" aria-label="Progres kelas {{ $classroom->name }}" aria-valuenow="{{ $classroom->materials_progress }}" aria-valuemin="0" aria-valuemax="100"><span style="width:{{ $classroom->materials_progress }}%"></span></div>
 
                     <div class="border-t border-slate-100 pt-3 text-xs text-slate-500 flex items-center justify-between">
-                        <span>Bergabung sejak</span>
-                        <span class="font-medium text-slate-600">
-                            {{ $classroom->pivot->joined_at ? \Illuminate\Support\Carbon::parse($classroom->pivot->joined_at)->locale('id')->translatedFormat('d M Y') : '-' }}
-                        </span>
+                        <span>Anggota kelas</span><strong class="text-slate-700">{{ $classroom->students_count }} siswa</strong>
+                    </div>
+                    <div class="flex items-center justify-between gap-3">
+                        <span class="text-[11px] text-slate-500">Bergabung {{ $classroom->pivot->joined_at ? \Illuminate\Support\Carbon::parse($classroom->pivot->joined_at)->locale('id')->translatedFormat('d M Y') : '-' }}</span>
+                        <a class="challenge-button" href="{{ route('classrooms.show', $classroom) }}"><span>Buka kelas</span><x-icon name="arrow-right" /></a>
                     </div>
                 </article>
             @empty
