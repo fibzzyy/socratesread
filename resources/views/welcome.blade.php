@@ -18,7 +18,7 @@
         <aside class="sidebar" id="primary-navigation" aria-label="Navigasi utama">
             <a class="brand" href="{{ route('dashboard') }}" aria-label="SocratesRead, beranda"><span class="brand-name">socrates<span>read</span><small>LEARN THROUGH QUESTIONS</small></span></a>
 
-            <div class="nav-label">MENU UTAMA</div>
+            <div class="nav-label">MENU UTAMA MIF</div>
             <nav class="nav-list" aria-label="Menu utama">
                 <a class="nav-link is-active" href="{{ route('dashboard') }}" aria-current="page"><x-icon name="layout-dashboard" /><span>Dashboard</span></a>
                 <a class="nav-link" href="{{ route('reading') }}"><x-icon name="book-open-text" /><span>Reading Room</span></a>

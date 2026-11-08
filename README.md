@@ -1,3 +1,11 @@
+## Instalasi Windows dengan XAMPP
+
+1. Jalankan `clone-to-xampp.bat` untuk meng-clone repository langsung ke `C:\xampp\htdocs\socratesread`. Skrip berhenti jika folder tujuan sudah ada agar hasil clone lama tidak tertimpa.
+2. Pastikan `C:\xampp\php\php.ini` memuat `extension=mbstring` (tanpa tanda `;` di depannya), lalu buka terminal baru dan pastikan `php -m` menampilkan `mbstring`.
+3. Dari folder proyek, jalankan `composer setup`. Perintah ini memasang dependency, membuat `.env` dan kunci aplikasi, menyiapkan database SQLite lokal, menjalankan migrasi, serta membangun aset frontend.
+4. Jalankan `php artisan serve --host=127.0.0.1 --port=8000`, lalu buka `http://127.0.0.1:8000`.
+
+Untuk menjalankan melalui Apache XAMPP, arahkan DocumentRoot VirtualHost ke folder `public` proyek (`C:\xampp\htdocs\socratesread\public`), bukan ke root proyek.
 <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
 <p align="center">
