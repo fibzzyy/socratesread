@@ -5,17 +5,17 @@ namespace App\Services;
 use App\Models\ReadingSession;
 use App\Models\User;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 
 class GamificationService
 {
     public function awardOnce(ReadingSession $session, string $eventType, int $xp, string $summary): int
     {
-        return DB::transaction(function () use ($session, $eventType, $xp, $summary): int {
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($session, $eventType, $xp, $summary): int {
             $session->user()->lockForUpdate()->first();
 
-            $hasEarnedForDocument = DB::table('learning_activities')
+            $hasEarnedForDocument = \Illuminate\Support\Facades\DB::table('learning_activities')
                 ->where('user_id', $session->user_id)
                 ->where('document_id', $session->document_id)
                 ->where('event_type', $eventType)
@@ -23,7 +23,7 @@ class GamificationService
                 ->exists();
             $xpToAward = $hasEarnedForDocument ? 0 : $xp;
 
-            $inserted = DB::table('learning_activities')->insertOrIgnore([
+            $inserted = \Illuminate\Support\Facades\DB::table('learning_activities')->insertOrIgnore([
                 'user_id' => $session->user_id,
                 'reading_session_id' => $session->id,
                 'document_id' => $session->document_id,
@@ -40,10 +40,11 @@ class GamificationService
     }
 
     /** @return array{xp: int, level: int, xp_into_level: int, xp_to_next_level: int, level_progress: int, current_streak: int, longest_streak: int} */
-    public function summary(User $user): array
+    public function summary(User $user, string $grade = 'all'): array
     {
-        $xp = (int) $user->learningActivities()->sum('xp_awarded');
-        $dates = $user->learningActivities()
+        $activities = $this->activitiesForGrade($user, $grade);
+        $xp = (int) (clone $activities)->sum('xp_awarded');
+        $dates = (clone $activities)
             ->select('activity_date')
             ->distinct()
             ->orderByDesc('activity_date')
@@ -65,19 +66,19 @@ class GamificationService
         ];
     }
 
-    public function recentActivities(User $user, int $limit = 6): Collection
+    public function recentActivities(User $user, int $limit = 6, string $grade = 'all'): Collection
     {
-        return $user->learningActivities()
-            ->with('readingSession.document:id,title')
+        return $this->activitiesForGrade($user, $grade)
+            ->with(['readingSession.document:id,title', 'document:id,title'])
             ->latest('created_at')
             ->limit($limit)
             ->get();
     }
 
-    public function weeklyActivity(User $user): Collection
+    public function weeklyActivity(User $user, string $grade = 'all'): Collection
     {
         $start = now()->startOfDay()->subDays(6);
-        $activities = $user->learningActivities()
+        $activities = $this->activitiesForGrade($user, $grade)
             ->whereBetween('activity_date', [$start->toDateString(), now()->toDateString()])
             ->get()
             ->groupBy(fn ($activity) => $activity->activity_date->toDateString());
@@ -93,6 +94,13 @@ class GamificationService
                 'events' => $items->count(),
             ];
         });
+    }
+
+    private function activitiesForGrade(User $user, string $grade): HasMany
+    {
+        return $user->learningActivities()
+            ->when($grade !== 'all', fn ($query) => $query->whereHas('document', fn ($documents) => $documents
+                ->whereIn('target_grade', ['all', $grade])));
     }
 
     private function currentStreak(Collection $dates): int

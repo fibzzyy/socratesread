@@ -18,23 +18,28 @@ class DashboardController extends Controller
             return redirect()->route('teacher.dashboard');
         }
 
-        // Tentukan tingkat kelas yang dipilih (default: currentGrade siswa atau entry_grade atau 10)
+        // Simpan pilihan tingkat agar Dashboard dan Reading Room selalu memakai jenjang yang sama.
         $defaultGrade = (string) ($user->currentGrade() ?? ($user->entry_grade ?? 10));
-        $selectedGrade = $request->query('grade', $defaultGrade);
+        $selectedGrade = $request->query('grade', $request->session()->get('learning_grade', $defaultGrade));
         if (! in_array($selectedGrade, ['10', '11', '12', 'all'], true)) {
             $selectedGrade = $defaultGrade;
         }
+        $request->session()->put('learning_grade', $selectedGrade);
 
         $selectedGradeNumeric = $selectedGrade !== 'all' ? (int) $selectedGrade : null;
         $isPriorGrade = $user->isPriorGrade($selectedGradeNumeric);
 
-        $summary = $gamification->summary($user);
-        $weeklyActivity = $gamification->weeklyActivity($user);
-        $recentActivities = $gamification->recentActivities($user, 5);
-        $completedReadings = $user->learningActivities()->where('event_type', 'reading_completed')->count();
-        $completedChallenges = $user->learningActivities()->where('event_type', 'challenge_completed')->count();
+        $summary = $gamification->summary($user, $selectedGrade);
+        $weeklyActivity = $gamification->weeklyActivity($user, $selectedGrade);
+        $recentActivities = $gamification->recentActivities($user, 5, $selectedGrade);
+        $completedReadings = $user->learningActivities()->where('event_type', 'reading_completed')->whereHas('document', fn ($documents) => $documents->whereIn('target_grade', $selectedGrade === 'all' ? ['all', '10', '11', '12'] : ['all', $selectedGrade]))->count();
+        $completedChallenges = $user->learningActivities()->where('event_type', 'challenge_completed')->whereHas('document', fn ($documents) => $documents->whereIn('target_grade', $selectedGrade === 'all' ? ['all', '10', '11', '12'] : ['all', $selectedGrade]))->count();
         $weeklyReadingCount = $user->learningActivities()
             ->where('event_type', 'reading_completed')
+            ->whereHas('document', fn ($documents) => $documents->whereIn(
+                'target_grade',
+                $selectedGrade === 'all' ? ['all', '10', '11', '12'] : ['all', $selectedGrade],
+            ))
             ->whereBetween('activity_date', [now()->subDays(6)->toDateString(), now()->toDateString()])
             ->count();
 
