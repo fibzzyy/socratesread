@@ -12,6 +12,7 @@ class StudentQuizAttempt extends Model
         'document_id',
         'mode',
         'score',
+        'xp_awarded',
         'correct_count',
         'total_questions',
         'answers',
@@ -25,6 +26,7 @@ class StudentQuizAttempt extends Model
     {
         return [
             'score' => 'integer',
+            'xp_awarded' => 'integer',
             'correct_count' => 'integer',
             'total_questions' => 'integer',
             'answers' => 'array',

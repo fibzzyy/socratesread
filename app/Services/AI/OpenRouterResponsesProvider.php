@@ -14,24 +14,30 @@ class OpenRouterResponsesProvider implements LanguageModel
             && trim((string) config('services.openrouter.api_key')) !== '';
     }
 
-    public function respond(array $messages, string $instructions): string
+    public function respond(array $messages, string $instructions, array $options = []): string
     {
         if (! $this->isConfigured()) {
             throw new RuntimeException('OpenRouter API key is not configured.');
         }
 
         $baseUrl = rtrim((string) config('services.openrouter.base_url'), '/');
+        $payload = [
+            'model' => $options['model'] ?? config('services.openrouter.model'),
+            'instructions' => $instructions,
+            'input' => $messages,
+            'max_output_tokens' => (int) ($options['max_output_tokens'] ?? config('ai.limits.max_output_tokens', 300)),
+        ];
+
+        if (isset($options['temperature'])) {
+            $payload['temperature'] = (float) $options['temperature'];
+        }
+
         $response = Http::acceptJson()
             ->asJson()
             ->withToken((string) config('services.openrouter.api_key'))
             ->connectTimeout(6)
-            ->timeout((int) config('ai.limits.timeout_seconds', 25))
-            ->post($baseUrl.'/responses', [
-                'model' => config('services.openrouter.model'),
-                'instructions' => $instructions,
-                'input' => $messages,
-                'max_output_tokens' => (int) config('ai.limits.max_output_tokens', 300),
-            ]);
+            ->timeout((int) ($options['timeout'] ?? config('ai.limits.timeout_seconds', 25)))
+            ->post($baseUrl.'/responses', $payload);
 
         $response->throw();
 

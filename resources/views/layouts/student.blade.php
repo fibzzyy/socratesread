@@ -21,15 +21,17 @@
             <nav class="nav-list" aria-label="Menu utama">
                 <a class="nav-link {{ request()->routeIs('dashboard') ? 'is-active' : '' }}" href="{{ route('dashboard') }}" @if(request()->routeIs('dashboard')) aria-current="page" @endif><x-icon name="layout-dashboard" /><span>Dashboard</span></a>
                 <a class="nav-link {{ request()->routeIs('reading') ? 'is-active' : '' }}" href="{{ route('reading') }}" @if(request()->routeIs('reading')) aria-current="page" @endif><x-icon name="book-open-text" /><span>Reading Room</span></a>
-                <a class="nav-link {{ request()->routeIs('challenge*') || request()->routeIs('quiz.*') ? 'is-active' : '' }}" href="{{ route('challenge') }}" @if(request()->routeIs('challenge*') || request()->routeIs('quiz.*')) aria-current="page" @endif><x-icon name="circle-help" /><span>Socrates Challenge</span></a>
+                <a class="nav-link {{ request()->routeIs('quiz.*') ? 'is-active' : '' }}" href="{{ route('quiz.index') }}" @if(request()->routeIs('quiz.*')) aria-current="page" @endif><x-icon name="gamepad-2" /><span>Challenge Socrates</span></a>
                 <a class="nav-link {{ request()->routeIs('progress') ? 'is-active' : '' }}" href="{{ route('progress') }}" @if(request()->routeIs('progress')) aria-current="page" @endif><x-icon name="chart-no-axes-combined" /><span>Progress</span></a>
-                <a class="nav-link {{ request()->routeIs('classrooms.*') ? 'is-active' : '' }}" href="{{ route('classrooms.index') }}" @if(request()->routeIs('classrooms.*')) aria-current="page" @endif><x-icon name="users" /><span>Kelas saya</span></a>
+                <a class="nav-link {{ request()->routeIs('classrooms.*') ? 'is-active' : '' }}" href="{{ route('classrooms.index') }}" @if(request()->routeIs('classrooms.*')) aria-current="page" @endif><x-icon name="users" /><span>My Class</span></a>
                 <a class="nav-link {{ request()->routeIs('settings.profile', 'profile') ? 'is-active' : '' }}" href="{{ route('settings.profile') }}" @if(request()->routeIs('settings.profile', 'profile')) aria-current="page" @endif><x-icon name="user" /><span>Profil</span></a>
             </nav>
             <div class="nav-label nav-label-spaced">BELAJAR</div>
-            <nav class="nav-list" aria-label="Materi belajar"><a class="nav-link" href="{{ route('reading') }}"><x-icon name="book-open-text" /><span>Koleksi Bacaan</span></a><a class="nav-link" href="{{ route('progress') }}"><x-icon name="award" /><span>Pencapaian</span></a></nav>
+            <nav class="nav-list" aria-label="Materi belajar">
+                <a class="nav-link {{ request()->routeIs('achievements*') ? 'is-active' : '' }}" href="{{ route('achievements') }}" @if(request()->routeIs('achievements*')) aria-current="page" @endif><x-icon name="award" /><span>Pencapaian</span></a>
+            </nav>
             <div class="sidebar-spacer"></div>
-            <div class="sidebar-tip"><span class="tip-icon" aria-hidden="true"><x-icon name="lightbulb" /></span><strong>Berpikir lebih dalam</strong><p>Setiap pertanyaan adalah langkah menuju pemahaman baru.</p><a href="{{ route('challenge') }}">Mulai tantangan <x-icon name="arrow-right" /></a></div>
+            <div class="sidebar-tip"><span class="tip-icon" aria-hidden="true"><x-icon name="lightbulb" /></span><strong>Berpikir lebih dalam</strong><p>Setiap kuis dan tantangan adalah langkah menuju pemahaman baru.</p><a href="{{ route('quiz.index') }}">Challenge Socrates <x-icon name="arrow-right" /></a></div>
             <div class="profile-button">
                 <a href="{{ route('settings.profile') }}" class="avatar avatar-sidebar avatar-link" title="Profil">
                     @if (auth()->user()->avatarUrl())
@@ -65,12 +67,6 @@
                             {{ mb_strtoupper($userInitials) }}
                         @endif
                     </a>
-                    <form method="POST" action="{{ route('logout') }}" class="inline">
-                        @csrf
-                        <button class="icon-button !text-red-500 hover:!text-red-600 hover:!bg-red-50 hover:!border-red-200" type="submit" title="Keluar / Logout" aria-label="Keluar / Logout">
-                            <x-icon name="log-out" class="w-4 h-4" />
-                        </button>
-                    </form>
                 </div>
             </header>
             <div class="page-content stage-two-content">

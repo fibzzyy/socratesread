@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ReadingSession;
 use App\Models\SocraticQuestion;
 use App\Models\StudentAnswer;
+use App\Services\Evaluation\AnswerEvaluationPipeline;
 use App\Services\GamificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -78,7 +79,7 @@ class ChallengeController extends Controller
         return view('student.challenge', compact('session', 'questions', 'challengeQuestions', 'savedAnswers', 'isLocked'));
     }
 
-    public function saveAnswer(Request $request): JsonResponse
+    public function saveAnswer(Request $request, AnswerEvaluationPipeline $evaluator): JsonResponse
     {
         $data = $request->validate([
             'session_id' => ['required', 'integer'],
@@ -87,6 +88,7 @@ class ChallengeController extends Controller
         ]);
 
         $session = ReadingSession::query()
+            ->with('document')
             ->whereKey($data['session_id'])
             ->where('user_id', $request->user()->id)
             ->firstOrFail();
@@ -102,12 +104,27 @@ class ChallengeController extends Controller
             ->where('document_id', $session->document_id)
             ->firstOrFail();
 
+        $answerText = trim($data['answer']);
+
+        // Jalankan evaluasi Hybrid Berlapis (Rule-Based -> Semantic Similarity -> LLM Rubrik)
+        $evaluation = $evaluator->evaluate($session->document, $question, $answerText);
+
         StudentAnswer::query()->updateOrCreate(
             ['reading_session_id' => $session->id, 'socratic_question_id' => $question->id],
-            ['answer_text' => trim($data['answer']), 'answered_at' => now()],
+            [
+                'answer_text' => $answerText,
+                'score' => $evaluation->score,
+                'understanding_level' => $evaluation->understandingLevel,
+                'evaluation' => $evaluation->toArray(),
+                'evaluated_at' => now(),
+                'answered_at' => now(),
+            ],
         );
 
-        return response()->json(['saved' => true]);
+        return response()->json([
+            'saved' => true,
+            'evaluation' => $evaluation->toArray(),
+        ]);
     }
 
     public function complete(Request $request, GamificationService $gamification): JsonResponse

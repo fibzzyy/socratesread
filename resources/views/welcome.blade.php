@@ -22,16 +22,15 @@
             <nav class="nav-list" aria-label="Menu utama">
                 <a class="nav-link is-active" href="{{ route('dashboard') }}" aria-current="page"><x-icon name="layout-dashboard" /><span>Dashboard</span></a>
                 <a class="nav-link" href="{{ route('reading') }}"><x-icon name="book-open-text" /><span>Reading Room</span></a>
-                <a class="nav-link" href="{{ route('challenge') }}"><x-icon name="circle-help" /><span>Socratic Challenge</span></a>
+                <a class="nav-link" href="{{ route('quiz.index') }}"><x-icon name="gamepad-2" /><span>Challenge Socrates</span></a>
                 <a class="nav-link" href="{{ route('progress') }}"><x-icon name="chart-no-axes-combined" /><span>Progress</span></a>
-                <a class="nav-link {{ request()->routeIs('classrooms.*') ? 'is-active' : '' }}" href="{{ route('classrooms.index') }}"><x-icon name="users" /><span>Kelas saya</span></a>
+                <a class="nav-link {{ request()->routeIs('classrooms.*') ? 'is-active' : '' }}" href="{{ route('classrooms.index') }}"><x-icon name="users" /><span>My Class</span></a>
                 <a class="nav-link {{ request()->routeIs('settings.profile', 'profile') ? 'is-active' : '' }}" href="{{ route('settings.profile') }}"><x-icon name="user" /><span>Profil</span></a>
             </nav>
 
             <div class="nav-label nav-label-spaced">BELAJAR</div>
             <nav class="nav-list" aria-label="Materi belajar">
-                <a class="nav-link" href="{{ route('reading') }}"><x-icon name="book-open-text" /><span>Koleksi Bacaan</span></a>
-                <a class="nav-link" href="{{ route('progress') }}"><x-icon name="award" /><span>Pencapaian</span></a>
+                <a class="nav-link" href="{{ route('achievements') }}"><x-icon name="award" /><span>Pencapaian</span></a>
             </nav>
 
             <div class="sidebar-spacer"></div>

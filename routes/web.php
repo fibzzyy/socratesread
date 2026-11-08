@@ -4,16 +4,19 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\OtpVerificationController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Student\AchievementController;
 use App\Http\Controllers\Student\ChallengeController;
 use App\Http\Controllers\Student\ClassroomEnrollmentController;
 use App\Http\Controllers\Student\DashboardController;
 use App\Http\Controllers\Student\ProgressController;
 use App\Http\Controllers\Student\QuizController;
 use App\Http\Controllers\Student\ReadingController;
+use App\Http\Controllers\Student\StudentTeacherChallengeController;
 use App\Http\Controllers\Teacher\DocumentController;
 use App\Http\Controllers\Teacher\ClassroomController;
 use App\Http\Controllers\Teacher\ExportController;
 use App\Http\Controllers\Teacher\StudentDetailController;
+use App\Http\Controllers\Teacher\TeacherChallengeController;
 use App\Http\Controllers\Teacher\DashboardController as TeacherDashboardController;
 use Illuminate\Support\Facades\Route;
 
@@ -57,10 +60,14 @@ Route::middleware(['auth', 'role:student'])->group(function () {
     Route::get('/challenge', [ChallengeController::class, 'show'])->name('challenge');
     Route::post('/challenge/answer', [ChallengeController::class, 'saveAnswer'])->name('challenge.answer');
     Route::post('/challenge/complete', [ChallengeController::class, 'complete'])->name('challenge.complete');
+    Route::get('/quiz', [QuizController::class, 'index'])->name('quiz.index');
     Route::get('/quiz/timed/{document?}', [QuizController::class, 'timed'])->whereNumber('document')->name('quiz.timed');
     Route::get('/quiz/practice/{document?}', [QuizController::class, 'practice'])->whereNumber('document')->name('quiz.practice');
     Route::post('/quiz/submit', [QuizController::class, 'submit'])->name('quiz.submit');
     Route::get('/progress', ProgressController::class)->name('progress');
+    Route::get('/achievements', [AchievementController::class, 'index'])->name('achievements');
+    Route::get('/teacher-challenges/{document}', [StudentTeacherChallengeController::class, 'show'])->whereNumber('document')->name('student.teacher-challenges.show');
+    Route::post('/teacher-challenges/{document}/submit', [StudentTeacherChallengeController::class, 'submit'])->whereNumber('document')->name('student.teacher-challenges.submit');
 });
 
 Route::middleware(['auth', 'role:teacher'])->prefix('teacher')->name('teacher.')->group(function () {
@@ -72,5 +79,10 @@ Route::middleware(['auth', 'role:teacher'])->prefix('teacher')->name('teacher.')
     Route::post('/classrooms/{classroom}/toggle-status', [ClassroomController::class, 'toggleStatus'])->name('classrooms.toggle-status');
     Route::get('/documents', [DocumentController::class, 'index'])->name('documents');
     Route::post('/documents', [DocumentController::class, 'store'])->middleware('throttle:5,1')->name('documents.store');
+    Route::patch('/documents/{document}/quiz-duration', [DocumentController::class, 'updateQuizDuration'])->whereNumber('document')->name('documents.quiz_duration');
     Route::delete('/documents/{document}', [DocumentController::class, 'destroy'])->whereNumber('document')->name('documents.destroy');
+    Route::get('/documents/{document}/challenges', [TeacherChallengeController::class, 'index'])->whereNumber('document')->name('documents.challenges.index');
+    Route::get('/documents/{document}/challenges/suggestions', [TeacherChallengeController::class, 'suggestions'])->whereNumber('document')->name('documents.challenges.suggestions');
+    Route::post('/documents/{document}/challenges', [TeacherChallengeController::class, 'store'])->whereNumber('document')->name('documents.challenges.store');
+    Route::delete('/documents/{document}/challenges/{challenge}', [TeacherChallengeController::class, 'destroy'])->whereNumber('document')->name('documents.challenges.destroy');
 });
