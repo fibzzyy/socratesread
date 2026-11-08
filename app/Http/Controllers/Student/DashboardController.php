@@ -28,35 +28,60 @@ class DashboardController extends Controller
 
         $selectedGradeNumeric = $selectedGrade !== 'all' ? (int) $selectedGrade : null;
         $isPriorGrade = $user->isPriorGrade($selectedGradeNumeric);
+        $classrooms = $user->classrooms()
+            ->with('teacher:id,name')
+            ->orderBy('teacher_classes.name')
+            ->get();
+        $selectedClassrooms = $classrooms
+            ->filter(fn ($classroom) => $selectedGrade === 'all' || (string) $classroom->target_grade === $selectedGrade)
+            ->values();
+        $hasEnrolledClass = $selectedClassrooms->isNotEmpty();
 
-        $summary = $gamification->summary($user, $selectedGrade);
-        $weeklyActivity = $gamification->weeklyActivity($user, $selectedGrade);
-        $recentActivities = $gamification->recentActivities($user, 5, $selectedGrade);
-        $completedReadings = $user->learningActivities()->where('event_type', 'reading_completed')->whereHas('document', fn ($documents) => $documents->whereIn('target_grade', $selectedGrade === 'all' ? ['all', '10', '11', '12'] : ['all', $selectedGrade]))->count();
-        $completedChallenges = $user->learningActivities()->where('event_type', 'challenge_completed')->whereHas('document', fn ($documents) => $documents->whereIn('target_grade', $selectedGrade === 'all' ? ['all', '10', '11', '12'] : ['all', $selectedGrade]))->count();
-        $weeklyReadingCount = $user->learningActivities()
+        // Keep historical records so rejoining with the same account restores class progress.
+        $classDocumentIds = $selectedClassrooms->isEmpty()
+            ? []
+            : Document::query()
+                ->where(function ($query) use ($selectedClassrooms) {
+                    foreach ($selectedClassrooms as $classroom) {
+                        $query->orWhere(function ($classDocuments) use ($classroom) {
+                            $classDocuments
+                                ->where('uploaded_by', $classroom->teacher_id)
+                                ->where('category', $classroom->name)
+                                ->when($classroom->target_grade, fn ($documents) => $documents->whereIn('target_grade', [
+                                    'all', (string) $classroom->target_grade,
+                                ]));
+                        });
+                    }
+                })
+                ->pluck('id')
+                ->map(fn ($id) => (int) $id)
+                ->all();
+
+        $summary = $gamification->summary($user, $selectedGrade, $classDocumentIds);
+        $weeklyActivity = $gamification->weeklyActivity($user, $selectedGrade, $classDocumentIds);
+        $recentActivities = $gamification->recentActivities($user, 5, $selectedGrade, $classDocumentIds);
+        $completedReadings = $user->learningActivities()
+            ->whereIn('document_id', $classDocumentIds)
             ->where('event_type', 'reading_completed')
-            ->whereHas('document', fn ($documents) => $documents->whereIn(
-                'target_grade',
-                $selectedGrade === 'all' ? ['all', '10', '11', '12'] : ['all', $selectedGrade],
-            ))
+            ->count();
+        $completedChallenges = $user->learningActivities()
+            ->whereIn('document_id', $classDocumentIds)
+            ->where('event_type', 'challenge_completed')
+            ->count();
+        $weeklyReadingCount = $user->learningActivities()
+            ->whereIn('document_id', $classDocumentIds)
+            ->where('event_type', 'reading_completed')
             ->whereBetween('activity_date', [now()->subDays(6)->toDateString(), now()->toDateString()])
             ->count();
 
-        // Jika tingkat yang dipilih adalah sebelum siswa mendaftar (halaman kosong untuk siswa pindahan)
-        if ($isPriorGrade) {
+        if ($isPriorGrade || ! $hasEnrolledClass) {
             $readingDocuments = collect();
             $activeSession = null;
             $challengeQuestion = null;
         } else {
             $readingDocuments = Document::query()
                 ->where('is_published', true)
-                ->when($selectedGrade !== 'all', function ($query) use ($selectedGrade) {
-                    $query->where(function ($sub) use ($selectedGrade) {
-                        $sub->where('target_grade', 'all')
-                            ->orWhere('target_grade', (string) $selectedGrade);
-                    });
-                })
+                ->whereIn('id', $classDocumentIds)
                 ->with(['readingSessions' => fn ($query) => $query
                     ->where('user_id', $user->id)
                     ->latest('started_at')
@@ -67,14 +92,12 @@ class DashboardController extends Controller
 
             $activeSession = $user->readingSessions()
                 ->with(['document.questions'])
+                ->whereIn('document_id', $classDocumentIds)
                 ->where('status', 'in_progress')
                 ->latest('started_at')
                 ->first();
             $challengeQuestion = $activeSession?->document?->questions?->first();
         }
-
-        $classrooms = $user->classrooms()->with('teacher:id,name')->orderBy('teacher_classes.name')->get();
-
         $hour = (int) now()->timezone(config('app.timezone', 'Asia/Jakarta'))->format('H');
         $greeting = match (true) {
             $hour >= 4 && $hour < 11 => 'Selamat pagi',
@@ -88,7 +111,7 @@ class DashboardController extends Controller
             'completedChallenges', 'weeklyReadingCount', 'readingDocuments',
             'activeSession', 'challengeQuestion',
             'classrooms', 'greeting',
-            'user', 'selectedGrade', 'isPriorGrade',
+            'user', 'selectedGrade', 'isPriorGrade', 'hasEnrolledClass',
         ));
     }
 }

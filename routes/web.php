@@ -69,6 +69,8 @@ Route::middleware(['auth', 'role:teacher'])->prefix('teacher')->name('teacher.')
     Route::get('/export-progress', [ExportController::class, 'exportCsv'])->name('export.progress');
     Route::get('/students/{student}', [StudentDetailController::class, 'show'])->whereNumber('student')->name('students.show');
     Route::get('/classrooms', [ClassroomController::class, 'index'])->name('classrooms');
+    Route::get('/classrooms/{classroom}/members', [ClassroomController::class, 'members'])->whereNumber('classroom')->name('classrooms.members');
+    Route::delete('/classrooms/{classroom}/members/{student}', [ClassroomController::class, 'removeMember'])->whereNumber('classroom')->whereNumber('student')->name('classrooms.members.remove');
     Route::post('/classrooms', [ClassroomController::class, 'store'])->middleware('throttle:5,1')->name('classrooms.store');
     Route::post('/classrooms/{classroom}/toggle-status', [ClassroomController::class, 'toggleStatus'])->name('classrooms.toggle-status');
     Route::get('/documents', [DocumentController::class, 'index'])->name('documents');

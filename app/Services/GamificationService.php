@@ -40,9 +40,9 @@ class GamificationService
     }
 
     /** @return array{xp: int, level: int, xp_into_level: int, xp_to_next_level: int, level_progress: int, current_streak: int, longest_streak: int} */
-    public function summary(User $user, string $grade = 'all'): array
+    public function summary(User $user, string $grade = 'all', ?array $documentIds = null): array
     {
-        $activities = $this->activitiesForGrade($user, $grade);
+        $activities = $this->activitiesForGrade($user, $grade, $documentIds);
         $xp = (int) (clone $activities)->sum('xp_awarded');
         $dates = (clone $activities)
             ->select('activity_date')
@@ -66,19 +66,19 @@ class GamificationService
         ];
     }
 
-    public function recentActivities(User $user, int $limit = 6, string $grade = 'all'): Collection
+    public function recentActivities(User $user, int $limit = 6, string $grade = 'all', ?array $documentIds = null): Collection
     {
-        return $this->activitiesForGrade($user, $grade)
+        return $this->activitiesForGrade($user, $grade, $documentIds)
             ->with(['readingSession.document:id,title', 'document:id,title'])
             ->latest('created_at')
             ->limit($limit)
             ->get();
     }
 
-    public function weeklyActivity(User $user, string $grade = 'all'): Collection
+    public function weeklyActivity(User $user, string $grade = 'all', ?array $documentIds = null): Collection
     {
         $start = now()->startOfDay()->subDays(6);
-        $activities = $this->activitiesForGrade($user, $grade)
+        $activities = $this->activitiesForGrade($user, $grade, $documentIds)
             ->whereBetween('activity_date', [$start->toDateString(), now()->toDateString()])
             ->get()
             ->groupBy(fn ($activity) => $activity->activity_date->toDateString());
@@ -96,11 +96,12 @@ class GamificationService
         });
     }
 
-    private function activitiesForGrade(User $user, string $grade): HasMany
+    private function activitiesForGrade(User $user, string $grade, ?array $documentIds = null): HasMany
     {
         return $user->learningActivities()
             ->when($grade !== 'all', fn ($query) => $query->whereHas('document', fn ($documents) => $documents
-                ->whereIn('target_grade', ['all', $grade])));
+                ->whereIn('target_grade', ['all', $grade])))
+            ->when($documentIds !== null, fn ($query) => $query->whereIn('document_id', $documentIds));
     }
 
     private function currentStreak(Collection $dates): int

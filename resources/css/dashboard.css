@@ -1567,3 +1567,14 @@ body { color: var(--ink); background: var(--canvas); }
     z-index: 9999;
 }
 
+
+/* Explicit layout for the class member removal confirmation dialog. */
+.remove-student-dialog-actions { display: flex !important; justify-content: flex-end; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+.remove-student-dialog-actions button { display: inline-flex !important; min-height: 44px; align-items: center; justify-content: center; padding: 0 18px; border-radius: 9px; font-size: 14px; font-weight: 700; cursor: pointer; }
+.remove-student-dialog-cancel { border: 1px solid #dbe2ec; color: #344054; background: #fff; }
+.remove-student-dialog-cancel:hover { background: #f8fafc; }
+.remove-student-dialog-confirm { border: 1px solid #dc2626; color: #fff; background: #dc2626; }
+.remove-student-dialog-confirm:hover { border-color: #b91c1c; background: #b91c1c; }
+@media (max-width: 520px) { .remove-student-dialog-actions { flex-direction: column-reverse; align-items: stretch; } }
+
+.remove-student-dialog-icon { margin-right: auto; margin-left: auto; }

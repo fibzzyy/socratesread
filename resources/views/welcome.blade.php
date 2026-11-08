@@ -184,6 +184,9 @@
                                 @if ($isPriorGrade)
                                     <strong>Tidak ada materi di Kelas {{ $selectedGrade }}</strong>
                                     <p>Anda terdaftar mulai Kelas {{ $user->entry_grade ?? 10 }}. Beralihlah ke tingkat aktif Anda untuk melanjutkan membaca.</p>
+                                @elseif (! $hasEnrolledClass)
+                                    <strong>Belum bergabung ke Kelas {{ $selectedGrade }}</strong>
+                                    <p>Materi dan progres kelas akan muncul setelah kamu bergabung kembali ke kelas.</p>
                                 @else
                                     <strong>Belum ada bacaan tersedia</strong>
                                     <p>Bacaan baru akan muncul di sini setelah guru menerbitkan materi.</p>
@@ -209,6 +212,8 @@
                                 <div class="challenge-footer"><div class="challenge-reward"><span class="reward-icon"><x-icon name="zap" /></span><span><strong>+25 XP</strong><small>Kuis & tantangan</small></span></div><a class="challenge-button" href="{{ route('quiz.timed', ['document' => $activeSession->document_id]) }}">Mulai Kuis <x-icon name="arrow-right" /></a></div>
                             @elseif ($activeSession)
                                 <div class="challenge-question"><span class="question-label">PERTANYAAN BELUM TERSEDIA</span><p>Bacaan ini belum memiliki pertanyaan Socratic. Pilih bacaan lain atau tanyakan kepada gurumu.</p></div><div class="challenge-footer"><span class="challenge-reward"><strong>Materi sedang disiapkan</strong></span><a class="challenge-button" href="#bacaan">Pilih bacaan <x-icon name="arrow-right" /></a></div>
+                            @elseif (! $hasEnrolledClass)
+                                <div class="challenge-question"><span class="question-label">BELUM BERGABUNG KELAS</span><p>Tantangan dan progres akan tersedia setelah kamu bergabung ke kelas.</p></div><div class="challenge-footer"><span class="challenge-reward"><strong>Kelas diperlukan</strong></span><a class="challenge-button" href="{{ route('classrooms.index') }}">Gabung kelas <x-icon name="arrow-right" /></a></div>
                             @else
                                 <div class="challenge-question"><span class="question-label">MULAI DARI BACAAN</span><p>Pilih bacaan dan temukan pertanyaan yang membantumu melihat isi teks lebih dalam.</p></div><div class="challenge-footer"><span class="challenge-reward"><strong>Pertanyaan Socratic</strong></span><a class="challenge-button" href="{{ route('reading') }}">Buka bacaan <x-icon name="arrow-right" /></a></div>
                             @endif
