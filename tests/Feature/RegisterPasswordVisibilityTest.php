@@ -14,6 +14,8 @@ class RegisterPasswordVisibilityTest extends TestCase
             ->assertSee('id="password"', false)
             ->assertSee('id="password_confirmation"', false)
             ->assertSee('aria-label="Tampilkan kata sandi"', false)
-            ->assertSee("field.input.type = field.input.type === 'password' ? 'text' : 'password'", false);
+            ->assertSee("field.input.type = field.input.type === 'password' ? 'text' : 'password'", false)
+            ->assertSee('for="nip_nuptk">NUPTK</label>', false)
+            ->assertDontSee('NIP');
     }
 }

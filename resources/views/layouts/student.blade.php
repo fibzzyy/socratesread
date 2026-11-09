@@ -25,6 +25,8 @@
                 <a class="nav-link {{ request()->routeIs('progress') ? 'is-active' : '' }}" href="{{ route('progress') }}" @if(request()->routeIs('progress')) aria-current="page" @endif><x-icon name="chart-no-axes-combined" /><span>Progress</span></a>
                 <a class="nav-link {{ request()->routeIs('classrooms.*') ? 'is-active' : '' }}" href="{{ route('classrooms.index') }}" @if(request()->routeIs('classrooms.*')) aria-current="page" @endif><x-icon name="users" /><span>My Class</span></a>
                 <a class="nav-link {{ request()->routeIs('settings.profile', 'profile') ? 'is-active' : '' }}" href="{{ route('settings.profile') }}" @if(request()->routeIs('settings.profile', 'profile')) aria-current="page" @endif><x-icon name="user" /><span>Profil</span></a>
+                <a class="nav-link {{ request()->routeIs('classrooms.*') ? 'is-active' : '' }}" href="{{ route('classrooms.index') }}" @if(request()->routeIs('classrooms.*')) aria-current="page" @endif><x-icon name="users" /><span>Kelas saya</span></a>
+                <a class="nav-link {{ request()->routeIs('settings.profile', 'profile') ? 'is-active' : '' }}" href="{{ route('profile') }}" @if(request()->routeIs('settings.profile', 'profile')) aria-current="page" @endif><x-icon name="user" /><span>Profil</span></a>
             </nav>
             <div class="nav-label nav-label-spaced">BELAJAR</div>
             <nav class="nav-list" aria-label="Materi belajar">
@@ -33,7 +35,7 @@
             <div class="sidebar-spacer"></div>
             <div class="sidebar-tip"><span class="tip-icon" aria-hidden="true"><x-icon name="lightbulb" /></span><strong>Berpikir lebih dalam</strong><p>Setiap kuis dan tantangan adalah langkah menuju pemahaman baru.</p><a href="{{ route('quiz.index') }}">Challenge Socrates <x-icon name="arrow-right" /></a></div>
             <div class="profile-button">
-                <a href="{{ route('settings.profile') }}" class="avatar avatar-sidebar avatar-link" title="Profil">
+                <a href="{{ route('profile') }}" class="avatar avatar-sidebar avatar-link" title="Profil">
                     @if (auth()->user()->avatarUrl())
                         <img src="{{ auth()->user()->avatarUrl() }}" alt="{{ auth()->user()->name }}" class="avatar-image">
                     @else
@@ -60,7 +62,7 @@
                 <div class="topbar-actions">
                     <span class="today-label">{{ now()->locale('id')->translatedFormat('l, d F Y') }}</span>
                     <button class="icon-button notification-button" type="button" aria-label="Notifikasi"><x-icon name="bell" /><i></i></button>
-                    <a href="{{ route('settings.profile') }}" class="avatar avatar-top avatar-link" aria-label="Pengaturan profil {{ auth()->user()->name }}" title="Pengaturan profil">
+                    <a href="{{ route('profile') }}" class="avatar avatar-top avatar-link" aria-label="Profil {{ auth()->user()->name }}" title="Profil">
                         @if (auth()->user()->avatarUrl())
                             <img src="{{ auth()->user()->avatarUrl() }}" alt="{{ auth()->user()->name }}" class="avatar-image">
                         @else

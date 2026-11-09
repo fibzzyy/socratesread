@@ -46,9 +46,11 @@ Route::get('/avatar/{user}', function (\App\Models\User $user) {
 
 Route::middleware('auth')->group(function () {
     Route::get('/', DashboardController::class)->name('dashboard');
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile');
+    Route::get('/profile', [ProfileController::class, 'show'])->name('profile');
     Route::get('/settings/profile', [ProfileController::class, 'edit'])->name('settings.profile');
     Route::put('/settings/profile', [ProfileController::class, 'update'])->name('settings.profile.update');
+    Route::put('/settings/password', [ProfileController::class, 'updatePassword'])->name('settings.password.update');
+    Route::put('/settings/email', [ProfileController::class, 'updateEmail'])->name('settings.email.update');
 });
 
 Route::middleware(['auth', 'role:student'])->group(function () {

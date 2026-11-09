@@ -170,6 +170,7 @@ class ClassroomEnrollmentTest extends TestCase
             'email' => 'gurubaru@example.test',
             'role' => 'teacher',
             'school_origin' => 'SMAN 1 Jakarta',
+            'teacher_identifier_type' => 'nuptk',
             'nip_nuptk' => '198001012005011001',
         ]);
     }
@@ -188,5 +189,19 @@ class ClassroomEnrollmentTest extends TestCase
                 'password' => 'SocratesRead123',
             ])
             ->assertRedirect(route('teacher.dashboard'));
+    }
+
+    public function test_teacher_registration_requires_nuptk(): void
+    {
+        $this->from('/register')->post('/register', [
+            'name' => 'Guru Baru',
+            'email' => 'guruidentitas@example.test',
+            'role' => 'teacher',
+            'school_origin' => 'SMAN 1 Jakarta',
+            'password' => 'SocratesRead123',
+            'password_confirmation' => 'SocratesRead123',
+        ])->assertRedirect('/register')->assertSessionHasErrors('nip_nuptk');
+
+        $this->assertDatabaseMissing('users', ['email' => 'guruidentitas@example.test']);
     }
 }

@@ -21,11 +21,11 @@
                 <a class="nav-link {{ request()->routeIs('teacher.dashboard') ? 'is-active' : '' }}" href="{{ route('teacher.dashboard') }}" @if(request()->routeIs('teacher.dashboard')) aria-current="page" @endif><x-icon name="layout-dashboard"/><span>Ringkasan</span></a>
                 <a class="nav-link {{ request()->routeIs('teacher.classrooms*') ? 'is-active' : '' }}" href="{{ route('teacher.classrooms') }}" @if(request()->routeIs('teacher.classrooms*')) aria-current="page" @endif><x-icon name="users"/><span>Kelas saya</span></a>
                 <a class="nav-link {{ request()->routeIs('teacher.documents*') ? 'is-active' : '' }}" href="{{ route('teacher.documents') }}" @if(request()->routeIs('teacher.documents*')) aria-current="page" @endif><x-icon name="book-open-text"/><span>Kelola bacaan</span></a>
-                <a class="nav-link {{ request()->routeIs('settings.profile', 'profile') ? 'is-active' : '' }}" href="{{ route('settings.profile') }}" @if(request()->routeIs('settings.profile', 'profile')) aria-current="page" @endif><x-icon name="user"/><span>Profil</span></a>
+                <a class="nav-link {{ request()->routeIs('profile', 'settings.profile') ? 'is-active' : '' }}" href="{{ route('profile') }}" @if(request()->routeIs('profile', 'settings.profile')) aria-current="page" @endif><x-icon name="user"/><span>Profil</span></a>
             </nav>
             <div class="sidebar-spacer"></div>
             <div class="profile-button">
-                <a href="{{ route('settings.profile') }}" class="avatar avatar-sidebar avatar-link" title="Profil">
+                <a href="{{ route('profile') }}" class="avatar avatar-sidebar avatar-link" title="Profil">
                     @if (auth()->user()->avatarUrl())
                         <img src="{{ auth()->user()->avatarUrl() }}" alt="{{ auth()->user()->name }}" class="avatar-image">
                     @else
@@ -52,7 +52,7 @@
                 <div class="topbar-actions">
                     <span class="today-label">{{ now()->locale('id')->translatedFormat('l, d F Y') }}</span>
                     <button class="icon-button notification-button" type="button" aria-label="Notifikasi"><x-icon name="bell" /><i></i></button>
-                    <a href="{{ route('settings.profile') }}" class="avatar avatar-top avatar-link" aria-label="Pengaturan profil {{ auth()->user()->name }}" title="Pengaturan profil">
+                    <a href="{{ route('profile') }}" class="avatar avatar-top avatar-link" aria-label="Profil {{ auth()->user()->name }}" title="Profil">
                         @if (auth()->user()->avatarUrl())
                             <img src="{{ auth()->user()->avatarUrl() }}" alt="{{ auth()->user()->name }}" class="avatar-image">
                         @else
