@@ -188,8 +188,7 @@ INSTRUCTIONS;
         }
 
         if (count($quizQuestions) < 10) {
-            // Coba generate sisa quiz questions via AI khusus kuis atau fallback ke heuristic
-            $additionalQuiz = $this->generateQuizQuestions($parsed['cleaned_body'], $title, $category, 10);
+            $additionalQuiz = $this->generateHeuristicQuizQuestions($parsed['cleaned_body'], $title, $category, 10);
             for ($i = count($quizQuestions) + 1; $i <= 10; $i++) {
                 if (isset($additionalQuiz[$i - 1])) {
                     $item = $additionalQuiz[$i - 1];
@@ -386,6 +385,14 @@ INSTRUCTIONS;
     /**
      * @return array<int, array{sequence: int, skill: string, prompt: string, context: string, hint: string}>
      */
+    public function generateHeuristicSocraticQuestions(string $body, string $title, ?string $category = null): array
+    {
+        return $this->generateHeuristicQuestions($body, $title, $category);
+    }
+
+    /**
+     * @return array<int, array{sequence: int, skill: string, prompt: string, context: string, hint: string}>
+     */
     public function generateHeuristicQuestions(string $body, string $title, ?string $category = null): array
     {
         $bulletPattern = '/^[•·\-\d+\.)\s\x{2022}\x{25CB}\x{25CF}\x{25AA}\x{25AB}\x{25BA}\x{2192}\x{2713}\x{2714}⚬○■□▪▫◆◇]+/u';
@@ -410,53 +417,53 @@ INSTRUCTIONS;
         $categoryLabel = $category ? " dalam bidang {$category}" : '';
 
         // 1. Pengertian
-        $q1Answer = ! empty($defLines)
+        $q1Answer = $defLines->isNotEmpty()
             ? implode('. ', array_slice($defLines->toArray(), 0, 2))
             : ($lineAt(0, "Materi ini membahas konsep fundamental dari {$title}{$categoryLabel}."));
 
         // 2. Fungsi & Tujuan
-        $q2Answer = ! empty($funcLines)
+        $q2Answer = $funcLines->isNotEmpty()
             ? implode('. ', array_slice($funcLines->toArray(), 0, 2))
             : ($lineAt(1, "Fungsi utama dari materi ini adalah untuk memberikan pemahaman dan standarisasi dalam penerapannya."));
 
         // 3. Komponen / Karakteristik
-        $q3Answer = ! empty($compLines)
+        $q3Answer = $compLines->isNotEmpty()
             ? implode('. ', array_slice($compLines->toArray(), 0, 2))
             : ($lineAt(2, "Aspek penting materi mencakup elemen-elemen dan spesifikasi yang diuraikan dalam bacaan."));
 
         // 4. Cara Kerja / Mekanisme
-        $q4Answer = ! empty($procLines)
+        $q4Answer = $procLines->isNotEmpty()
             ? implode('. ', array_slice($procLines->toArray(), 0, 2))
             : ($lineAt(3, "Mekanismenya bertumpu pada alur proses dan prinsip operasional sesuai uraian bacaan."));
 
         // 5. Manfaat / Penerapan Praktis
-        $q5Answer = ! empty($appLines)
+        $q5Answer = $appLines->isNotEmpty()
             ? implode('. ', array_slice($appLines->toArray(), 0, 2))
             : ($lineAt(4, "Penerapan nyata materi ini memberikan manfaat peningkatan efisiensi dan kualitas pemecahan masalah di bidangnya."));
 
         // 1. Pengertian / Konsep Inti
-        $q1Prompt = ! empty($defLines)
-            ? "Berdasarkan teks materi, " . rtrim($defLines[0], '.') . ". Jelaskan mengapa konsep ini menjadi gagasan pokok dalam pembahasan!"
+        $q1Prompt = $defLines->isNotEmpty()
+            ? "Berdasarkan teks materi, " . rtrim((string) $defLines->first(), '.') . ". Jelaskan mengapa konsep ini menjadi gagasan pokok dalam pembahasan!"
             : "Jelaskan apa yang dimaksud dengan materi \"{$title}\" dan apa konsep pokok yang dibahas di dalamnya!";
 
         // 2. Fungsi & Peranan
-        $q2Prompt = ! empty($funcLines)
-            ? "Materi menjelaskan bahwa " . rtrim($funcLines[0], '.') . ". Bagaimana fungsi tersebut berkontribusi secara nyata pada tujuan materi?"
+        $q2Prompt = $funcLines->isNotEmpty()
+            ? "Materi menjelaskan bahwa " . rtrim((string) $funcLines->first(), '.') . ". Bagaimana fungsi tersebut berkontribusi secara nyata pada tujuan materi?"
             : "Apa fungsi dan peranan penting dari konsep yang diuraikan dalam materi \"{$title}\"?";
 
         // 3. Karakteristik / Komponen
-        $q3Prompt = ! empty($compLines)
-            ? "Dalam materi diuraikan mengenai " . rtrim($compLines[0], '.') . ". Analisis bagaimana keterkaitan antara aspek-aspek tersebut!"
+        $q3Prompt = $compLines->isNotEmpty()
+            ? "Dalam materi diuraikan mengenai " . rtrim((string) $compLines->first(), '.') . ". Analisis bagaimana keterkaitan antara aspek-aspek tersebut!"
             : "Sebutkan dan jelaskan karakteristik, komponen, atau aspek-aspek utama yang membangun materi \"{$title}\"!";
 
         // 4. Mekanisme & Dampak Sebab-Akibat
-        $q4Prompt = ! empty($procLines)
-            ? "Teks memaparkan bahwa " . rtrim($procLines[0], '.') . ". Apa dampak atau akibat yang timbul jika hal tersebut tidak dijalankan semestinya?"
+        $q4Prompt = $procLines->isNotEmpty()
+            ? "Teks memaparkan bahwa " . rtrim((string) $procLines->first(), '.') . ". Apa dampak atau akibat yang timbul jika hal tersebut tidak dijalankan semestinya?"
             : "Bagaimana alur proses, aturan, atau mekanisme kerja yang diterapkan dalam topik materi \"{$title}\"?";
 
         // 5. Penerapan Nyata / Studi Kasus
-        $q5Prompt = ! empty($appLines)
-            ? "Terkait penerapan praktis, bacaan menyoroti " . rtrim($appLines[0], '.') . ". Bagaimana kamu mengimplementasikan pemikiran ini dalam kehidupan nyata?"
+        $q5Prompt = $appLines->isNotEmpty()
+            ? "Terkait penerapan praktis, bacaan menyoroti " . rtrim((string) $appLines->first(), '.') . ". Bagaimana kamu mengimplementasikan pemikiran ini dalam kehidupan nyata?"
             : "Bagaimana manfaat dan contoh penerapan nyata dari materi \"{$title}\" ini dalam bidang kerja atau kehidupan nyata?";
 
         return [
