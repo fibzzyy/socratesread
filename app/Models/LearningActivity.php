@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -22,5 +23,9 @@ class LearningActivity extends Model
     public function readingSession(): BelongsTo
     {
         return $this->belongsTo(ReadingSession::class);
+    }
+    public function document(): BelongsTo
+    {
+        return $this->belongsTo(Document::class);
     }
 }

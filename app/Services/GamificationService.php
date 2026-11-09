@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\ReadingSession;
 use App\Models\User;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -112,13 +113,16 @@ class GamificationService
     }
 
     /** @return array{xp: int, level: int, xp_into_level: int, xp_to_next_level: int, level_progress: int, current_streak: int, longest_streak: int} */
-    public function summary(User $user, ?array $documentIds = null): array
+    public function summary(User $user, string|array|null $grade = 'all', ?array $documentIds = null): array
     {
-        $activitiesQuery = $user->learningActivities()
-            ->when($documentIds !== null, fn ($q) => $q->whereIn('document_id', $documentIds));
+        if (is_array($grade)) {
+            $documentIds = $grade;
+            $grade = 'all';
+        }
 
-        $xp = (int) (clone $activitiesQuery)->sum('xp_awarded');
-        $dates = (clone $activitiesQuery)
+        $activities = $this->activitiesForGrade($user, $grade ?? 'all', $documentIds);
+        $xp = (int) (clone $activities)->sum('xp_awarded');
+        $dates = (clone $activities)
             ->select('activity_date')
             ->distinct()
             ->orderByDesc('activity_date')
@@ -140,21 +144,29 @@ class GamificationService
         ];
     }
 
-    public function recentActivities(User $user, int $limit = 6, ?array $documentIds = null): Collection
+    public function recentActivities(User $user, int $limit = 6, string|array|null $grade = 'all', ?array $documentIds = null): Collection
     {
-        return $user->learningActivities()
-            ->when($documentIds !== null, fn ($q) => $q->whereIn('document_id', $documentIds))
-            ->with('readingSession.document:id,title,category')
+        if (is_array($grade)) {
+            $documentIds = $grade;
+            $grade = 'all';
+        }
+
+        return $this->activitiesForGrade($user, $grade ?? 'all', $documentIds)
+            ->with(['readingSession.document:id,title', 'document:id,title'])
             ->latest('created_at')
             ->limit($limit)
             ->get();
     }
 
-    public function weeklyActivity(User $user, ?array $documentIds = null): Collection
+    public function weeklyActivity(User $user, string|array|null $grade = 'all', ?array $documentIds = null): Collection
     {
+        if (is_array($grade)) {
+            $documentIds = $grade;
+            $grade = 'all';
+        }
+
         $start = now()->startOfDay()->subDays(6);
-        $activities = $user->learningActivities()
-            ->when($documentIds !== null, fn ($q) => $q->whereIn('document_id', $documentIds))
+        $activities = $this->activitiesForGrade($user, $grade ?? 'all', $documentIds)
             ->whereBetween('activity_date', [$start->toDateString(), now()->toDateString()])
             ->get()
             ->groupBy(fn ($activity) => $activity->activity_date->toDateString());
@@ -170,6 +182,14 @@ class GamificationService
                 'events' => $items->count(),
             ];
         });
+    }
+
+    private function activitiesForGrade(User $user, string $grade, ?array $documentIds = null): HasMany
+    {
+        return $user->learningActivities()
+            ->when($grade !== 'all', fn ($query) => $query->whereHas('document', fn ($documents) => $documents
+                ->whereIn('target_grade', ['all', $grade])))
+            ->when($documentIds !== null, fn ($query) => $query->whereIn('document_id', $documentIds));
     }
 
     private function currentStreak(Collection $dates): int

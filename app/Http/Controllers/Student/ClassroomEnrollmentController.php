@@ -12,7 +12,7 @@ class ClassroomEnrollmentController extends Controller
 {
     public function index(Request $request): View
     {
-        $student = $request->user();
+        $student = auth()->user();
         $classrooms = $student->classrooms()
             ->with('teacher')
             ->withCount('students')
@@ -22,6 +22,7 @@ class ClassroomEnrollmentController extends Controller
         return view('student.classrooms', [
             'classrooms' => $classrooms,
             'user' => $student,
+            'joinCode' => strtoupper((string) $request->query('join_code', '')),
         ]);
     }
 

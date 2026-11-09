@@ -53,13 +53,12 @@
             <article class="panel grid content-start gap-5">
                 <div class="flex items-start justify-between gap-4">
                     <div>
-                        <div class="flex items-center gap-2">
-                            <p class="section-overline">KELAS</p>
-                            <span class="rounded bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700">{{ $classroom->targetGradeLabel() }}</span>
+                        <div class="flex min-h-6 items-center gap-2">
+                            <span class="inline-flex min-h-6 items-center rounded-md bg-blue-50 px-2 text-xs font-semibold leading-none text-blue-700">{{ $classroom->targetGradeLabel() }}</span>
                             @if ($classroom->is_active)
-                                <span class="rounded bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 border border-emerald-200/60">Aktif</span>
+                                <span class="inline-flex min-h-6 items-center rounded-md border border-emerald-200/60 bg-emerald-50 px-2 text-xs font-semibold leading-none text-emerald-700">Aktif</span>
                             @else
-                                <span class="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">Diarsipkan</span>
+                                <span class="inline-flex min-h-6 items-center rounded-md bg-slate-100 px-2 text-xs font-semibold leading-none text-slate-600">Diarsipkan</span>
                             @endif
                         </div>
                         <h2 class="mt-1 text-lg font-bold text-slate-900">{{ $classroom->name }}</h2>
@@ -69,28 +68,23 @@
                 <div class="flex items-center justify-between border-y border-slate-100 py-3 text-sm"><span class="text-slate-600">Pembaca materi Anda</span><strong class="text-slate-900">{{ $classroom->active_readers_count }}</strong></div>
                 <div>
                     <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Kode gabung</p>
-                    <div class="flex items-center justify-between rounded-lg bg-slate-50 px-4 py-3">
-                        <strong class="font-mono text-lg tracking-[.18em] {{ $classroom->is_active ? 'text-slate-900' : 'text-slate-400 line-through' }}">{{ $classroom->join_code }}</strong>
-                        <span class="text-xs {{ $classroom->is_active ? 'text-slate-500' : 'text-amber-600 font-medium' }}">{{ $classroom->is_active ? 'Bagikan ke siswa' : 'Kelas nonaktif' }}</span>
+                    <div class="flex flex-nowrap items-center justify-between gap-3 rounded-xl border border-blue-100 bg-blue-50/40 px-4 py-3">
+                        <strong class="min-w-0 truncate font-mono text-lg font-bold tracking-[.18em] {{ $classroom->is_active ? 'text-slate-900' : 'text-slate-400 line-through' }}">{{ $classroom->join_code }}</strong>
+                        @if ($classroom->is_active)
+                            <button type="button" class="outline-button inline-flex min-h-11 min-w-0 shrink-0 items-center justify-center gap-2 px-3" data-copy-join-link="{{ url('/classrooms?join_code='.$classroom->join_code) }}" aria-label="Salin tautan untuk bergabung ke kelas {{ $classroom->name }}">
+                                <x-icon name="copy" class="size-4 shrink-0" />
+                                <span data-copy-label>Salin tautan</span>
+                            </button>
+                        @else
+                            <span class="text-xs font-medium text-amber-600">Kelas nonaktif</span>
+                        @endif
                     </div>
                 </div>
-                <div class="grid gap-3 border-t border-slate-100 pt-4"><div class="flex items-center justify-between"><h3 class="text-sm font-bold text-slate-900">Anggota kelas</h3><span class="text-xs text-slate-500">{{ $classroom->students_count }} siswa</span></div>
-                    @forelse ($classroom->students as $student)
-                        <div class="flex items-center justify-between gap-3 text-sm">
-                            <div class="min-w-0">
-                                <div class="flex items-center gap-1.5">
-                                    <strong class="block truncate text-slate-800">{{ $student->name }}</strong>
-                                    @if ($student->currentGrade())
-                                        <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">Kelas {{ $student->currentGrade() }}</span>
-                                    @endif
-                                </div>
-                                <span class="text-xs text-slate-500">{{ $student->teacher_reading_sessions_count }} sesi pada bacaan Anda</span>
-                            </div>
-                            <span class="shrink-0 font-semibold text-slate-700">{{ (int) round($student->teacher_average_progress ?? 0) }}%</span>
-                        </div>
-                    @empty
-                        <p class="text-sm text-slate-500">Belum ada siswa bergabung.</p>
-                    @endforelse
+                <div class="border-t border-slate-100 pt-4">
+                    <a href="{{ route('teacher.classrooms.members', $classroom) }}" class="challenge-button flex min-h-12 w-full min-w-0 justify-center px-4 text-sm" aria-label="Lihat {{ $classroom->students_count }} anggota kelas {{ $classroom->name }}">
+                        <x-icon name="users" class="size-4" />
+                        <span>Anggota kelas</span>
+                    </a>
                 </div>
                 <div class="border-t border-slate-100 pt-3 flex items-center justify-between">
                     <form method="POST" action="{{ route('teacher.classrooms.toggle-status', $classroom) }}">
@@ -125,3 +119,38 @@
         @endforelse
     </section>
 @endsection
+
+@push('scripts')
+<script>
+(() => {
+    document.querySelectorAll('[data-copy-join-link]').forEach((button) => {
+        button.addEventListener('click', async () => {
+            const label = button.querySelector('[data-copy-label]');
+            const originalLabel = label.textContent;
+            const link = button.dataset.copyJoinLink;
+
+            try {
+                await navigator.clipboard.writeText(link);
+            } catch {
+                const input = document.createElement('textarea');
+                input.value = link;
+                input.setAttribute('readonly', '');
+                input.style.position = 'fixed';
+                input.style.opacity = '0';
+                document.body.appendChild(input);
+                input.select();
+                document.execCommand('copy');
+                input.remove();
+            }
+
+            label.textContent = 'Tautan tersalin';
+            button.classList.add('!border-emerald-300', '!text-emerald-700', '!bg-emerald-50');
+            window.setTimeout(() => {
+                label.textContent = originalLabel;
+                button.classList.remove('!border-emerald-300', '!text-emerald-700', '!bg-emerald-50');
+            }, 2200);
+        });
+    });
+})();
+</script>
+@endpush

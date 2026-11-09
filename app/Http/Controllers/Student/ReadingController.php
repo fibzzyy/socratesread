@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Student;
 use App\Http\Controllers\Controller;
 use App\Models\Document;
 use App\Models\ReadingSession;
+use App\Models\StudentQuizAttempt;
 use App\Services\GamificationService;
 use App\Services\AI\Contracts\LanguageModel;
 use Illuminate\Cache\RateLimiter;
@@ -19,27 +20,30 @@ use Illuminate\View\View;
 
 class ReadingController extends Controller
 {
-    public function show(Document|int|string|null $document = null): View|RedirectResponse
+    public function show(Request $request, Document|int|string|null $document = null): View|RedirectResponse
     {
-        if (! $document instanceof Document) {
-            $document = $document ? Document::query()->find($document) : null;
-        }
-        $document ??= Document::query()->where('is_published', true)->latest('created_at')->first();
         if (! $document) {
-            return redirect()->route('dashboard')->with('notice', 'Belum ada bacaan yang diterbitkan. Silakan kembali lagi nanti.');
+            return $this->index($request);
+        }
+
+        if (! $document instanceof Document) {
+            $document = Document::query()->find($document);
+        }
+        if (! $document) {
+            return redirect()->route('reading')->with('notice', 'Materi tidak ditemukan.');
         }
 
         abort_unless($document->is_published, 404);
 
         $session = ReadingSession::query()
-            ->where('user_id', auth()->id())
+            ->where('user_id', $request->user()->id)
             ->where('document_id', $document->id)
             ->latest('started_at')
             ->first();
 
         if (! $session) {
             $session = ReadingSession::query()->create([
-                'user_id' => auth()->id(),
+                'user_id' => $request->user()->id,
                 'document_id' => $document->id,
                 'status' => 'in_progress',
                 'started_at' => now(),
@@ -49,6 +53,115 @@ class ReadingController extends Controller
         return view('student.reading', compact('document', 'session'));
     }
 
+    public function index(Request $request): View
+    {
+        $student = $request->user();
+        $grade = $this->selectedGrade($request);
+        $documents = Document::query()
+            ->with('uploader:id,name')
+            ->where('is_published', true)
+            ->when($grade !== 'all', fn ($query) => $query->where(fn ($sub) => $sub->where('target_grade', 'all')->orWhere('target_grade', $grade)))
+            ->latest('created_at')
+            ->get();
+
+        $documentIds = $documents->modelKeys();
+        $completedChallengeIds = ReadingSession::query()
+            ->where('user_id', $student->id)
+            ->whereIn('document_id', $documentIds)
+            ->where('status', 'completed')
+            ->pluck('document_id');
+        $completedQuizIds = StudentQuizAttempt::query()
+            ->where('user_id', $student->id)
+            ->whereIn('document_id', $documentIds)
+            ->where('status', 'completed')
+            ->pluck('document_id');
+        $completedIds = $completedChallengeIds->merge($completedQuizIds)->unique()->flip();
+        $sessions = ReadingSession::query()
+            ->where('user_id', $student->id)
+            ->whereIn('document_id', $documentIds)
+            ->orderBy('started_at')
+            ->get()
+            ->keyBy('document_id');
+
+        foreach ($documents as $document) {
+            $document->setAttribute('student_session', $sessions->get($document->id));
+            $document->setAttribute('is_completed', $completedIds->has($document->id));
+        }
+
+        $groups = $documents
+            ->groupBy(fn (Document $document) => $document->uploaded_by.'|'.base64_encode($document->category))
+            ->map(function ($items): array {
+                $first = $items->first();
+                $completedCount = $items->where('is_completed', true)->count();
+
+                return [
+                    'teacher_id' => $first->uploaded_by,
+                    'teacher_name' => $first->uploader?->name ?? 'Guru SocratesRead',
+                    'category' => $first->category,
+                    'documents' => $items,
+                    'materials_count' => $items->count(),
+                    'completed_count' => $completedCount,
+                    'progress' => $items->isNotEmpty() ? (int) round($completedCount / $items->count() * 100) : 0,
+                ];
+            })
+            ->values();
+
+        $selectedTeacher = $request->query('teacher');
+        $selectedCategory = $request->query('category');
+        $selectedGroup = is_scalar($selectedTeacher) && is_string($selectedCategory)
+            ? $groups->first(fn (array $group) => (string) $group['teacher_id'] === (string) $selectedTeacher
+                && $group['category'] === $selectedCategory)
+            : null;
+        $selectedDocuments = $selectedGroup['documents'] ?? collect();
+        $completedCount = $selectedGroup['completed_count'] ?? 0;
+
+        return view('student.reading-index', compact(
+            'groups', 'selectedGroup', 'selectedDocuments', 'grade', 'completedCount',
+        ));
+    }
+    public function startChallenge(Request $request, Document $document): RedirectResponse
+    {
+        $student = $request->user();
+        abort_unless($document->is_published, 404);
+
+        $grade = $this->selectedGrade($request);
+        abort_unless($grade === 'all' || $document->target_grade === 'all' || (string) $document->target_grade === $grade, 404);
+
+        $completedChallenge = ReadingSession::query()
+            ->where('user_id', $student->id)
+            ->where('document_id', $document->id)
+            ->where('status', 'completed')
+            ->exists();
+        $completedQuiz = StudentQuizAttempt::query()
+            ->where('user_id', $student->id)
+            ->where('document_id', $document->id)
+            ->where('status', 'completed')
+            ->exists();
+
+        if ($completedChallenge || $completedQuiz) {
+            return redirect()->route('reading', ['teacher' => $document->uploaded_by, 'category' => $document->category])->with('notice', 'Materi ini sudah selesai. Pilih Buka untuk membaca ulang.');
+        }
+
+        $session = ReadingSession::query()->firstOrCreate(
+            [
+                'user_id' => $student->id,
+                'document_id' => $document->id,
+                'status' => 'in_progress',
+            ],
+            ['started_at' => now()],
+        );
+
+        return redirect()->route('challenge', ['session' => $session->id]);
+    }
+
+    private function selectedGrade(Request $request): string
+    {
+        $student = $request->user();
+        $default = (string) ($student->currentGrade() ?? ($student->entry_grade ?? 10));
+        $grade = $request->session()->get('learning_grade', $default);
+
+        return in_array((string) $grade, ['10', '11', '12', 'all'], true) ? (string) $grade : $default;
+    }
     public function updateProgress(Request $request, GamificationService $gamification): JsonResponse
     {
         $data = $request->validate([

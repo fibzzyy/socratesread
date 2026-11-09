@@ -22,8 +22,6 @@
                 <a class="nav-link {{ request()->routeIs('dashboard') ? 'is-active' : '' }}" href="{{ route('dashboard') }}" @if(request()->routeIs('dashboard')) aria-current="page" @endif><x-icon name="layout-dashboard" /><span>Dashboard</span></a>
                 <a class="nav-link {{ request()->routeIs('reading') ? 'is-active' : '' }}" href="{{ route('reading') }}" @if(request()->routeIs('reading')) aria-current="page" @endif><x-icon name="book-open-text" /><span>Reading Room</span></a>
                 <a class="nav-link {{ request()->routeIs('classrooms.*') ? 'is-active' : '' }}" href="{{ route('classrooms.index') }}" @if(request()->routeIs('classrooms.*')) aria-current="page" @endif><x-icon name="users" /><span>My Class</span></a>
-                <a class="nav-link {{ request()->routeIs('settings.profile', 'profile') ? 'is-active' : '' }}" href="{{ route('settings.profile') }}" @if(request()->routeIs('settings.profile', 'profile')) aria-current="page" @endif><x-icon name="user" /><span>Profil</span></a>
-                <a class="nav-link {{ request()->routeIs('classrooms.*') ? 'is-active' : '' }}" href="{{ route('classrooms.index') }}" @if(request()->routeIs('classrooms.*')) aria-current="page" @endif><x-icon name="users" /><span>Kelas saya</span></a>
                 <a class="nav-link {{ request()->routeIs('settings.profile', 'profile') ? 'is-active' : '' }}" href="{{ route('profile') }}" @if(request()->routeIs('settings.profile', 'profile')) aria-current="page" @endif><x-icon name="user" /><span>Profil</span></a>
             </nav>
             <div class="nav-label nav-label-spaced">BELAJAR</div>

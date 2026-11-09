@@ -16,7 +16,7 @@ class QuizController extends Controller
 {
     public function index(Request $request): View
     {
-        $user = auth()->user();
+        $user = $request->user();
         $selectedCategory = $request->query('category', 'all');
         $selectedStatus = $request->query('status', 'all');
 
