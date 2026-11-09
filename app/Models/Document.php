@@ -8,7 +8,19 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Document extends Model
 {
-    protected $fillable = ['title', 'category', 'target_grade', 'excerpt', 'body', 'source_file_path', 'uploaded_by', 'estimated_minutes', 'is_published'];
+    protected $fillable = [
+        'title',
+        'category',
+        'target_grade',
+        'excerpt',
+        'body',
+        'source_file_path',
+        'uploaded_by',
+        'estimated_minutes',
+        'quiz_duration_minutes',
+        'quiz_question_count',
+        'is_published',
+    ];
 
     public function targetGradeLabel(): string
     {
@@ -22,7 +34,11 @@ class Document extends Model
 
     protected function casts(): array
     {
-        return ['is_published' => 'boolean'];
+        return [
+            'is_published' => 'boolean',
+            'quiz_duration_minutes' => 'integer',
+            'quiz_question_count' => 'integer',
+        ];
     }
 
     public function questions(): HasMany
@@ -48,5 +64,15 @@ class Document extends Model
     public function uploader(): BelongsTo
     {
         return $this->belongsTo(User::class, 'uploaded_by');
+    }
+
+    public function teacherChallenges(): HasMany
+    {
+        return $this->hasMany(TeacherChallenge::class)->orderBy('sequence');
+    }
+
+    public function teacherChallengeSubmissions(): HasMany
+    {
+        return $this->hasMany(StudentTeacherChallengeSubmission::class);
     }
 }

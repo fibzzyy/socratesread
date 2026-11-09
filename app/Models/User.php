@@ -28,6 +28,9 @@ class User extends Authenticatable
         'avatar_path',
         'school_origin',
         'nip_nuptk',
+        'teacher_identifier_type',
+        'subject_area',
+        'bio',
         'nisn',
         'entry_grade',
         'enrollment_year',
@@ -45,6 +48,11 @@ class User extends Authenticatable
     public function learningActivities(): HasMany
     {
         return $this->hasMany(LearningActivity::class);
+    }
+
+    public function teacherChallengeSubmissions(): HasMany
+    {
+        return $this->hasMany(StudentTeacherChallengeSubmission::class);
     }
 
     public function uploadedDocuments(): HasMany

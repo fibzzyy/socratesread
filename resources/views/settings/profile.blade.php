@@ -1,15 +1,16 @@
 @extends('layouts.student')
 
-@section('title', 'Halaman Profil')
-@section('breadcrumb', 'Profil')
+@section('title', 'Edit Profil Siswa')
+@section('breadcrumb', 'Edit Profil')
 
 @section('content')
     <section class="stage-heading" aria-labelledby="profile-title">
         <div>
             <p class="eyebrow">AKUN PRIBADI</p>
-            <h1 id="profile-title">Profil Saya</h1>
-            <p class="welcome-subtitle">Kelola informasi pribadi, foto profil, dan identitas belajar Anda.</p>
+            <h1 id="profile-title">Edit Profil Siswa</h1>
+            <p class="welcome-subtitle">Perbarui nama, foto, dan informasi belajar Anda.</p>
         </div>
+        <a href="{{ route('profile') }}" class="form-cancel-link">Kembali ke Profil</a>
     </section>
 
     @if (session('status'))
@@ -19,39 +20,7 @@
         </div>
     @endif
 
-    <div class="profile-layout-grid">
-        <!-- Kartu Ringkasan Akun -->
-        <aside class="panel profile-summary-card">
-            <div class="summary-avatar-wrapper">
-                <div class="avatar summary-avatar">
-                    @if ($user->avatarUrl())
-                        <img src="{{ $user->avatarUrl() }}" alt="{{ $user->name }}" class="avatar-image" id="summaryAvatarImg">
-                    @else
-                        <span id="summaryAvatarPlaceholder" style="font-size: 34px; font-weight: 700;">
-                            {{ mb_strtoupper(collect(explode(' ', $user->name))->filter()->take(2)->map(fn ($part) => mb_substr($part, 0, 1))->implode('')) }}
-                        </span>
-                    @endif
-                </div>
-                <span class="role-badge role-badge-student">Siswa</span>
-            </div>
-
-            <div class="summary-details">
-                <h2 class="summary-name">{{ $user->name }}</h2>
-                <p class="summary-email">{{ $user->email }}</p>
-                <div class="summary-divider"></div>
-                <div class="summary-meta-item">
-                    <span class="meta-label">Peran</span>
-                    <strong class="meta-value">Siswa SocratesRead</strong>
-                </div>
-                <div class="summary-meta-item">
-                    <span class="meta-label">Bergabung sejak</span>
-                    <strong class="meta-value">{{ $user->created_at?->locale('id')->translatedFormat('d F Y') ?? '-' }}</strong>
-                </div>
-            </div>
-        </aside>
-
-        <!-- Form Edit Profil & Upload Foto -->
-        <section class="panel profile-edit-panel" aria-labelledby="edit-profile-heading">
+    <section class="panel profile-edit-panel" aria-labelledby="edit-profile-heading">
             <div class="section-heading">
                 <div>
                     <p class="section-overline">INFORMASI PROFIL</p>
@@ -102,7 +71,7 @@
 
                 <div class="form-divider"></div>
 
-                <!-- Input Nama & Email -->
+                <!-- Input Nama -->
                 <div class="form-grid">
                     <div class="form-group">
                         <label for="name">Nama Lengkap</label>
@@ -112,10 +81,21 @@
                         @enderror
                     </div>
 
+                </div>
+
+                <div class="form-grid student-learning-fields">
                     <div class="form-group">
-                        <label for="email">Alamat Email</label>
-                        <input id="email" name="email" type="email" class="form-input @error('email') is-invalid @enderror" value="{{ old('email', $user->email) }}" required autocomplete="email">
-                        @error('email')
+                        <label for="nisn">NISN</label>
+                        <input id="nisn" name="nisn" type="text" class="form-input @error('nisn') is-invalid @enderror" value="{{ old('nisn', $user->nisn) }}" maxlength="50" autocomplete="off">
+                        @error('nisn')
+                            <small class="form-error">{{ $message }}</small>
+                        @enderror
+                    </div>
+
+                    <div class="form-group">
+                        <label for="bio">Bio <span class="optional-label">(opsional)</span></label>
+                        <textarea id="bio" name="bio" class="form-input form-textarea @error('bio') is-invalid @enderror" rows="4" maxlength="1000" placeholder="Ceritakan sedikit tentang diri Anda">{{ old('bio', $user->bio) }}</textarea>
+                        @error('bio')
                             <small class="form-error">{{ $message }}</small>
                         @enderror
                     </div>
@@ -126,11 +106,12 @@
                         <span>Simpan Perubahan</span>
                         <x-icon name="arrow-right" />
                     </button>
-                    <a href="{{ route('dashboard') }}" class="form-cancel-link">Batal</a>
+                    <a href="{{ route('profile') }}" class="form-cancel-link">Batal</a>
                 </div>
             </form>
-        </section>
-    </div>
+    </section>
+
+    @include('components.profile-password-form')
 
     <!-- MODAL CROP SEDERHANA -->
     <div id="cropModal" class="simple-crop-backdrop" style="display: none;">
@@ -294,57 +275,11 @@
 @endpush
 
 <style>
-    .profile-layout-grid {
-        display: grid;
-        grid-template-columns: 280px 1fr;
-        gap: 24px;
-        align-items: start;
-        margin-top: 10px;
-    }
-    @media (max-width: 900px) {
-        .profile-layout-grid { grid-template-columns: 1fr; }
-    }
-    .profile-summary-card {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-        padding: 30px 20px;
-    }
-    .summary-avatar-wrapper {
-        position: relative;
-        margin-bottom: 16px;
-    }
-    .summary-avatar {
-        width: 110px;
-        height: 110px;
-        border-radius: 50%;
-        border: 4px solid #e0e7ff;
-        box-shadow: 0 4px 14px rgba(37, 99, 235, 0.15);
-        overflow: hidden;
-    }
-    .role-badge {
-        position: absolute;
-        bottom: 2px;
-        right: 2px;
-        padding: 4px 10px;
-        border-radius: 9999px;
-        font-size: 11px;
-        font-weight: 700;
-        letter-spacing: 0.5px;
-        text-transform: uppercase;
-        border: 2px solid #fff;
-    }
-    .role-badge-student { background: #2563eb; color: #fff; }
-    .role-badge-teacher { background: #059669; color: #fff; }
-    .summary-name { font-size: 18px; font-weight: 700; color: #1e293b; margin: 0 0 4px; }
-    .summary-email { font-size: 13px; color: #64748b; margin: 0 0 16px; word-break: break-all; }
-    .summary-divider { width: 100%; height: 1px; background: #e2e8f0; margin: 16px 0; }
-    .summary-meta-item { display: flex; justify-content: space-between; width: 100%; font-size: 12px; margin-bottom: 10px; }
-    .meta-label { color: #64748b; }
-    .meta-value { color: #1e293b; font-weight: 600; }
-
-    .profile-edit-panel { padding: 30px; }
+    .profile-edit-panel { width: 100%; padding: 30px; margin-top: 10px; }
+    .password-edit-panel { margin-top: 24px; }
+    .student-learning-fields { margin-top: 20px; }
+    .optional-label { color: #64748b; font-size: 11px; }
+    .form-textarea { min-height: 100px; resize: vertical; font: inherit; }
     .profile-avatar-row {
         display: grid;
         grid-template-columns: auto 1fr;

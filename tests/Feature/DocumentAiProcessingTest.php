@@ -35,11 +35,11 @@ class DocumentAiProcessingTest extends TestCase
         $this->assertNotEmpty($result['excerpt']);
         $this->assertCount(5, $result['questions']);
         $this->assertCount(10, $result['quiz_questions']);
-        $this->assertSame('Memahami gagasan', $result['questions'][0]['skill']);
-        $this->assertSame('Menemukan bukti', $result['questions'][1]['skill']);
-        $this->assertSame('Menganalisis asumsi', $result['questions'][2]['skill']);
-        $this->assertSame('Menjelaskan alasan', $result['questions'][3]['skill']);
-        $this->assertSame('Refleksi dan penerapan', $result['questions'][4]['skill']);
+        $this->assertSame('Pengertian & Konsep Utama', $result['questions'][0]['skill']);
+        $this->assertSame('Fungsi & Peranan Utama', $result['questions'][1]['skill']);
+        $this->assertSame('Karakteristik & Komponen Kunci', $result['questions'][2]['skill']);
+        $this->assertSame('Cara Kerja & Mekanisme', $result['questions'][3]['skill']);
+        $this->assertSame('Manfaat & Penerapan Praktis', $result['questions'][4]['skill']);
     }
 
     public function test_document_ai_processor_parses_configured_ai_response(): void
@@ -100,6 +100,6 @@ class DocumentAiProcessingTest extends TestCase
         $this->assertCount(5, $document->questions);
         $this->assertCount(10, $document->quizQuestions);
         $this->assertSame(1, $document->questions[0]->sequence);
-        $this->assertSame('Memahami gagasan', $document->questions[0]->skill);
+        $this->assertSame('Pengertian & Konsep Utama', $document->questions[0]->skill);
     }
 }

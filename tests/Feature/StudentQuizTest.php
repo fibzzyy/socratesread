@@ -102,15 +102,24 @@ class StudentQuizTest extends TestCase
             'score' => 80,
             'correct_count' => 8,
             'total_questions' => 10,
+            'xp_awarded' => 25,
         ]);
 
         $attempt->refresh();
         $this->assertSame('completed', $attempt->status);
         $this->assertSame(80, $attempt->score);
+        $this->assertSame(25, $attempt->xp_awarded);
         $this->assertSame(8, $attempt->correct_count);
         $this->assertSame(320, $attempt->time_spent_seconds);
         $this->assertNotNull($attempt->completed_at);
         $this->assertTrue($attempt->isCompleted());
+
+        $this->assertDatabaseHas('learning_activities', [
+            'user_id' => $student->id,
+            'document_id' => $document->id,
+            'event_type' => 'quiz_timed_quiz',
+            'xp_awarded' => 25,
+        ]);
     }
 
     public function test_student_cannot_resubmit_completed_locked_quiz(): void
@@ -180,5 +189,111 @@ class StudentQuizTest extends TestCase
         $response->assertOk();
         $response->assertViewHas('mode', 'practice');
         $response->assertSee('Latihan Pilihan Ganda');
+    }
+
+    public function test_teacher_can_configure_quiz_duration_and_question_count(): void
+    {
+        $teacher = User::factory()->create(['role' => 'teacher']);
+        $document = Document::query()->create([
+            'uploaded_by' => $teacher->id,
+            'title' => 'Teknologi Informasi',
+            'category' => 'Informatika',
+            'body' => 'Uraian materi sistem komputer.',
+            'excerpt' => 'Sistem komputer.',
+            'estimated_minutes' => 5,
+            'quiz_duration_minutes' => 15,
+            'quiz_question_count' => 10,
+            'is_published' => true,
+        ]);
+
+        $response = $this->actingAs($teacher)->patch(route('teacher.documents.quiz_duration', $document), [
+            'quiz_duration_minutes' => 30,
+            'quiz_question_count' => 20,
+        ]);
+
+        $response->assertRedirect();
+        $document->refresh();
+        $this->assertEquals(30, $document->quiz_duration_minutes);
+        $this->assertEquals(20, $document->quiz_question_count);
+    }
+
+    public function test_teacher_can_configure_quiz_duration_and_question_count_via_json(): void
+    {
+        $teacher = User::factory()->create(['role' => 'teacher']);
+        $document = Document::query()->create([
+            'uploaded_by' => $teacher->id,
+            'title' => 'Teknologi Informasi',
+            'category' => 'Informatika',
+            'body' => 'Uraian materi sistem komputer berisikan konsep dasar perangkat keras dan lunak.',
+            'excerpt' => 'Sistem komputer.',
+            'estimated_minutes' => 5,
+            'quiz_duration_minutes' => 15,
+            'quiz_question_count' => 10,
+            'is_published' => true,
+        ]);
+
+        $response = $this->actingAs($teacher)->patchJson(route('teacher.documents.quiz_duration', $document), [
+            'quiz_duration_minutes' => 20,
+            'quiz_question_count' => 15,
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonStructure([
+            'success',
+            'message',
+            'quiz_duration_minutes',
+            'quiz_question_count',
+            'quiz_questions',
+        ]);
+        $document->refresh();
+        $this->assertEquals(20, $document->quiz_duration_minutes);
+        $this->assertEquals(15, $document->quiz_question_count);
+        $this->assertCount(15, $response->json('quiz_questions'));
+    }
+
+    public function test_student_quiz_loads_configured_question_count(): void
+    {
+        $student = User::factory()->create(['role' => 'student']);
+        $teacher = User::factory()->create(['role' => 'teacher']);
+        $document = Document::query()->create([
+            'uploaded_by' => $teacher->id,
+            'title' => 'Algoritma dan Pemrograman',
+            'category' => 'Informatika',
+            'body' => "Algoritma merupakan langkah sistematis logis.\n\nStruktur kontrol mencakup percabangan dan perulangan.",
+            'excerpt' => 'Konsep dasar algoritma.',
+            'estimated_minutes' => 5,
+            'quiz_duration_minutes' => 20,
+            'quiz_question_count' => 15,
+            'is_published' => true,
+        ]);
+
+        $response = $this->actingAs($student)->get(route('quiz.timed', ['document' => $document->id]));
+
+        $response->assertOk();
+        $questionsPayload = $response->viewData('questionsPayload');
+        $this->assertCount(15, $questionsPayload);
+    }
+
+    public function test_student_can_view_quizzes_catalog_index_page(): void
+    {
+        $student = User::factory()->create(['role' => 'student']);
+        $document = $this->createDocumentWith10QuizQuestions();
+
+        $response = $this->actingAs($student)->get(route('quiz.index'));
+
+        $response->assertOk();
+        $response->assertViewIs('student.quizzes');
+        $response->assertSee('Challenge Socrates');
+        $response->assertSee($document->title);
+        $response->assertSee('Mulai Kuis Timer');
+    }
+
+    public function test_accessing_timed_quiz_without_document_redirects_to_quiz_catalog(): void
+    {
+        $student = User::factory()->create(['role' => 'student']);
+
+        $response = $this->actingAs($student)->get(route('quiz.timed'));
+
+        $response->assertRedirect(route('quiz.index'));
     }
 }

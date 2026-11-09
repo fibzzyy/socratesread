@@ -18,6 +18,8 @@ class StoreDocumentRequest extends FormRequest
             'title' => ['required', 'string', 'max:160'],
             'category' => ['required', 'string', 'max:80'],
             'target_grade' => ['nullable', 'string', 'in:all,10,11,12'],
+            'quiz_duration_minutes' => ['nullable', 'integer', 'min:1', 'max:180'],
+            'quiz_question_count' => ['nullable', 'integer', 'min:5', 'max:100'],
             'file' => ['required', 'file', File::types(['pdf'])->max('50mb')],
         ];
     }
