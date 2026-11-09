@@ -59,12 +59,6 @@
                             {{ mb_strtoupper($userInitials) }}
                         @endif
                     </a>
-                    <form method="POST" action="{{ route('logout') }}" class="inline">
-                        @csrf
-                        <button class="icon-button !text-red-500 hover:!text-red-600 hover:!bg-red-50 hover:!border-red-200" type="submit" title="Keluar / Logout" aria-label="Keluar / Logout">
-                            <x-icon name="log-out" class="w-4 h-4" />
-                        </button>
-                    </form>
                 </div>
             </header>
             <div class="page-content stage-two-content">@yield('content')<footer class="page-footer"><span>Materi bermakna dimulai dari bacaan yang baik.</span><span>© 2026 SocratesRead</span></footer></div>

@@ -32,7 +32,10 @@ class DashboardController extends Controller
         $weeklyActivity = $gamification->weeklyActivity($user);
         $recentActivities = $gamification->recentActivities($user, 5);
         $completedReadings = $user->learningActivities()->where('event_type', 'reading_completed')->count();
-        $completedChallenges = $user->learningActivities()->where('event_type', 'challenge_completed')->count();
+        $completedChallenges = $user->learningActivities()
+            ->whereIn('event_type', ['challenge_completed', 'quiz_timed_quiz', 'quiz_practice', 'teacher_challenge'])
+            ->distinct('document_id')
+            ->count('document_id');
         $weeklyReadingCount = $user->learningActivities()
             ->where('event_type', 'reading_completed')
             ->whereBetween('activity_date', [now()->subDays(6)->toDateString(), now()->toDateString()])

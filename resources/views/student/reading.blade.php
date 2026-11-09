@@ -30,32 +30,62 @@
                 @endif
                 <div class="session-progress"><div class="progress-track"><span style="width:{{ $session->isCompleted() ? 100 : $session->progress_percent }}%"></span></div><span>{{ $session->isCompleted() ? 100 : $session->progress_percent }}%</span></div>
 
+                @php
+                    $readingElapsedSeconds = $session->started_at ? (int) $session->started_at->diffInSeconds(now()) : 0;
+                    $isTeacherChallengeUnlocked = $session->isCompleted() || $readingElapsedSeconds >= 120;
+                    $remainingLockSeconds = max(0, 120 - $readingElapsedSeconds);
+                @endphp
+
                 @if ($session->isCompleted())
-                    <a class="challenge-button session-cta !bg-emerald-600 hover:!bg-emerald-700" href="{{ route('challenge', ['session' => $session->id]) }}">
+                    <a class="challenge-button session-cta !bg-emerald-600 hover:!bg-emerald-700" href="{{ route('student.teacher-challenges.show', ['document' => $document->id]) }}">
                         <x-icon name="lock" class="size-3.5" /> <span>Lihat hasil jawaban</span>
                     </a>
-                @else
-                    <a class="challenge-button session-cta" href="{{ route('challenge', ['session' => $session->id]) }}">
-                        Lanjut ke pertanyaan <x-icon name="arrow-right" />
+                @elseif ($isTeacherChallengeUnlocked)
+                    <a class="challenge-button session-cta" href="{{ route('student.teacher-challenges.show', ['document' => $document->id]) }}" id="btnTeacherChallengeCta">
+                        Lanjut ke Tantangan Esai Guru <x-icon name="arrow-right" />
                     </a>
+                @else
+                    <div id="tcLockedBox" class="p-3.5 rounded-2xl bg-amber-50/90 border border-amber-200 text-xs text-amber-950 space-y-1.5 shadow-2xs" data-tc-lock data-remaining="{{ $remainingLockSeconds }}" data-unlocked-url="{{ route('student.teacher-challenges.show', ['document' => $document->id]) }}">
+                        <div class="flex items-center gap-2 font-bold text-amber-900">
+                            <x-icon name="lock" class="w-4 h-4 text-amber-600 shrink-0" />
+                            <span>Tantangan Guru Terkunci</span>
+                        </div>
+                        <p class="text-[11px] text-amber-800 leading-normal">
+                            Terbuka otomatis setelah membaca materi selama 2 menit.
+                        </p>
+                        <div class="font-mono font-extrabold text-xs text-amber-800 bg-white/90 py-1.5 px-2 rounded-xl border border-amber-200 text-center">
+                            ⏱️ Sisa waktu membaca: <span id="tcCountdownDisplay">02:00</span>
+                        </div>
+                    </div>
                 @endif
 
                 <div class="mt-4 pt-3 border-t border-slate-100 space-y-2">
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">2 TANTANGAN EVALUASI</p>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">TANTANGAN BACAAN</p>
                     <a class="flex items-center justify-between p-2.5 rounded-xl border border-indigo-200 bg-indigo-50/80 hover:bg-indigo-100 text-indigo-950 text-xs font-bold transition shadow-xs" href="{{ route('quiz.timed', ['document' => $document->id]) }}">
                         <div class="flex items-center gap-2">
-                            <x-icon name="gamepad-2" class="w-4 h-4 text-indigo-600" />
-                            <span>1. Kuis Interaktif ZEP (10 Soal Timer)</span>
+                            <x-icon name="gamepad-2" class="w-4 h-4 text-indigo-600 shrink-0" />
+                            <span>1. Challenge Socrates (PG · {{ $document->quiz_question_count ?? 10 }} Soal · {{ $document->quiz_duration_minutes ?? 15 }}m)</span>
                         </div>
-                        <x-icon name="arrow-right" class="w-3.5 h-3.5 text-indigo-500" />
+                        <x-icon name="arrow-right" class="w-3.5 h-3.5 text-indigo-500 shrink-0" />
                     </a>
-                    <a class="flex items-center justify-between p-2.5 rounded-xl border border-purple-200 bg-purple-50/80 hover:bg-purple-100 text-purple-950 text-xs font-bold transition shadow-xs" href="{{ route('challenge', ['session' => $session->id]) }}">
-                        <div class="flex items-center gap-2">
-                            <x-icon name="circle-help" class="w-4 h-4 text-purple-600" />
-                            <span>2. Esai Sokratik (5 Soal)</span>
+
+                    @if ($isTeacherChallengeUnlocked)
+                        <a id="tcItemLink" class="flex items-center justify-between p-2.5 rounded-xl border border-amber-300 bg-amber-50/90 hover:bg-amber-100 text-amber-950 text-xs font-bold transition shadow-xs" href="{{ route('student.teacher-challenges.show', ['document' => $document->id]) }}">
+                            <div class="flex items-center gap-2">
+                                <x-icon name="award" class="w-4 h-4 text-amber-600 shrink-0" />
+                                <span>2. Tantangan Guru (Esai Analisis · Total 100 Poin)</span>
+                            </div>
+                            <x-icon name="arrow-right" class="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                        </a>
+                    @else
+                        <div id="tcItemLocked" class="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-500 text-xs font-semibold">
+                            <div class="flex items-center gap-2">
+                                <x-icon name="lock" class="w-4 h-4 text-slate-400 shrink-0" />
+                                <span>2. Tantangan Guru (Terbuka setelah 2m)</span>
+                            </div>
+                            <span id="tcItemCountdown" class="text-[10px] font-mono font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">02:00</span>
                         </div>
-                        <x-icon name="arrow-right" class="w-3.5 h-3.5 text-purple-500" />
-                    </a>
+                    @endif
                 </div>
             </section>
             <section class="panel focus-card"><p class="section-overline">CARA MEMBACA AKTIF</p><h2>Berhenti sejenak dan tanyakan…</h2><ul class="focus-list"><li><span>01</span><p>Apa gagasan utama bagian ini?</p></li><li><span>02</span><p>Kalimat mana yang mendukung gagasan itu?</p></li><li><span>03</span><p>Adakah sudut pandang lain yang perlu dipikirkan?</p></li></ul><div class="focus-tip"><x-icon name="lightbulb" /> Tidak perlu terburu-buru menemukan jawaban.</div></section>
@@ -105,6 +135,53 @@
         document.querySelector('[data-reading-toast]').textContent = result.xp_awarded ? `Bacaan selesai. +${result.xp_awarded} XP untukmu!` : 'Bacaan selesai. Siap menguji pemahamanmu?';
         window.setTimeout(() => { document.querySelector('[data-reading-toast]').textContent = ''; }, 3200);
     });
+
+    // 2-Minute Lock Countdown untuk Tantangan Guru
+    const tcLockBox = document.querySelector('[data-tc-lock]');
+    if (tcLockBox) {
+        let remaining = parseInt(tcLockBox.dataset.remaining || '120', 10);
+        const unlockedUrl = tcLockBox.dataset.unlockedUrl;
+        const countdownEl = document.getElementById('tcCountdownDisplay');
+        const countdownPill = document.getElementById('tcItemCountdown');
+        const tcItemLocked = document.getElementById('tcItemLocked');
+
+        const formatMinutes = (secs) => {
+            const m = Math.floor(secs / 60);
+            const s = secs % 60;
+            return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        };
+
+        const updateTimer = () => {
+            if (countdownEl) countdownEl.textContent = formatMinutes(Math.max(0, remaining));
+            if (countdownPill) countdownPill.textContent = formatMinutes(Math.max(0, remaining));
+
+            if (remaining <= 0) {
+                clearInterval(tcInterval);
+                // Unlock Box -> Tombol aktif
+                tcLockBox.outerHTML = `
+                    <a class="challenge-button session-cta animate-scale-in" href="${unlockedUrl}">
+                        Lanjut ke Tantangan Esai Guru <svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    </a>
+                `;
+                // Unlock Pill -> Link aktif
+                if (tcItemLocked) {
+                    tcItemLocked.outerHTML = `
+                        <a class="flex items-center justify-between p-2.5 rounded-xl border border-amber-300 bg-amber-50/90 hover:bg-amber-100 text-amber-950 text-xs font-bold transition shadow-xs animate-scale-in" href="${unlockedUrl}">
+                            <div class="flex items-center gap-2">
+                                <span class="w-4 h-4 text-amber-600">🏆</span>
+                                <span>2. Tantangan Guru (Esai Analisis · Total 100 Poin)</span>
+                            </div>
+                            <span class="text-amber-600 font-bold">→</span>
+                        </a>
+                    `;
+                }
+            }
+            remaining--;
+        };
+
+        updateTimer();
+        const tcInterval = setInterval(updateTimer, 1000);
+    }
 })();
 </script>
 @endpush

@@ -50,6 +50,11 @@ class User extends Authenticatable
         return $this->hasMany(LearningActivity::class);
     }
 
+    public function teacherChallengeSubmissions(): HasMany
+    {
+        return $this->hasMany(StudentTeacherChallengeSubmission::class);
+    }
+
     public function uploadedDocuments(): HasMany
     {
         return $this->hasMany(Document::class, 'uploaded_by');

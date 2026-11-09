@@ -69,7 +69,7 @@ class ClassroomEnrollmentTest extends TestCase
         $this->actingAs($student)
             ->get(route('classrooms.index'))
             ->assertOk()
-            ->assertSee('Kelas saya')
+            ->assertSee('My Class')
             ->assertSee('Kelas Literasi X')
             ->assertSee('Pak Budi')
             ->assertSee('Kelas 10');

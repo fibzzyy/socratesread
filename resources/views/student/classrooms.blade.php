@@ -1,13 +1,13 @@
 @extends('layouts.student')
 
-@section('title', 'Kelas Saya')
-@section('breadcrumb', 'Kelas saya')
+@section('title', 'My Class')
+@section('breadcrumb', 'My Class')
 
 @section('content')
     <section class="stage-heading" aria-labelledby="classrooms-title">
         <div>
             <p class="eyebrow">KOMUNITAS BELAJAR</p>
-            <h1 id="classrooms-title">Kelas saya</h1>
+            <h1 id="classrooms-title">My Class</h1>
             <p class="welcome-subtitle">Kelola kelas belajar yang kamu ikuti bersama guru dan teman sekelas.</p>
         </div>
         <a class="back-link" href="{{ route('dashboard') }}"><x-icon name="arrow-left" /> <span>Kembali ke dashboard</span></a>

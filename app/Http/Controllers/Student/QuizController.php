@@ -14,13 +14,114 @@ use Illuminate\View\View;
 
 class QuizController extends Controller
 {
+    public function index(Request $request): View
+    {
+        $user = auth()->user();
+        $selectedCategory = $request->query('category', 'all');
+        $selectedStatus = $request->query('status', 'all');
+
+        $query = Document::query()
+            ->where('is_published', true)
+            ->withCount(['quizQuestions', 'teacherChallenges'])
+            ->latest('id');
+
+        if ($selectedCategory !== 'all') {
+            $query->where('category', $selectedCategory);
+        }
+
+        $documents = $query->get();
+
+        $userAttempts = StudentQuizAttempt::query()
+            ->where('user_id', $user->id)
+            ->where('mode', 'timed_quiz')
+            ->get()
+            ->groupBy('document_id');
+
+        $userTeacherSubmissions = \App\Models\StudentTeacherChallengeSubmission::query()
+            ->where('user_id', $user->id)
+            ->get()
+            ->keyBy('document_id');
+
+        $categories = Document::query()
+            ->where('is_published', true)
+            ->whereNotNull('category')
+            ->distinct()
+            ->pluck('category')
+            ->filter()
+            ->values();
+
+        $quizItems = $documents->map(function ($doc) use ($userAttempts, $userTeacherSubmissions) {
+            $attempts = $userAttempts->get($doc->id, collect());
+            $completedAttempt = $attempts->where('status', 'completed')->sortByDesc('completed_at')->first();
+            $inProgressAttempt = $attempts->where('status', 'in_progress')->sortByDesc('started_at')->first();
+
+            $questionCount = (int) ($doc->quiz_question_count ?: min(20, max(5, $doc->quiz_questions_count ?: 10)));
+            $durationMinutes = (int) ($doc->quiz_duration_minutes ?: 15);
+
+            $status = $completedAttempt ? 'completed' : ($inProgressAttempt ? 'in_progress' : 'not_started');
+
+            $teacherSub = $userTeacherSubmissions->get($doc->id);
+            $teacherChallengesCount = $doc->teacher_challenges_count ?: $doc->teacherChallenges()->count();
+
+            return [
+                'document' => $doc,
+                'question_count' => $questionCount,
+                'duration_minutes' => $durationMinutes,
+                'status' => $status,
+                'attempt' => $completedAttempt ?: $inProgressAttempt,
+                'score' => $completedAttempt?->score,
+                'correct_count' => $completedAttempt?->correct_count,
+                'xp_awarded' => $completedAttempt?->xp_awarded,
+                'completed_at' => $completedAttempt?->completed_at,
+                'teacher_challenges_count' => $teacherChallengesCount,
+                'teacher_submission' => $teacherSub,
+                'teacher_is_completed' => (bool) ($teacherSub && $teacherSub->isCompleted()),
+                'teacher_score' => $teacherSub?->score,
+                'teacher_xp' => $teacherSub?->xp_awarded,
+            ];
+        });
+
+        // Global statistics before status filter
+        $totalQuizzes = $quizItems->count();
+        $completedCount = $quizItems->where('status', 'completed')->count();
+        $inProgressCount = $quizItems->where('status', 'in_progress')->count();
+        $notStartedCount = $quizItems->where('status', 'not_started')->count();
+        $averageScore = $completedCount > 0 ? round($quizItems->where('status', 'completed')->avg('score'), 1) : 0;
+        $totalXpEarned = $quizItems->where('status', 'completed')->sum('xp_awarded');
+
+        if ($selectedStatus !== 'all') {
+            $quizItems = $quizItems->where('status', $selectedStatus)->values();
+        }
+
+        return view('student.quizzes', compact(
+            'quizItems',
+            'categories',
+            'selectedCategory',
+            'selectedStatus',
+            'totalQuizzes',
+            'completedCount',
+            'inProgressCount',
+            'notStartedCount',
+            'averageScore',
+            'totalXpEarned'
+        ));
+    }
+
     public function timed(Request $request, Document|int|string|null $document = null): View|RedirectResponse
     {
+        if (! $document) {
+            return redirect()->route('quiz.index');
+        }
+
         return $this->renderQuiz($request, $document, 'timed_quiz');
     }
 
     public function practice(Request $request, Document|int|string|null $document = null): View|RedirectResponse
     {
+        if (! $document) {
+            return redirect()->route('quiz.index');
+        }
+
         return $this->renderQuiz($request, $document, 'practice');
     }
 
@@ -48,10 +149,12 @@ class QuizController extends Controller
 
         abort_unless($document->is_published, 404);
 
-        if ($document->quizQuestions()->count() < 10) {
+        $targetCount = min(100, max(5, (int) ($document->quiz_question_count ?: 10)));
+
+        if ($document->quizQuestions()->count() < $targetCount) {
             $processor = app(\App\Services\AI\DocumentAiProcessor::class);
-            $aiData = $processor->processWithHeuristics($document->body, $document->title, $document->category);
-            foreach ($aiData['quiz_questions'] as $qz) {
+            $generated = $processor->generateHeuristicQuizQuestions($document->body, $document->title, $document->category, $targetCount);
+            foreach ($generated as $qz) {
                 $document->quizQuestions()->updateOrCreate(
                     ['sequence' => $qz['sequence']],
                     [
@@ -64,7 +167,7 @@ class QuizController extends Controller
             }
         }
 
-        $quizQuestions = $document->quizQuestions()->orderBy('sequence')->get();
+        $quizQuestions = $document->quizQuestions()->orderBy('sequence')->take($targetCount)->get();
 
         $userId = auth()->id();
 
@@ -112,8 +215,16 @@ class QuizController extends Controller
         })->values();
 
         $savedAnswers = $attempt->answers ?? [];
+        $quizDurationMinutes = (int) ($document->quiz_duration_minutes ?: 15);
+        $quizDurationSeconds = $quizDurationMinutes * 60;
 
-        return view('student.quiz', compact('document', 'attempt', 'quizQuestions', 'questionsPayload', 'savedAnswers', 'mode', 'isLocked'));
+        if ($attempt->isCompleted() && ($attempt->xp_awarded ?? 0) === 0) {
+            $gamification = app(GamificationService::class);
+            $backfilledXp = $gamification->awardQuiz($attempt, $attempt->score);
+            $attempt->update(['xp_awarded' => $backfilledXp]);
+        }
+
+        return view('student.quiz', compact('document', 'attempt', 'quizQuestions', 'questionsPayload', 'savedAnswers', 'mode', 'isLocked', 'quizDurationMinutes', 'quizDurationSeconds'));
     }
 
     public function submit(Request $request, GamificationService $gamification): JsonResponse
@@ -162,9 +273,13 @@ class QuizController extends Controller
         $score = $total > 0 ? (int) round(($correctCount / $total) * 100) : 0;
         $timeSpent = (int) ($data['time_spent_seconds'] ?? 0);
 
-        DB::transaction(function () use ($attempt, $score, $correctCount, $total, $submittedAnswers, $timeSpent): void {
+        // Award XP via GamificationService
+        $xpAwarded = $gamification->awardQuiz($attempt, $score);
+
+        DB::transaction(function () use ($attempt, $score, $correctCount, $total, $submittedAnswers, $timeSpent, $xpAwarded): void {
             $attempt->update([
                 'score' => $score,
+                'xp_awarded' => $xpAwarded,
                 'correct_count' => $correctCount,
                 'total_questions' => $total,
                 'answers' => $submittedAnswers,
@@ -173,25 +288,6 @@ class QuizController extends Controller
                 'completed_at' => now(),
             ]);
         });
-
-        // Award XP based on score
-        $earnedXp = $score >= 70 ? 25 : ($score >= 50 ? 15 : 10);
-        $summary = $attempt->mode === 'timed_quiz' ? 'Menyelesaikan Kuis Timer Pilihan Ganda' : 'Menyelesaikan Latihan Pilihan Ganda';
-
-        // Record learning activity
-        $inserted = DB::table('learning_activities')->insertOrIgnore([
-            'user_id' => $attempt->user_id,
-            'reading_session_id' => null,
-            'document_id' => $attempt->document_id,
-            'event_type' => 'quiz_' . $attempt->mode,
-            'xp_awarded' => $earnedXp,
-            'summary' => "{$summary} (Skor {$score}/100)",
-            'activity_date' => now()->toDateString(),
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-
-        $xpAwarded = $inserted === 1 ? $earnedXp : 0;
 
         return response()->json([
             'completed' => true,
