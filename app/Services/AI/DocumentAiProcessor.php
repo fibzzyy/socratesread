@@ -73,14 +73,17 @@ Instruksi:
    - Soal HARUS fokus pada isi materi pembelajaran di dalam file bacaan.
    - Opsi jawaban A, B, C, D harus masuk akal, diambil dari konteks materi, dan memiliki satu jawaban benar yang terbukti di teks.
    - Setiap soal WAJIB memiliki: sequence (1-10), question, options (4 opsi A, B, C, D), correct_answer ('A'/'B'/'C'/'D'), dan explanation (mengutip bukti dari teks).
-4. Rumuskan 5 Pertanyaan Esai Tantangan Pembelajaran ("questions") yang BERFOKUS PADA MATERI (Pengertian, Fungsi, Komponen, Cara Kerja, dan Penerapan):
-   - Pertanyaan 1 (Skill: "Pengertian & Konsep Utama"): Menanyakan definisi atau gagasan kunci materi secara mendalam.
-   - Pertanyaan 2 (Skill: "Fungsi & Peranan Utama"): Menanyakan fungsi, peranan, atau tujuan spesifik konsep yang dibahas dalam teks.
-   - Pertanyaan 3 (Skill: "Karakteristik & Komponen Kunci"): Menanyakan komponen pembangun, aspek utama, atau spesifikasi materi.
-   - Pertanyaan 4 (Skill: "Cara Kerja & Mekanisme"): Menanyakan alur proses, aturan, atau mekanisme kerja yang diuraikan dalam materi.
-   - Pertanyaan 5 (Skill: "Manfaat & Penerapan Praktis"): Menanyakan manfaat nyata dan contoh penerapan konsep dalam situasi praktis.
+4. Rumuskan 5 Pertanyaan Esai Tantangan Berpikir Kritis ("questions") BERDASARKAN SUBSTANSI MATERI (Gaya Google NotebookLM):
+   - Soal HARUS menguji analisis mendalam, hubungan sebab-akibat, studi kasus nyata, dan penerapan praktis dari isi teks materi.
+   - DILARANG membuat soal generik seperti "apa gagasan utama", "temukan bukti kalimat", "apa asumsi penulis", atau "jelaskan materi [Judul]".
+   - Buat pertanyaan spesifik yang menyebutkan konsep, nama tokoh, undang-undang/pasal, atau fenomena nyata yang ada di dalam teks bacaan (seperti: "Mengapa [konsep A] dikategorikan sebagai [teori B]?", "Bagaimana kaitan antara [aspek X] dan [aspek Y]?", "Apa dampak yang terjadi jika [kondisi dalam teks] diabaikan?").
+   - Pertanyaan 1: Definisi & Konsep Pokok Faktual.
+   - Pertanyaan 2: Fungsi, Tujuan, & Peranan Kunci.
+   - Pertanyaan 3: Analisis Komponen, Aspek, atau Hubungan Antargatra/Elemen.
+   - Pertanyaan 4: Analisis Kasus, Dilema, atau Dampak Sebab-Akibat.
+   - Pertanyaan 5: Solusi, Strategi Nyata, dan Penerapan Kontekstual Sehari-hari.
    WAJIB UNTUK FIELD "hint":
-   Field "hint" HARUS BERISI KUNCI JAWABAN YANG BENAR & LENGKAP (Model Answer) yang menguraikan jawaban faktual dari teks materi (DILARANG berisi instruksi generik seperti "Gunakan nalar kritis", "Perhatikan pembuka", atau "Cari bagian teks").
+   Field "hint" HARUS BERISI KUNCI JAWABAN YANG BENAR & LENGKAP (Model Answer) yang menguraikan jawaban faktual dari teks materi.
    Setiap pertanyaan esai WAJIB memiliki: sequence (1-5), skill, prompt, context, dan hint.
 
 Format output WAJIB HANYA berupa JSON valid tanpa teks markdown pembuka/penutup lainnya:
@@ -362,39 +365,64 @@ INSTRUCTIONS;
             ? implode('. ', array_slice($appLines, 0, 2))
             : ($lineAt(4, "Penerapan nyata materi ini memberikan manfaat peningkatan efisiensi dan kualitas pemecahan masalah di bidangnya."));
 
+        // 1. Pengertian / Konsep Inti
+        $q1Prompt = ! empty($defLines)
+            ? "Berdasarkan teks materi, " . rtrim($defLines[0], '.') . ". Jelaskan mengapa konsep ini menjadi gagasan pokok dalam pembahasan!"
+            : "Jelaskan apa yang dimaksud dengan materi \"{$title}\" dan apa konsep pokok yang dibahas di dalamnya!";
+
+        // 2. Fungsi & Peranan
+        $q2Prompt = ! empty($funcLines)
+            ? "Materi menjelaskan bahwa " . rtrim($funcLines[0], '.') . ". Bagaimana fungsi tersebut berkontribusi secara nyata pada tujuan materi?"
+            : "Apa fungsi dan peranan penting dari konsep yang diuraikan dalam materi \"{$title}\"?";
+
+        // 3. Karakteristik / Komponen
+        $q3Prompt = ! empty($compLines)
+            ? "Dalam materi diuraikan mengenai " . rtrim($compLines[0], '.') . ". Analisis bagaimana keterkaitan antara aspek-aspek tersebut!"
+            : "Sebutkan dan jelaskan karakteristik, komponen, atau aspek-aspek utama yang membangun materi \"{$title}\"!";
+
+        // 4. Mekanisme & Dampak Sebab-Akibat
+        $q4Prompt = ! empty($procLines)
+            ? "Teks memaparkan bahwa " . rtrim($procLines[0], '.') . ". Apa dampak atau akibat yang timbul jika hal tersebut tidak dijalankan semestinya?"
+            : "Bagaimana alur proses, aturan, atau mekanisme kerja yang diterapkan dalam topik materi \"{$title}\"?";
+
+        // 5. Penerapan Nyata / Studi Kasus
+        $q5Prompt = ! empty($appLines)
+            ? "Terkait penerapan praktis, bacaan menyoroti " . rtrim($appLines[0], '.') . ". Bagaimana kamu mengimplementasikan pemikiran ini dalam kehidupan nyata?"
+            : "Bagaimana manfaat dan contoh penerapan nyata dari materi \"{$title}\" ini dalam bidang kerja atau kehidupan nyata?";
+
         return [
             [
                 'sequence' => 1,
                 'skill' => 'Pengertian & Konsep Utama',
-                'prompt' => "Jelaskan apa yang dimaksud dengan materi \"{$title}\" dan apa konsep pokok yang dibahas di dalamnya!",
+                'prompt' => $q1Prompt,
                 'context' => "Fokuskan uraianmu pada definisi konsep, ruang lingkup, dan ide utama bacaan.",
                 'hint' => $q1Answer,
             ],
             [
                 'sequence' => 2,
                 'skill' => 'Fungsi & Peranan Utama',
-                'prompt' => "Apa fungsi dan peranan penting dari konsep yang diuraikan dalam materi \"{$title}\"?",
+                'prompt' => $q2Prompt,
                 'context' => "Kemukakan fungsi spesifik dan tujuan yang ingin dicapai berdasarkan penjelasan teks.",
                 'hint' => $q2Answer,
             ],
             [
                 'sequence' => 3,
                 'skill' => 'Karakteristik & Komponen Kunci',
-                'prompt' => "Sebutkan dan jelaskan karakteristik, komponen, atau aspek-aspek utama yang membangun materi \"{$title}\"!",
+                'prompt' => $q3Prompt,
                 'context' => "Uraikan elemen pembangun, modul, spesifikasi teknis, atau bagian penting dari materi.",
                 'hint' => $q3Answer,
             ],
             [
                 'sequence' => 4,
                 'skill' => 'Cara Kerja & Mekanisme',
-                'prompt' => "Bagaimana alur proses, aturan, atau mekanisme kerja yang diterapkan dalam topik materi \"{$title}\"?",
+                'prompt' => $q4Prompt,
                 'context' => "Jelaskan prinsip kerja, alur proses, atau mekanisme optimasi yang dipaparkan dalam bacaan.",
                 'hint' => $q4Answer,
             ],
             [
                 'sequence' => 5,
                 'skill' => 'Manfaat & Penerapan Praktis',
-                'prompt' => "Bagaimana manfaat dan contoh penerapan nyata dari materi \"{$title}\" ini dalam bidang kerja atau kehidupan nyata?",
+                'prompt' => $q5Prompt,
                 'context' => "Rancang contoh penerapan nyata atau solusi konkret berdasarkan materi yang telah dipelajari.",
                 'hint' => $q5Answer,
             ],

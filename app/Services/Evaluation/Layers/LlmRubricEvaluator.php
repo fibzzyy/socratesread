@@ -64,33 +64,30 @@ class LlmRubricEvaluator
 
         $instructions = <<<INSTRUCTIONS
 Kamu adalah Penilai Utama Pembelajaran SocratesRead AI untuk siswa SMP/SMA.
-Tugasmu adalah menilai jawaban esai Sokratik siswa berdasarkan rubrik analitis dan teks materi bacaan.
+Tugasmu adalah menilai jawaban esai siswa berdasarkan isi materi bacaan dengan prinsip: MENGHARGAI PARAFRASE & PEMAHAMAN MANDIRI SISWA.
 
-Lakukan pemeriksaan mendalam terhadap 3 aspek:
-1. Pemahaman Gagasan & Argumen: Apakah siswa menjawab esensi pertanyaan dengan tepat?
+Lakukan pemeriksaan terhadap 3 aspek:
+1. Pemahaman Konsep & Argumen:
+   - Nilai apakah siswa memahami esensi yang ditanyakan dan menjawab sesuai materi.
+   - PENTING: Siswa TIDAK diwajibkan menyalin kalimat teks bacaan atau menulis formalitas seperti "berdasarkan teks". Jika siswa memparafrasekan konsep materi dengan kata-katanya sendiri secara tepat, ini bukti siswa benar-benar paham dan BUKAN sekadar copy-paste. Berikan nilai tinggi (80 - 100)!
+   - Jika siswa terindikasi hanya menyalin/copy-paste kalimat mentah tanpa penjelasan sendiri, batas nilai maksimal adalah 55.
 2. Kebenaran Faktual:
-   - Jika jawaban SALAH, keliru konsep, atau melenceng: beri score rendah (0 - 30), set "understanding_level": "Salah / Belum Tepat", dan jelaskan letak kekeliruannya secara jelas dan tegas.
-   - Jika jawaban HAMPIR BENAR (sebagian benar, namun konsep inti belum lengkap atau ada bagian yang kurang tepat): beri score (40 - 69), set "understanding_level": "Hampir Benar (Sebagian Benar)", dan jelaskan apa yang sudah benar serta apa yang masih kurang.
    - Jika jawaban BENAR dan sesuai fakta materi: beri score (75 - 100), set "understanding_level": "Tepat & Sesuai (Baik)" atau "Sangat Tepat (Mahir)".
-3. Kualitas Bukti & Orisinalitas:
-   - Jika siswa terindikasi hanya menyalin/copy-paste kalimat mentah tanpa penjelasan dengan kata-kata sendiri, batas nilai maksimal adalah 55.
-
-Rubrik Skor (0 - 100):
-- 85 - 100 ("Sangat Tepat (Mahir)"): Pemahaman mendalam, bukti teks relevan, penalaran orisinal, NLI "supported".
-- 70 - 84 ("Tepat & Sesuai (Baik)"): Menjawab inti pertanyaan dengan benar, ada rujukan bukti, penalaran jelas.
-- 40 - 69 ("Hampir Benar (Sebagian Benar)"): Menjawab sebagian gagasan, bukti minim/kurang lengkap, atau konsep belum tuntas.
-- 0 - 39 ("Salah / Belum Tepat"): Melenceng dari pertanyaan, NLI "contradicted" (bertentangan fakta), salah konsep, atau jawaban tidak relevan.
+   - Jika jawaban HAMPIR BENAR (sebagian benar, namun konsep inti belum lengkap): beri score (40 - 69), set "understanding_level": "Hampir Benar (Sebagian Benar)".
+   - Jika jawaban SALAH atau melenceng: beri score rendah (0 - 39), set "understanding_level": "Salah / Belum Tepat".
+3. Gaya Penulisan Feedback (Persis Seperti Google NotebookLM):
+   - Uraikan analisis secara mengalir yang mengapresiasi kata/poin kunci yang berhasil dipahami siswa.
+   - Contoh gaya benar: "Jawaban Anda sudah sangat tepat. Anda berhasil memahami bahwa [poin pemahaman siswa] merupakan esensi penting dari materi ini."
+   - Jangan menuntut siswa menambahkan kutipan teks buku jika pemahamannya sudah tepat.
 
 FORMAT OUTPUT WAJIB HANYA BERUPA JSON VALID TANPA MARKDOWN DAN TANPA TEKS LAIN:
 {
   "score": 85,
   "understanding_level": "Sangat Tepat (Mahir)",
   "text_alignment": "supported",
-  "missing_concepts": [
-    "Uraian dampak jangka panjang"
-  ],
-  "hint": "Coba renungkan bagaimana keterkaitan antara paragraf 2 dan 3...",
-  "feedback": "Penjelasan Anda runtut dan mengaitkan bukti kutipan dengan sangat baik."
+  "missing_concepts": [],
+  "hint": "",
+  "feedback": "Jawaban Anda sudah sangat tepat. Anda berhasil memahami konsep utama dengan menggunakan bahasa dan pemikiran Anda sendiri."
 }
 INSTRUCTIONS;
 
@@ -196,25 +193,22 @@ INSTRUCTIONS;
             $feedback = 'Jawaban hampir benar dan telah menyentuh sebagian konsep materi, namun uraiannya belum lengkap atau masih memerlukan penjelasan yang lebih tuntas.';
         } else {
             // 3. Benar: Menjawab inti konsep materi dengan relevansi kuat
-            $score = 75;
-            if ($wordCount >= 15) $score += 10;
-            if ($wordCount >= 25) $score += 5;
-            if ($hasEvidence) $score += 10;
-            if ($isCopied) $score = min(60, $score - 20);
+            // Menghargai pemahaman dan parafrase mandiri siswa (tanda paham, bukan copas)
+            $score = 80;
+            if ($wordCount >= 10) $score += 10;
+            if ($wordCount >= 20) $score += 10;
+            if ($isCopied) $score = min(55, $score - 25);
             $score = min(100, max(75, $score));
             $level = $this->determineLevel($score);
-            $feedback = 'Jawaban Anda tepat, logis, dan sesuai dengan konsep yang diuraikan dalam teks bacaan.';
+            $feedback = 'Jawaban Anda sudah sangat tepat. Anda berhasil memahami esensi materi dengan baik menggunakan pemikiran dan bahasa Anda sendiri.';
         }
 
         $missingConcepts = [];
-        if (! $hasEvidence) {
-            $missingConcepts[] = 'Penyertaan bukti kutipan dari teks bacaan';
-        }
-        if ($wordCount < 15) {
-            $missingConcepts[] = 'Pengembangan argumen dan alasan sebab-akibat';
+        if ($score < 70 && $wordCount < 15) {
+            $missingConcepts[] = 'Pengembangan penjelasan konsep lebih mendalam';
         }
         if ($isCopied) {
-            $missingConcepts[] = 'Sintesis orisinal menggunakan pemikiran sendiri';
+            $missingConcepts[] = 'Gunakan penjelasan dengan kata-kata sendiri alih-alih menyalin mentah teks';
         }
 
         return new EvaluationResult(
