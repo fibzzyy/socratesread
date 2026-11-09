@@ -153,7 +153,7 @@ class QuizController extends Controller
 
         if ($document->quizQuestions()->count() < $targetCount) {
             $processor = app(\App\Services\AI\DocumentAiProcessor::class);
-            $generated = $processor->generateHeuristicQuizQuestions($document->body, $document->title, $document->category, $targetCount);
+            $generated = $processor->generateQuizQuestions($document->body, $document->title, $document->category, $targetCount);
             foreach ($generated as $qz) {
                 $document->quizQuestions()->updateOrCreate(
                     ['sequence' => $qz['sequence']],

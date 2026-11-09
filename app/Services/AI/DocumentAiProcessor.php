@@ -57,105 +57,90 @@ class DocumentAiProcessor
         $sampleText = mb_substr(trim($rawText), 0, 5000);
 
         $instructions = <<<INSTRUCTIONS
-Kamu adalah Asisten Kurator Literasi SocratesRead AI.
-Tugasmu adalah memproses materi teks mentah hasil ekstrak PDF dari guru untuk pembelajaran siswa.
+Kamu adalah Asisten Kurator Literasi SocratesRead AI (Gaya Google NotebookLM).
+Tugasmu adalah menganalisis materi bacaan guru dan menghasilkan JSON ringkas berisi kuis pilihan ganda dan pertanyaan esai berpikir kritis (Taksonomi Bloom) yang 100% berakar pada fakta dan konsep materi bacaan.
 
-Instruksi:
-1. Rapikan teks materi ("cleaned_body"):
-   - Bersihkan nomor halaman liar, header/footer buku berulang, dan spasi yang rusak.
-   - Tata paragraf menjadi alur membaca yang runtut, rapi, dan nyaman dibaca (pisahkan tiap paragraf dengan dua baris baru \\n\\n).
-   - Terapkan tipografi profesional: gunakan **teks tebal** untuk istilah/konsep kunci, judul bab, pasal hukum/UU, dan definisi penting. Gunakan *teks miring* untuk istilah asing, Latin, atau ilmiah.
-   - Pertahankan seluruh informasi penting dan penjelasan teks asli secara utuh.
-2. Buat "excerpt" (2–3 kalimat pengantar menarik yang memancing rasa ingin tahu siswa).
-3. Rumuskan Soal Pilihan Ganda ("quiz_questions") BERDASARKAN FAKTA DAN SUBSTANSI SPESIFIK TEKS MATERI:
-   - Soal WAJIB menguji fakta konkret, istilah teknis, nama tokoh, definisi, data/pasal, dan konsep materi yang tertulis di teks.
-   - DILARANG membuat soal generik seperti "apa gagasan pokok", "bukti kalimat", "tahapan pengujian", atau "manajemen dokumen" bila materi tidak membahasnya.
-   - Soal HARUS fokus pada isi materi pembelajaran di dalam file bacaan.
-   - Opsi jawaban A, B, C, D harus masuk akal, diambil dari konteks materi, dan memiliki satu jawaban benar yang terbukti di teks.
-   - Setiap soal WAJIB memiliki: sequence (1-10), question, options (4 opsi A, B, C, D), correct_answer ('A'/'B'/'C'/'D'), dan explanation (mengutip bukti dari teks).
-4. Rumuskan 5 Pertanyaan Esai Tantangan Berpikir Kritis ("questions") BERDASARKAN SUBSTANSI MATERI (Gaya Google NotebookLM):
-   - Soal HARUS menguji analisis mendalam, hubungan sebab-akibat, studi kasus nyata, dan penerapan praktis dari isi teks materi.
-   - DILARANG membuat soal generik seperti "apa gagasan utama", "temukan bukti kalimat", "apa asumsi penulis", atau "jelaskan materi [Judul]".
-   - Buat pertanyaan spesifik yang menyebutkan konsep, nama tokoh, undang-undang/pasal, atau fenomena nyata yang ada di dalam teks bacaan (seperti: "Mengapa [konsep A] dikategorikan sebagai [teori B]?", "Bagaimana kaitan antara [aspek X] dan [aspek Y]?", "Apa dampak yang terjadi jika [kondisi dalam teks] diabaikan?").
-   - Pertanyaan 1: Definisi & Konsep Pokok Faktual.
-   - Pertanyaan 2: Fungsi, Tujuan, & Peranan Kunci.
-   - Pertanyaan 3: Analisis Komponen, Aspek, atau Hubungan Antargatra/Elemen.
-   - Pertanyaan 4: Analisis Kasus, Dilema, atau Dampak Sebab-Akibat.
-   - Pertanyaan 5: Solusi, Strategi Nyata, dan Penerapan Kontekstual Sehari-hari.
-   WAJIB UNTUK FIELD "hint":
-   Field "hint" HARUS BERISI KUNCI JAWABAN YANG BENAR & LENGKAP (Model Answer) yang menguraikan jawaban faktual dari teks materi.
-   Setiap pertanyaan esai WAJIB memiliki: sequence (1-5), skill, prompt, context, dan hint.
-
-Format output WAJIB HANYA berupa JSON valid tanpa teks markdown pembuka/penutup lainnya:
+Format output WAJIB HANYA berupa JSON:
 {
-  "cleaned_body": "paragraf 1...\\n\\nparagraf 2...",
-  "excerpt": "Ringkasan pengantar singkat...",
+  "cleaned_body": "teks materi yang rapi dengan tipografi tebal untuk istilah kunci...",
+  "excerpt": "Ringkasan materi 2-3 kalimat...",
   "questions": [
     {
-      "sequence": 1,
-      "skill": "Memahami gagasan",
-      "prompt": "Pertanyaan...",
-      "context": "Konteks...",
-      "hint": "Petunjuk..."
+      "s": "Definisi & Konsep Pokok",
+      "q": "Pertanyaan esai C1/C2...",
+      "c": "Konteks berpikir...",
+      "h": "Kunci jawaban model lengkap..."
     }
   ],
   "quiz_questions": [
     {
-      "sequence": 1,
-      "question": "Soal nomor 1...",
-      "options": [
-        {"key": "A", "text": "Pilihan A"},
-        {"key": "B", "text": "Pilihan B"},
-        {"key": "C", "text": "Pilihan C"},
-        {"key": "D", "text": "Pilihan D"}
-      ],
-      "correct_answer": "A",
-      "explanation": "Penjelasan jawaban..."
+      "q": "Pertanyaan pilihan ganda berbasis fakta...",
+      "a": "Pilihan A",
+      "b": "Pilihan B",
+      "c": "Pilihan C",
+      "d": "Pilihan D",
+      "k": "A",
+      "e": "Bukti penjelasan dari teks..."
     }
   ]
 }
+
+ATURAN:
+1. questions: Wajib 5 butir esai berjenjang Bloom C1-C5 (Definisi, Fungsi/Peran, Analisis/Kaitan, Studi Kasus/Dilema, Solusi/Penerapan). Kunci 'h' adalah model answer faktual dari materi.
+2. quiz_questions: Wajib 10 butir pilihan ganda berakar fakta materi (tokoh, definisi, pasal/UU, kedudukan, fungsi). Kunci 'k' adalah A, B, C, atau D.
 INSTRUCTIONS;
 
         $messages = [
             [
                 'role' => 'user',
-                'content' => "Judul Materi: {$title}\nMata Pelajaran/Kategori: {$category}\n\nTeks Mentah PDF:\n{$sampleText}",
+                'content' => "Judul Materi: {$title}\nMata Pelajaran/Kategori: {$category}\n\nTeks Materi:\n{$sampleText}",
             ],
         ];
 
         $rawResponse = $this->languageModel->respond($messages, $instructions, [
             'temperature' => 0.0,
-            'max_output_tokens' => 1500,
+            'max_output_tokens' => 3500,
+            'timeout' => 120,
         ]);
 
-        $cleanJson = preg_replace('/^```(?:json)?\s*/i', '', trim($rawResponse));
-        $cleanJson = preg_replace('/\s*```$/', '', (string) $cleanJson);
+        $parsed = null;
+        if (preg_match('/\{[\s\S]*\}/u', trim($rawResponse), $matches)) {
+            $parsed = json_decode($matches[0], true);
+        }
+        if (! is_array($parsed)) {
+            $cleanJson = preg_replace('/^```(?:json)?\s*/i', '', trim($rawResponse));
+            $cleanJson = preg_replace('/\s*```$/', '', (string) $cleanJson);
+            $parsed = json_decode((string) $cleanJson, true);
+        }
 
-        $parsed = json_decode((string) $cleanJson, true);
-
-        if (! is_array($parsed) || empty($parsed['cleaned_body']) || empty($parsed['questions']) || count($parsed['questions']) < 3) {
+        if (! is_array($parsed) || empty($parsed['cleaned_body'])) {
             return null;
         }
 
         $defaultEssaySkills = [
-            1 => 'Memahami gagasan',
-            2 => 'Menemukan bukti',
-            3 => 'Menganalisis asumsi',
-            4 => 'Menjelaskan alasan',
-            5 => 'Refleksi dan penerapan',
+            1 => 'Pengertian & Konsep Pokok',
+            2 => 'Fungsi & Peranan Utama',
+            3 => 'Analisis Komponen & Hubungan',
+            4 => 'Analisis Kasus & Sebab-Akibat',
+            5 => 'Solusi & Penerapan Nyata',
         ];
 
         $questions = [];
-        foreach ($parsed['questions'] as $idx => $q) {
-            $seq = $idx + 1;
-            $questions[] = [
-                'sequence' => $seq,
-                'skill' => (string) ($q['skill'] ?? $defaultEssaySkills[$seq] ?? 'Menjelaskan alasan'),
-                'prompt' => (string) ($q['prompt'] ?? 'Bagaimana gagasan utama bacaan ini dijelaskan?'),
-                'context' => (string) ($q['context'] ?? 'Hubungkan isi bacaan dengan pemikiranmu.'),
-                'hint' => (string) ($q['hint'] ?? 'Perhatikan kalimat-kalimat penting dalam paragraf.'),
-            ];
-            if ($seq >= 5) break;
+        if (! empty($parsed['questions']) && is_array($parsed['questions'])) {
+            foreach ($parsed['questions'] as $idx => $q) {
+                $seq = $idx + 1;
+                $prompt = (string) ($q['q'] ?? $q['prompt'] ?? '');
+                if ($prompt === '') continue;
+
+                $questions[] = [
+                    'sequence' => $seq,
+                    'skill' => (string) ($q['s'] ?? $q['skill'] ?? $defaultEssaySkills[$seq] ?? 'Menjelaskan alasan'),
+                    'prompt' => $prompt,
+                    'context' => (string) ($q['c'] ?? $q['context'] ?? 'Hubungkan dengan uraian materi.'),
+                    'hint' => (string) ($q['h'] ?? $q['hint'] ?? 'Perhatikan fakta penting dalam bacaan.'),
+                ];
+                if ($seq >= 5) break;
+            }
         }
 
         if (count($questions) < 5) {
@@ -171,6 +156,9 @@ INSTRUCTIONS;
         if (! empty($parsed['quiz_questions']) && is_array($parsed['quiz_questions'])) {
             foreach ($parsed['quiz_questions'] as $idx => $qq) {
                 $seq = $idx + 1;
+                $qText = (string) ($qq['q'] ?? $qq['question'] ?? '');
+                if ($qText === '') continue;
+
                 $options = [];
                 if (isset($qq['options']) && is_array($qq['options'])) {
                     foreach ($qq['options'] as $opt) {
@@ -179,24 +167,34 @@ INSTRUCTIONS;
                             'text' => (string) ($opt['text'] ?? ''),
                         ];
                     }
+                } elseif (isset($qq['a'], $qq['b'], $qq['c'], $qq['d'])) {
+                    $options = [
+                        ['key' => 'A', 'text' => (string) $qq['a']],
+                        ['key' => 'B', 'text' => (string) $qq['b']],
+                        ['key' => 'C', 'text' => (string) $qq['c']],
+                        ['key' => 'D', 'text' => (string) $qq['d']],
+                    ];
                 }
 
                 $quizQuestions[] = [
                     'sequence' => $seq,
-                    'question' => (string) ($qq['question'] ?? "Pertanyaan ke-{$seq}"),
+                    'question' => $qText,
                     'options' => $options,
-                    'correct_answer' => (string) ($qq['correct_answer'] ?? 'A'),
-                    'explanation' => (string) ($qq['explanation'] ?? 'Pembahasan untuk soal ini.'),
+                    'correct_answer' => strtoupper((string) ($qq['k'] ?? $qq['correct_answer'] ?? 'A')),
+                    'explanation' => (string) ($qq['e'] ?? $qq['explanation'] ?? 'Pembahasan berdasarkan fakta materi.'),
                 ];
                 if ($seq >= 10) break;
             }
         }
 
         if (count($quizQuestions) < 10) {
-            $heuristicQuiz = $this->generateHeuristicQuizQuestions($parsed['cleaned_body'], $title, $category);
+            // Coba generate sisa quiz questions via AI khusus kuis atau fallback ke heuristic
+            $additionalQuiz = $this->generateQuizQuestions($parsed['cleaned_body'], $title, $category, 10);
             for ($i = count($quizQuestions) + 1; $i <= 10; $i++) {
-                if (isset($heuristicQuiz[$i - 1])) {
-                    $quizQuestions[] = $heuristicQuiz[$i - 1];
+                if (isset($additionalQuiz[$i - 1])) {
+                    $item = $additionalQuiz[$i - 1];
+                    $item['sequence'] = $i;
+                    $quizQuestions[] = $item;
                 }
             }
         }
@@ -207,6 +205,108 @@ INSTRUCTIONS;
             'questions' => $questions,
             'quiz_questions' => $quizQuestions,
         ];
+    }
+
+    /**
+     * Menghasilkan soal kuis pilihan ganda yang cerdas, otomatis mencoba AI terlebih dahulu.
+     *
+     * @return array<int, array{sequence: int, question: string, options: array<int, array{key: string, text: string}>, correct_answer: string, explanation: string}>
+     */
+    public function generateQuizQuestions(string $body, string $title, ?string $category = null, int $count = 10): array
+    {
+        $count = min(100, max(5, $count));
+
+        if ($this->languageModel->isConfigured()) {
+            try {
+                $aiQuestions = $this->generateQuizQuestionsWithAi($body, $title, $category, $count);
+                if (! empty($aiQuestions) && count($aiQuestions) >= min(5, $count)) {
+                    return $aiQuestions;
+                }
+            } catch (Throwable $e) {
+                Log::warning('AI quiz generation failed, using heuristic: ' . $e->getMessage());
+            }
+        }
+
+        return $this->generateHeuristicQuizQuestions($body, $title, $category, $count);
+    }
+
+    /**
+     * Menghasilkan soal pilihan ganda murni berbasis AI (Google NotebookLM Style).
+     *
+     * @return array<int, array{sequence: int, question: string, options: array<int, array{key: string, text: string}>, correct_answer: string, explanation: string}>|null
+     */
+    public function generateQuizQuestionsWithAi(string $body, string $title, ?string $category = null, int $count = 10): ?array
+    {
+        $cleaned = $this->cleanText($body);
+        $sampleText = mb_substr($cleaned, 0, 4500);
+
+        $instructions = <<<INSTRUCTIONS
+Kamu adalah Kurator Literasi SocratesRead AI (Gaya Google NotebookLM).
+Buat {$count} Soal Pilihan Ganda dari fakta materi bacaan dalam format JSON ringkas:
+[
+  {
+    "q": "Pertanyaan berakar fakta materi?",
+    "a": "Pilihan A",
+    "b": "Pilihan B",
+    "c": "Pilihan C",
+    "d": "Pilihan D",
+    "k": "A",
+    "e": "Bukti penjelasan dari bacaan"
+  }
+]
+ATURAN: Wajib {$count} butir soal, menguji fakta nyata (tokoh, definisi, pasal UUD, kedudukan, fungsi gatra bahasa). Kunci 'k' berupa huruf A, B, C, atau D. Keluarkan HANYA JSON array tanpa teks lain.
+INSTRUCTIONS;
+
+        $messages = [
+            [
+                'role' => 'user',
+                'content' => "Judul Materi: {$title}\nKategori: {$category}\n\nTeks Materi:\n{$sampleText}",
+            ]
+        ];
+
+        $rawResponse = $this->languageModel->respond($messages, $instructions, [
+            'temperature' => 0.1,
+            'max_output_tokens' => 2500,
+            'timeout' => 90,
+        ]);
+
+        $jsonStr = trim($rawResponse);
+        $data = null;
+        if (preg_match('/\[[\s\S]*\]/u', $jsonStr, $matches)) {
+            $data = json_decode($matches[0], true);
+        }
+        if (! is_array($data)) {
+            $clean = preg_replace('/^```(?:json)?\s*/i', '', $jsonStr);
+            $clean = preg_replace('/\s*```$/', '', $clean);
+            $data = json_decode($clean, true);
+        }
+
+        if (! is_array($data) || empty($data)) {
+            return null;
+        }
+
+        $results = [];
+        foreach ($data as $idx => $item) {
+            $seq = $idx + 1;
+            $qText = (string) ($item['q'] ?? $item['question'] ?? '');
+            if ($qText === '') continue;
+
+            $results[] = [
+                'sequence' => $seq,
+                'question' => $qText,
+                'options' => [
+                    ['key' => 'A', 'text' => (string) ($item['a'] ?? '')],
+                    ['key' => 'B', 'text' => (string) ($item['b'] ?? '')],
+                    ['key' => 'C', 'text' => (string) ($item['c'] ?? '')],
+                    ['key' => 'D', 'text' => (string) ($item['d'] ?? '')],
+                ],
+                'correct_answer' => strtoupper((string) ($item['k'] ?? $item['correct_answer'] ?? 'A')),
+                'explanation' => (string) ($item['e'] ?? $item['explanation'] ?? 'Sesuai dengan fakta materi bacaan.'),
+            ];
+            if ($seq >= $count) break;
+        }
+
+        return ! empty($results) ? $results : null;
     }
 
     public function cleanText(string $rawText): string
@@ -222,6 +322,10 @@ INSTRUCTIONS;
             }
 
             if (preg_match('/^(?:halaman|hal\.?|page)?\s*\d+(?:\s*(?:of|\/)\s*\d+)?$/i', $trimmed)) {
+                continue;
+            }
+
+            if (preg_match('/^(?:setelah mengikuti|tujuan pembelajaran|capaian pembelajaran|kompetensi dasar|mahasiswa diharapkan|siswa diharapkan|peserta didik|daftar pustaka|sumber rujukan|terima kasih|thank you)\b/iu', $trimmed)) {
                 continue;
             }
 
@@ -254,115 +358,80 @@ INSTRUCTIONS;
      */
     public function processWithHeuristics(string $rawText, string $title, ?string $category = null): array
     {
-        $cleanedBody = $this->enhanceTypographyHeuristics($this->cleanText($rawText));
-
-        $firstParagraph = collect(preg_split('/\R{2,}/u', $cleanedBody))->filter()->first() ?? $cleanedBody;
-        $excerpt = mb_substr($firstParagraph, 0, 280);
-        if (mb_strlen($firstParagraph) > 280) {
-            $excerpt = rtrim($excerpt) . '...';
-        }
-
-        $categoryLabel = $category ? " terkait {$category}" : '';
-
-        $questions = $this->generateHeuristicSocraticQuestions($cleanedBody, $title, $category);
-        $quizQuestions = $this->generateHeuristicQuizQuestions($cleanedBody, $title, $category);
+        $cleaned = $this->cleanText($rawText);
+        $body = $this->enhanceTypographyHeuristics($cleaned);
 
         return [
-            'cleaned_body' => $cleanedBody,
-            'excerpt' => $excerpt,
-            'questions' => $questions,
-            'quiz_questions' => $quizQuestions,
+            'cleaned_body' => $body,
+            'excerpt' => $this->generateHeuristicExcerpt($body, $title),
+            'questions' => $this->generateHeuristicQuestions($body, $title, $category),
+            'quiz_questions' => $this->generateHeuristicQuizQuestions($body, $title, $category, 10),
         ];
     }
 
-    /**
-     * Menghasilkan 5 Pertanyaan Esai Tantangan Pembelajaran yang berfokus substantif pada materi
-     * (Pengertian, Fungsi, Komponen, Cara Kerja, dan Penerapan) beserta Kunci Jawaban Faktual (Model Answer).
-     *
-     * @return array<int, array{sequence: int, skill: string, prompt: string, context: string, hint: string}>
-     */
-    public function generateHeuristicSocraticQuestions(string $cleanedBody, string $title, ?string $category = null): array
+    public function generateHeuristicExcerpt(string $body, string $title): string
     {
-        $categoryLabel = $category ? " terkait {$category}" : '';
-
-        // 1. Normalisasi teks dokumen dan gabungkan baris yang terputus di tengah kalimat
-        $normalized = preg_replace('/(?<=[a-z])(?=[A-Z])/u', ' ', $cleanedBody);
-        $normalized = preg_replace('/(?<![.?!:;\n])\R+(?=[a-z0-9A-Z])/u', ' ', $normalized);
-        $normalized = preg_replace('/[ \t]+/u', ' ', $normalized);
-
-        // 2. Ekstrak butir kalimat utuh yang substantif
-        $rawSegments = collect(preg_split('/\R+/u', $normalized))
+        $paragraphs = collect(preg_split('/\R{2,}/u', $body))
             ->map(fn ($p) => trim(preg_replace('/[*_#`]/u', '', strip_tags($p))))
-            ->filter(fn ($p) => mb_strlen($p) >= 20)
+            ->filter(fn ($p) => mb_strlen($p) >= 40)
             ->values();
 
-        $meaningfulLines = [];
-        foreach ($rawSegments as $seg) {
-            $cleanSeg = trim(preg_replace('/^[•·\-\d+\.)\s\"\'\:\;]+/u', '', $seg));
-            $cleanSeg = trim(preg_replace('/[\"\'\*\_]+$/u', '', $cleanSeg));
-            $cleanSeg = trim(preg_replace('/\s+\d+[\.\)]\s*$/u', '', $cleanSeg));
-
-            // Pisahkan jika ada beberapa kalimat utuh
-            $sentences = preg_split('/(?<=[.?!])\s+/u', $cleanSeg, -1, PREG_SPLIT_NO_EMPTY) ?: [$cleanSeg];
-            foreach ($sentences as $s) {
-                $trimmed = trim(preg_replace('/^[•·\-\d+\.)\s\"\'\:\;]+/u', '', $s));
-                $trimmed = trim(preg_replace('/[\"\'\*\_]+$/u', '', $trimmed));
-                $trimmed = trim(preg_replace('/\s+\d+[\.\)]\s*$/u', '', $trimmed));
-                if (mb_strlen($trimmed) >= 30 && ! preg_match('/^(?:tujuan pembelajaran|sumber rujukan|daftar pustaka|terima kasih|lembar kerja)/i', $trimmed)) {
-                    $meaningfulLines[] = $trimmed;
-                }
-            }
+        if ($paragraphs->isNotEmpty()) {
+            return mb_substr($paragraphs->first(), 0, 180) . '...';
         }
 
-        $defLines = [];
-        $funcLines = [];
-        $compLines = [];
-        $procLines = [];
-        $appLines = [];
+        return "Pelajari konsep mendalam mengenai {$title} untuk memperluas pemahaman dan keterampilan berpikir kritis.";
+    }
 
-        foreach ($meaningfulLines as $l) {
-            if (preg_match('/\b(?:adalah|merupakan|yaitu|yakni|didefinisikan|diartikan|konsep yang)\b/i', $l)) {
-                $defLines[] = $l;
-            }
-            if (preg_match('/\b(?:fungsi|tujuan|guna|untuk|berfungsi|menjamin|meminimalkan|mengamankan|mengeliminasi|pelestarian|penopang)\b/i', $l)) {
-                $funcLines[] = $l;
-            }
-            if (preg_match('/\b(?:komponen|aspek|spesifikasi|modul|arsitektur|protokol|standar|struktur|unsur|fitur|lapisan|tabel|gatra|cakupan)\b/i', $l)) {
-                $compLines[] = $l;
-            }
-            if (preg_match('/\b(?:cara kerja|mekanisme|proses|metodologi|evaluasi|pengujian|eksekusi|optimalisasi|langkah|alur|kinerja|prinsip)\b/i', $l)) {
-                $procLines[] = $l;
-            }
-            if (preg_match('/\b(?:penerapan|implementasi|manfaat|diterapkan|solusi|praktik|kebutuhan|dampak|contoh penggunaan)\b/i', $l)) {
-                $appLines[] = $l;
-            }
-        }
+    /**
+     * @return array<int, array{sequence: int, skill: string, prompt: string, context: string, hint: string}>
+     */
+    public function generateHeuristicQuestions(string $body, string $title, ?string $category = null): array
+    {
+        $bulletPattern = '/^[•·\-\d+\.)\s\x{2022}\x{25CB}\x{25CF}\x{25AA}\x{25AB}\x{25BA}\x{2192}\x{2713}\x{2714}⚬○■□▪▫◆◇]+/u';
+        $boilerplatePattern = '/^(?:setelah mengikuti|tujuan pembelajaran|capaian pembelajaran|kompetensi|mahasiswa diharapkan|siswa diharapkan|peserta didik|daftar pustaka|sumber rujukan|terima kasih|thank you|halaman|page\s*\d+)/iu';
 
-        $lineAt = fn (int $idx, string $fallback = '') => $meaningfulLines[$idx] ?? $fallback;
+        $lines = collect(preg_split('/\R+/u', $body))
+            ->map(fn ($l) => trim(preg_replace('/[*_#`]/u', '', strip_tags($l))))
+            ->map(fn ($l) => trim(preg_replace($bulletPattern, '', $l)))
+            ->filter(fn ($l) => mb_strlen($l) >= 20 && ! preg_match($boilerplatePattern, $l))
+            ->values();
 
-        // 1. Pengertian / Konsep Inti
+        $lineAt = function (int $index, string $default) use ($lines): string {
+            return $lines->get($index, $default);
+        };
+
+        $defLines = $lines->filter(fn ($l) => preg_match('/(?:adalah|merupakan|yaitu|didefinisikan|artinya)/iu', $l))->values();
+        $funcLines = $lines->filter(fn ($l) => preg_match('/(?:fungsi|tujuan|peran|kedudukan|manfaat)/iu', $l))->values();
+        $compLines = $lines->filter(fn ($l) => preg_match('/(?:aspek|unsur|komponen|bagian|faktor|karakteristik)/iu', $l))->values();
+        $procLines = $lines->filter(fn ($l) => preg_match('/(?:prinsip|aturan|pasal|uud|cara|proses|alur|mekanisme)/iu', $l))->values();
+        $appLines = $lines->filter(fn ($l) => preg_match('/(?:contoh|penerapan|ruang publik|penggunaan|implementasi|solusi)/iu', $l))->values();
+
+        $categoryLabel = $category ? " dalam bidang {$category}" : '';
+
+        // 1. Pengertian
         $q1Answer = ! empty($defLines)
-            ? implode('. ', array_slice($defLines, 0, 2))
+            ? implode('. ', array_slice($defLines->toArray(), 0, 2))
             : ($lineAt(0, "Materi ini membahas konsep fundamental dari {$title}{$categoryLabel}."));
 
         // 2. Fungsi & Tujuan
         $q2Answer = ! empty($funcLines)
-            ? implode('. ', array_slice($funcLines, 0, 2))
+            ? implode('. ', array_slice($funcLines->toArray(), 0, 2))
             : ($lineAt(1, "Fungsi utama dari materi ini adalah untuk memberikan pemahaman dan standarisasi dalam penerapannya."));
 
         // 3. Komponen / Karakteristik
         $q3Answer = ! empty($compLines)
-            ? implode('. ', array_slice($compLines, 0, 2))
+            ? implode('. ', array_slice($compLines->toArray(), 0, 2))
             : ($lineAt(2, "Aspek penting materi mencakup elemen-elemen dan spesifikasi yang diuraikan dalam bacaan."));
 
         // 4. Cara Kerja / Mekanisme
         $q4Answer = ! empty($procLines)
-            ? implode('. ', array_slice($procLines, 0, 2))
+            ? implode('. ', array_slice($procLines->toArray(), 0, 2))
             : ($lineAt(3, "Mekanismenya bertumpu pada alur proses dan prinsip operasional sesuai uraian bacaan."));
 
         // 5. Manfaat / Penerapan Praktis
         $q5Answer = ! empty($appLines)
-            ? implode('. ', array_slice($appLines, 0, 2))
+            ? implode('. ', array_slice($appLines->toArray(), 0, 2))
             : ($lineAt(4, "Penerapan nyata materi ini memberikan manfaat peningkatan efisiensi dan kualitas pemecahan masalah di bidangnya."));
 
         // 1. Pengertian / Konsep Inti
@@ -430,7 +499,7 @@ INSTRUCTIONS;
     }
 
     /**
-     * Menghasilkan 10 Soal Pilihan Ganda berfokus substantif pada materi bacaan nyata.
+     * Menghasilkan Soal Pilihan Ganda berfokus substantif pada materi bacaan nyata.
      *
      * @return array<int, array{sequence: int, question: string, options: array<int, array{key: string, text: string}>, correct_answer: string, explanation: string}>
      */
@@ -439,16 +508,13 @@ INSTRUCTIONS;
         $count = min(100, max(5, $count));
         
         // 1. Bersihkan dan normalisasi teks dokumen:
-        // Pisahkan kata-kata CamelCase yang menempel dari PDF (misal: TrigatraBangunBahasa -> Trigatra Bangun Bahasa)
         $normalizedText = preg_replace('/(?<=[a-z])(?=[A-Z])/u', ' ', $body);
 
-        // Pisahkan kata sambung/kunci umum bahasa Indonesia yang menempel tanpa spasi
         $gluedWords = ['adalah', 'merupakan', 'yaitu', 'oleh', 'melalui', 'dalam', 'dengan', 'untuk', 'pada', 'dari', 'yang', 'dan', 'antara', 'sesuai', 'sebagai'];
         foreach ($gluedWords as $gw) {
             $normalizedText = preg_replace('/(?<=[a-zA-Z0-9])(' . preg_quote($gw, '/') . ')(?=[a-zA-Z0-9])/ui', ' $1 ', $normalizedText);
         }
 
-        // Gabungkan baris yang terputus di tengah kalimat akibat pemotongan PDF
         $normalizedText = preg_replace('/(?<![.?!:;\n])\R+(?=[a-z0-9A-Z])/u', ' ', $normalizedText);
         $normalizedText = preg_replace('/[ \t]+/u', ' ', $normalizedText);
 
@@ -459,22 +525,27 @@ INSTRUCTIONS;
             ->values();
 
         $substantiveItems = collect();
+        $bulletPattern = '/^[•·\-\d+\.)\s\x{2022}\x{25CB}\x{25CF}\x{25AA}\x{25AB}\x{25BA}\x{2192}\x{2713}\x{2714}⚬○■□▪▫◆◇]+/u';
+        $boilerplatePattern = '/^(?:setelah mengikuti|tujuan pembelajaran|capaian pembelajaran|kompetensi|mahasiswa diharapkan|siswa diharapkan|peserta didik|daftar pustaka|sumber rujukan|terima kasih|thank you|halaman|page\s*\d+)/iu';
+
         foreach ($rawSegments as $segment) {
-            // Hilangkan bullet point awal
-            $cleanSegment = trim(preg_replace('/^[•·\-\d+\.)\s]+/u', '', $segment));
+            $cleanSegment = trim(preg_replace($bulletPattern, '', $segment));
+            if ($cleanSegment === '' || preg_match($boilerplatePattern, $cleanSegment)) {
+                continue;
+            }
             
-            // Pisahkan kalimat berdasarkan tanda baca akhir
             $splitSentences = preg_split('/(?<=[.?!])\s+/u', $cleanSegment, -1, PREG_SPLIT_NO_EMPTY) ?: [$cleanSegment];
             foreach ($splitSentences as $s) {
-                $trimmed = trim(preg_replace('/^[•·\-\d+\.)\s]+/u', '', $s));
-                // Pastikan kalimat memiliki panjang yang bermakna dan lengkap
+                $trimmed = trim(preg_replace($bulletPattern, '', $s));
+                if ($trimmed === '' || preg_match($boilerplatePattern, $trimmed)) {
+                    continue;
+                }
                 if (mb_strlen($trimmed) >= 30 && mb_strlen($trimmed) <= 300) {
                     $substantiveItems->push($trimmed);
                 }
             }
         }
 
-        // Jika dokumen sangat singkat, pastikan ada cadangan berkualitas
         if ($substantiveItems->isEmpty()) {
             $substantiveItems->push("Materi {$title} menyajikan konsep mendasar yang perlu dipahami secara mendalam.");
             $substantiveItems->push("Penerapan materi ini bertujuan memperkuat wawasan dan kompetensi siswa.");
@@ -487,7 +558,6 @@ INSTRUCTIONS;
             $itemIdx = ($i - 1) % $itemsCount;
             $primaryItem = $substantiveItems->get($itemIdx);
             
-            // Analisis struktur kalimat untuk merumuskan pertanyaan fokus materi
             $qText = "";
             $correctOptionText = $primaryItem;
             $explanation = "";
@@ -511,22 +581,17 @@ INSTRUCTIONS;
                 $correctOptionText = ucfirst($detail);
                 $explanation = "Sesuai rincian pada teks bacaan mengenai {$topic}, poin yang disampaikan adalah: {$detail}.";
             } else {
-                // Ambil frasa depan sebagai kata kunci topik
-                $words = preg_split('/\s+/u', $primaryItem) ?: [];
-                $snippet = count($words) > 5 ? implode(' ', array_slice($words, 0, 5)) . '...' : $primaryItem;
-                
                 $questionTemplates = [
-                    "Berdasarkan materi \"{$title}\", manakah pernyataan yang paling tepat mengenai \"{$snippet}\"?",
-                    "Bagaimana teks bacaan menguraikan pembahasan terkait bagian: \"{$snippet}\"?",
-                    "Manakah di antara opsi berikut yang secara akurat menjelaskan fakta pada bacaan ini?",
-                    "Dalam konteks materi yang dipaparkan, apa informasi penting yang disampaikan mengenai \"{$snippet}\"?",
+                    "Berdasarkan materi \"{$title}\", manakah pernyataan yang paling tepat sesuai fakta bacaan?",
+                    "Bagaimana teks bacaan menjelaskan poin penting terkait konsep yang dibahas?",
+                    "Manakah di antara opsi berikut yang secara akurat memaparkan fakta pada materi ini?",
+                    "Dalam konteks materi \"{$title}\", informasi penting apa yang ditegaskan dalam pembahasan?",
                 ];
                 $qText = $questionTemplates[($i - 1) % count($questionTemplates)];
                 $correctOptionText = $primaryItem;
                 $explanation = "Hal ini sesuai dengan uraian materi: \"{$primaryItem}\".";
             }
 
-            // Putar kunci jawaban A, B, C, D secara merata
             $correctKey = match ($i % 4) {
                 1 => 'A',
                 2 => 'B',
@@ -534,12 +599,10 @@ INSTRUCTIONS;
                 default => 'D',
             };
 
-            // Ambil distractor dari item lain di dokumen yang sama agar opsi tampak autentik
             $distractor1 = $substantiveItems->get(($itemIdx + 1) % $itemsCount);
             $distractor2 = $substantiveItems->get(($itemIdx + 2) % $itemsCount);
             $distractor3 = $substantiveItems->get(($itemIdx + 3) % $itemsCount);
 
-            // Jika distractor sama dengan correct answer (karena dokumen pendek), buat variasi kontradiktif
             if ($distractor1 === $primaryItem || mb_strlen((string) $distractor1) < 15) {
                 $distractor1 = "Konsep ini tidak memiliki keterkaitan langsung dengan tujuan utama materi {$title}.";
             }
@@ -558,8 +621,11 @@ INSTRUCTIONS;
             ];
 
             $options = [];
-            foreach (['A', 'B', 'C', 'D'] as $k) {
-                $options[] = ['key' => $k, 'text' => $rawOptions[$k]];
+            foreach (['A', 'B', 'C', 'D'] as $key) {
+                $options[] = [
+                    'key' => $key,
+                    'text' => $rawOptions[$key],
+                ];
             }
 
             $questions[] = [

@@ -171,7 +171,7 @@ class DocumentController extends Controller
             // Pastikan bank soal kuis memiliki setidaknya jumlah soal yang dipilih guru
             if ($document->quizQuestions()->count() < $targetCount) {
                 $processor = app(\App\Services\AI\DocumentAiProcessor::class);
-                $generated = $processor->generateHeuristicQuizQuestions(
+                $generated = $processor->generateQuizQuestions(
                     $document->body,
                     $document->title,
                     $document->category,
