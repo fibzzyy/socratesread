@@ -75,5 +75,6 @@
             document.addEventListener('keydown', (event) => { if (event.key === 'Escape') setOpen(false); });
         })();
     </script>
+    @stack('scripts')
 </body>
 </html>

@@ -29,7 +29,7 @@
             @csrf
             <div class="grid gap-1.5">
                 <label for="join_code" class="text-xs font-semibold text-slate-700">Kode gabung kelas (8 karakter)</label>
-                <input id="join_code" name="join_code" value="{{ old('join_code') }}" maxlength="8" minlength="8" required autocomplete="off" autocapitalize="characters" class="min-h-11 rounded-xl border border-slate-300 px-4 font-mono text-base uppercase tracking-widest outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100" placeholder="Contoh: BACA2026">
+                <input id="join_code" name="join_code" value="{{ old('join_code', $joinCode) }}" maxlength="8" minlength="8" required autocomplete="off" autocapitalize="characters" class="min-h-11 rounded-xl border border-slate-300 px-4 font-mono text-base uppercase tracking-widest outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100" placeholder="Contoh: BACA2026">
                 @error('join_code')
                     <span class="text-xs text-red-600 font-medium">{{ $message }}</span>
                 @enderror
