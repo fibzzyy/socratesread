@@ -7,15 +7,16 @@ use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class GamificationService
 {
     public function awardOnce(ReadingSession $session, string $eventType, int $xp, string $summary): int
     {
-        return \Illuminate\Support\Facades\DB::transaction(function () use ($session, $eventType, $xp, $summary): int {
+        return DB::transaction(function () use ($session, $eventType, $xp, $summary): int {
             $session->user()->lockForUpdate()->first();
 
-            $hasEarnedForDocument = \Illuminate\Support\Facades\DB::table('learning_activities')
+            $hasEarnedForDocument = DB::table('learning_activities')
                 ->where('user_id', $session->user_id)
                 ->where('document_id', $session->document_id)
                 ->where('event_type', $eventType)
@@ -23,7 +24,7 @@ class GamificationService
                 ->exists();
             $xpToAward = $hasEarnedForDocument ? 0 : $xp;
 
-            $inserted = \Illuminate\Support\Facades\DB::table('learning_activities')->insertOrIgnore([
+            $inserted = DB::table('learning_activities')->insertOrIgnore([
                 'user_id' => $session->user_id,
                 'reading_session_id' => $session->id,
                 'document_id' => $session->document_id,
@@ -112,18 +113,16 @@ class GamificationService
     }
 
     /** @return array{xp: int, level: int, xp_into_level: int, xp_to_next_level: int, level_progress: int, current_streak: int, longest_streak: int} */
-    public function summary(User $user, string $grade = 'all', ?array $documentIds = null): array
+    public function summary(User $user, string|array|null $grade = 'all', ?array $documentIds = null): array
     {
-        $activities = $this->activitiesForGrade($user, $grade, $documentIds);
+        if (is_array($grade)) {
+            $documentIds = $grade;
+            $grade = 'all';
+        }
+
+        $activities = $this->activitiesForGrade($user, $grade ?? 'all', $documentIds);
         $xp = (int) (clone $activities)->sum('xp_awarded');
         $dates = (clone $activities)
-    public function summary(User $user, ?array $documentIds = null): array
-    {
-        $activitiesQuery = $user->learningActivities()
-            ->when($documentIds !== null, fn ($q) => $q->whereIn('document_id', $documentIds));
-
-        $xp = (int) (clone $activitiesQuery)->sum('xp_awarded');
-        $dates = (clone $activitiesQuery)
             ->select('activity_date')
             ->distinct()
             ->orderByDesc('activity_date')
@@ -145,24 +144,29 @@ class GamificationService
         ];
     }
 
-    public function recentActivities(User $user, int $limit = 6, string $grade = 'all', ?array $documentIds = null): Collection
+    public function recentActivities(User $user, int $limit = 6, string|array|null $grade = 'all', ?array $documentIds = null): Collection
     {
-        return $this->activitiesForGrade($user, $grade, $documentIds)
+        if (is_array($grade)) {
+            $documentIds = $grade;
+            $grade = 'all';
+        }
+
+        return $this->activitiesForGrade($user, $grade ?? 'all', $documentIds)
             ->with(['readingSession.document:id,title', 'document:id,title'])
             ->latest('created_at')
             ->limit($limit)
             ->get();
     }
 
-    public function weeklyActivity(User $user, string $grade = 'all', ?array $documentIds = null): Collection
+    public function weeklyActivity(User $user, string|array|null $grade = 'all', ?array $documentIds = null): Collection
     {
+        if (is_array($grade)) {
+            $documentIds = $grade;
+            $grade = 'all';
+        }
+
         $start = now()->startOfDay()->subDays(6);
-        $activities = $this->activitiesForGrade($user, $grade, $documentIds)
-    public function weeklyActivity(User $user, ?array $documentIds = null): Collection
-    {
-        $start = now()->startOfDay()->subDays(6);
-        $activities = $user->learningActivities()
-            ->when($documentIds !== null, fn ($q) => $q->whereIn('document_id', $documentIds))
+        $activities = $this->activitiesForGrade($user, $grade ?? 'all', $documentIds)
             ->whereBetween('activity_date', [$start->toDateString(), now()->toDateString()])
             ->get()
             ->groupBy(fn ($activity) => $activity->activity_date->toDateString());

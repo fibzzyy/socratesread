@@ -59,7 +59,6 @@ class StudentTeacherChallengeController extends Controller
         }
 
         $user = $request->user();
-
         $submission = StudentTeacherChallengeSubmission::query()
             ->where('user_id', $user->id)
             ->where('document_id', $document->id)

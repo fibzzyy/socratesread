@@ -18,7 +18,7 @@ class ChallengeController extends Controller
 {
     public function show(Request $request): View|RedirectResponse
     {
-        $userId = auth()->id();
+        $userId = auth()->user()->id;
         $sessionId = $request->query('session');
 
         if ($sessionId) {
