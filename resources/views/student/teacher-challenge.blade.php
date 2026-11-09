@@ -219,15 +219,21 @@
             @endforeach
         </div>
 
-        <div class="flex items-center justify-between">
-            <a href="{{ route('reading', ['document' => $document->id]) }}" class="outline-button">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <a href="{{ route('quiz.index') }}" class="outline-button">
                 <x-icon name="arrow-left" class="w-4 h-4" />
-                <span>Kembali ke Bacaan</span>
+                <span>Kembali ke Challenge Socrates</span>
             </a>
-            <a href="{{ route('quiz.timed', ['document' => $document->id]) }}" class="challenge-button">
-                <span>Lanjut ke Challenge Socrates</span>
-                <x-icon name="arrow-right" class="w-4 h-4" />
-            </a>
+            <div class="flex items-center gap-2">
+                <a href="{{ route('progress') }}" class="outline-button !border-purple-200 !text-purple-700 bg-purple-50/50 hover:bg-purple-100/70">
+                    <x-icon name="trending-up" class="w-4 h-4" />
+                    <span>Lihat Progress</span>
+                </a>
+                <a href="{{ route('quiz.index') }}" class="challenge-button">
+                    <span>Lanjut ke Challenge Socrates</span>
+                    <x-icon name="arrow-right" class="w-4 h-4" />
+                </a>
+            </div>
         </div>
     @else
         {{-- ============================================================== --}}
@@ -285,18 +291,65 @@
             </div>
 
             <div class="flex items-center justify-between p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
-                <a href="{{ route('reading', ['document' => $document->id]) }}" class="outline-button">
+                <a href="{{ route('quiz.index') }}" class="outline-button">
                     <x-icon name="arrow-left" class="w-4 h-4" />
-                    <span>Kembali</span>
+                    <span>Kembali ke Challenge Socrates</span>
                 </a>
-                <button type="submit" class="challenge-button" onclick="return confirm('Apakah Anda yakin ingin mengumpulkan seluruh jawaban tantangan guru sekarang?')">
+                <button type="button" id="btnOpenSubmitTeacherModal" class="challenge-button">
                     <span>Kirim Jawaban Tantangan</span>
                     <x-icon name="arrow-right" class="w-4 h-4" />
                 </button>
             </div>
         </form>
 
+        <!-- Modal Pop-Up Konfirmasi Pengumpulan Jawaban Tantangan Guru -->
+        <div id="teacherSubmitModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs transition-opacity" role="dialog" aria-modal="true">
+            <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-slate-100 text-center transform transition-all scale-100">
+                <div class="w-16 h-16 rounded-2xl mx-auto mb-4 grid place-items-center bg-blue-100 text-blue-600">
+                    <x-icon name="send" class="w-8 h-8" />
+                </div>
+                <h3 class="text-xl font-bold text-slate-900 mb-2">Kumpulkan Jawaban Tantangan?</h3>
+                <p class="text-xs text-slate-600 leading-relaxed mb-6">
+                    Seluruh jawaban esai dan pilihan ganda Anda akan dikumpulkan dan dinilai secara objektif oleh AI Socrates. Pastikan semua pertanyaan telah dijawab dengan seksama.
+                </p>
+                <div class="flex items-center justify-center gap-3">
+                    <button type="button" id="btnCancelTeacherSubmit" class="outline-button w-1/2 justify-center py-2.5 text-xs font-semibold">
+                        Periksa Kembali
+                    </button>
+                    <button type="button" id="btnConfirmTeacherSubmit" class="challenge-button !bg-blue-600 hover:!bg-blue-700 !border-blue-600 w-1/2 justify-center py-2.5 text-xs font-bold">
+                        Kumpulkan Sekarang
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <script>
+            // Modal Konfirmasi Pengumpulan
+            const teacherSubmitModal = document.getElementById('teacherSubmitModal');
+            const btnOpenSubmitTeacherModal = document.getElementById('btnOpenSubmitTeacherModal');
+            const btnCancelTeacherSubmit = document.getElementById('btnCancelTeacherSubmit');
+            const btnConfirmTeacherSubmit = document.getElementById('btnConfirmTeacherSubmit');
+            const teacherChallengeForm = document.getElementById('teacherChallengeForm');
+
+            if (btnOpenSubmitTeacherModal && teacherSubmitModal) {
+                btnOpenSubmitTeacherModal.addEventListener('click', () => {
+                    teacherSubmitModal.classList.remove('hidden');
+                });
+            }
+
+            if (btnCancelTeacherSubmit && teacherSubmitModal) {
+                btnCancelTeacherSubmit.addEventListener('click', () => {
+                    teacherSubmitModal.classList.add('hidden');
+                });
+            }
+
+            if (btnConfirmTeacherSubmit && teacherChallengeForm) {
+                btnConfirmTeacherSubmit.addEventListener('click', () => {
+                    teacherSubmitModal.classList.add('hidden');
+                    teacherChallengeForm.submit();
+                });
+            }
+
             // Klik 1x untuk memilih jawaban, klik lagi pada opsi yang sama untuk membatalkan pilihan
             document.querySelectorAll('[data-mcq-group]').forEach(group => {
                 const radios = group.querySelectorAll('[data-mcq-radio]');
