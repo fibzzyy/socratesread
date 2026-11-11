@@ -168,27 +168,8 @@ class DocumentController extends Controller
             $targetCount = (int) $validated['quiz_question_count'];
             $updates['quiz_question_count'] = $targetCount;
 
-            // Pastikan bank soal kuis memiliki setidaknya jumlah soal yang dipilih guru
-            if ($document->quizQuestions()->count() < $targetCount) {
-                $processor = app(\App\Services\AI\DocumentAiProcessor::class);
-                $generated = $processor->generateQuizQuestions(
-                    $document->body,
-                    $document->title,
-                    $document->category,
-                    $targetCount
-                );
-                foreach ($generated as $qz) {
-                    $document->quizQuestions()->updateOrCreate(
-                        ['sequence' => $qz['sequence']],
-                        [
-                            'question' => $qz['question'],
-                            'options' => $qz['options'],
-                            'correct_answer' => $qz['correct_answer'],
-                            'explanation' => $qz['explanation'] ?? null,
-                        ]
-                    );
-                }
-            }
+            app(\App\Services\AI\DocumentAiProcessor::class)
+                ->ensureQuizQuestionsForDocument($document, $targetCount);
         }
 
         if (! empty($updates)) {

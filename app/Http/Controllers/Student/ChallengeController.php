@@ -160,6 +160,9 @@ class ChallengeController extends Controller
                 'completed_at' => now(),
             ]);
 
+            // Pastikan event reading_completed juga tercatat pada riwayat belajar
+            $gamification->awardOnce($session, 'reading_completed', 10, 'Menyelesaikan bacaan');
+
             return $gamification->awardOnce($session, 'challenge_completed', 20, 'Menyelesaikan Socratic Challenge');
         });
 

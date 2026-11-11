@@ -3,6 +3,7 @@
 namespace App\Services\AI;
 
 use App\Services\AI\Contracts\LanguageModel;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 use Throwable;
@@ -58,7 +59,7 @@ class OpenRouterResponsesProvider implements LanguageModel
             $chatResponse = Http::acceptJson()
                 ->asJson()
                 ->withToken($apiKey)
-                ->connectTimeout(10)
+                ->connectTimeout(3)
                 ->timeout($timeout)
                 ->post($baseUrl . '/chat/completions', $chatPayload);
 
@@ -68,18 +69,28 @@ class OpenRouterResponsesProvider implements LanguageModel
                     return trim($content);
                 }
                 file_put_contents(base_path('chat_error.txt'), "Chat 200 but content empty: " . json_encode($chatResponse->json()));
-            } else {
-                file_put_contents(base_path('chat_error.txt'), "Chat failed {$chatResponse->status()}: " . $chatResponse->body());
-                \Illuminate\Support\Facades\Log::warning('OpenRouter chat/completions unsuccesful: ' . $chatResponse->status(), [
-                    'body' => $chatResponse->body(),
-                ]);
+                throw new RuntimeException('OpenRouter returned an empty completion.');
             }
+
+            file_put_contents(base_path('chat_error.txt'), "Chat failed {$chatResponse->status()}: " . $chatResponse->body());
+            \Illuminate\Support\Facades\Log::warning('OpenRouter chat/completions unsuccesful: ' . $chatResponse->status(), [
+                'body' => $chatResponse->body(),
+            ]);
+
+            if (! in_array($chatResponse->status(), [404, 405], true)) {
+                $chatResponse->throw();
+            }
+        } catch (ConnectionException $e) {
+            file_put_contents(base_path('chat_error.txt'), "Chat connection error: " . $e->getMessage());
+            \Illuminate\Support\Facades\Log::warning('OpenRouter chat/completions connection error: ' . $e->getMessage());
+            throw $e;
         } catch (Throwable $e) {
             file_put_contents(base_path('chat_error.txt'), "Chat exception: " . $e->getMessage());
             \Illuminate\Support\Facades\Log::warning('OpenRouter chat/completions exception: ' . $e->getMessage());
+            throw $e;
         }
 
-        // 2. Fallback ke endpoint legacy /responses jika endpoint chat completions tidak merespons
+        // 2. Fallback ke endpoint legacy /responses hanya jika /chat/completions mengembalikan 404/405
         $responsesPayload = [
             'model' => $model,
             'instructions' => $instructions,
@@ -94,7 +105,7 @@ class OpenRouterResponsesProvider implements LanguageModel
         $response = Http::acceptJson()
             ->asJson()
             ->withToken($apiKey)
-            ->connectTimeout(10)
+            ->connectTimeout(3)
             ->timeout($timeout)
             ->post($baseUrl . '/responses', $responsesPayload);
 

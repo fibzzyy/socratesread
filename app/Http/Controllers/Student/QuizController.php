@@ -22,6 +22,7 @@ class QuizController extends Controller
 
         $query = Document::query()
             ->where('is_published', true)
+            ->with('uploader:id,name')
             ->withCount(['quizQuestions', 'teacherChallenges'])
             ->latest('id');
 
@@ -61,7 +62,7 @@ class QuizController extends Controller
             $status = $completedAttempt ? 'completed' : ($inProgressAttempt ? 'in_progress' : 'not_started');
 
             $teacherSub = $userTeacherSubmissions->get($doc->id);
-            $teacherChallengesCount = $doc->teacher_challenges_count ?: $doc->teacherChallenges()->count();
+            $teacherChallengesCount = (int) ($doc->teacher_challenges_count ?? $doc->teacherChallenges()->count());
 
             return [
                 'document' => $doc,
@@ -151,24 +152,6 @@ class QuizController extends Controller
 
         $targetCount = min(100, max(5, (int) ($document->quiz_question_count ?: 10)));
 
-        if ($document->quizQuestions()->count() < $targetCount) {
-            $processor = app(\App\Services\AI\DocumentAiProcessor::class);
-            $generated = $processor->generateQuizQuestions($document->body, $document->title, $document->category, $targetCount);
-            foreach ($generated as $qz) {
-                $document->quizQuestions()->updateOrCreate(
-                    ['sequence' => $qz['sequence']],
-                    [
-                        'question' => $qz['question'],
-                        'options' => $qz['options'],
-                        'correct_answer' => $qz['correct_answer'],
-                        'explanation' => $qz['explanation'],
-                    ]
-                );
-            }
-        }
-
-        $quizQuestions = $document->quizQuestions()->orderBy('sequence')->take($targetCount)->get();
-
         $userId = auth()->id();
 
         // 1. Check if a completed attempt exists
@@ -184,7 +167,15 @@ class QuizController extends Controller
 
         if ($attempt) {
             $isLocked = true;
+            $effectiveCount = $attempt->total_questions ?: $targetCount;
+            app(\App\Services\AI\DocumentAiProcessor::class)
+                ->ensureQuizQuestionsForDocument($document, $effectiveCount);
+            $quizQuestions = $document->quizQuestions()->orderBy('sequence')->take($effectiveCount)->get();
         } else {
+            app(\App\Services\AI\DocumentAiProcessor::class)
+                ->ensureQuizQuestionsForDocument($document, $targetCount);
+            $quizQuestions = $document->quizQuestions()->orderBy('sequence')->take($targetCount)->get();
+
             // Find or create in-progress attempt
             $attempt = StudentQuizAttempt::query()->firstOrCreate([
                 'user_id' => $userId,
@@ -195,6 +186,10 @@ class QuizController extends Controller
                 'total_questions' => $quizQuestions->count(),
                 'started_at' => now(),
             ]);
+
+            if ($attempt->total_questions !== $quizQuestions->count()) {
+                $attempt->update(['total_questions' => $quizQuestions->count()]);
+            }
         }
 
         // Map questions: hide correct answer in active test mode to prevent inspection
@@ -247,7 +242,8 @@ class QuizController extends Controller
             ], 403);
         }
 
-        $quizQuestions = $attempt->document->quizQuestions;
+        $targetCount = min(100, max(5, (int) ($attempt->document->quiz_question_count ?: 10)));
+        $quizQuestions = $attempt->document->quizQuestions()->orderBy('sequence')->take($targetCount)->get();
         $total = $quizQuestions->count();
         $submittedAnswers = $data['answers'];
 

@@ -2,10 +2,8 @@
 
 @section('title', 'Tantangan Guru: ' . $document->title)
 
-@section('breadcrumb')
-    <a href="{{ route('reading', ['document' => $document->id]) }}" class="text-slate-500 hover:text-blue-600">Bacaan</a>
-    <span class="mx-1">/</span>
-    <strong>Tantangan Guru</strong>
+@section('breadcrumb_items')
+    <span>/</span><a href="{{ route('quiz.index') }}" class="hover:text-blue-600">Challenge Socrates</a><span>/</span><strong>Tantangan Guru</strong>
 @endsection
 
 @section('content')
@@ -13,7 +11,11 @@
         <div>
             <p class="eyebrow">TANTANGAN DARI GURU PENGAMPU</p>
             <h1 id="challenge-heading">Tantangan: {{ $document->title }}</h1>
-            <p class="welcome-subtitle">Tantangan khusus dari guru pengampu. Terdiri dari {{ $totalQuestions }} soal bernilai total 100 poin (masing-masing maks {{ $pointsPerQuestion }} poin).</p>
+            @if ($totalQuestions > 0)
+                <p class="welcome-subtitle">Tantangan khusus dari guru pengampu. Terdiri dari {{ $totalQuestions }} soal bernilai total 100 poin (masing-masing maks {{ $pointsPerQuestion }} poin).</p>
+            @else
+                <p class="welcome-subtitle">Informasi tantangan khusus dari guru pengampu untuk materi ini.</p>
+            @endif
         </div>
         <div class="inline-flex items-center gap-2 rounded-2xl bg-white border border-slate-200/80 px-4 py-2 text-xs font-semibold text-slate-700 shadow-2xs">
             <x-icon name="book-open-text" class="w-4 h-4 text-blue-600" />
@@ -28,7 +30,29 @@
         </div>
     @endif
 
-    @if ($submission && $submission->isCompleted())
+    @if ($challenges->isEmpty() && ! ($submission && $submission->isCompleted()))
+        <section class="panel p-8 sm:p-10 rounded-2xl border border-slate-200/80 bg-white text-center shadow-xs space-y-4">
+            <div class="w-14 h-14 rounded-2xl bg-slate-100 text-slate-500 grid place-items-center mx-auto">
+                <x-icon name="info" class="w-7 h-7" />
+            </div>
+            <div class="max-w-md mx-auto space-y-1.5">
+                <h2 class="text-lg font-bold text-slate-900">Tidak Ada Tantangan dari Guru</h2>
+                <p class="text-xs text-slate-500 leading-relaxed">
+                    Saat ini belum ada soal tantangan dari guru untuk materi <strong>{{ $document->title }}</strong>. Kamu tetap bisa membaca materi atau mengerjakan Kuis Timer Pilihan Ganda.
+                </p>
+            </div>
+            <div class="flex flex-wrap items-center justify-center gap-3 pt-2">
+                <a href="{{ route('quiz.index') }}" class="outline-button">
+                    <x-icon name="arrow-left" class="w-4 h-4" />
+                    <span>Kembali ke Challenge Socrates</span>
+                </a>
+                <a href="{{ route('reading', ['document' => $document->id]) }}" class="challenge-button">
+                    <x-icon name="book-open-text" class="w-4 h-4" />
+                    <span>Buka Ruang Baca</span>
+                </a>
+            </div>
+        </section>
+    @elseif ($submission && $submission->isCompleted())
         {{-- ============================================================== --}}
         {{-- TAMPILAN 1: HASIL PENGERJAAN TANTANGAN TERKUNCI & TERANALISIS  --}}
         {{-- ============================================================== --}}

@@ -4,14 +4,17 @@
     $isTimed = $mode === 'timed_quiz';
     $durationMinutes = (int) ($quizDurationMinutes ?? ($document->quiz_duration_minutes ?: 15));
     $durationSeconds = (int) ($quizDurationSeconds ?? ($durationMinutes * 60));
+    $displayCount = $questionsPayload->count();
     $modeTitle = $isTimed ? 'Kuis Timer Pilihan Ganda' : 'Latihan Pilihan Ganda';
     $modeSubtitle = $isTimed
-        ? "Kuis 10 Soal berbasis bacaan dengan batas waktu total {$durationMinutes} menit. Uji ketepatan & kecepatan analisismu."
-        : 'Kuis 10 Soal evaluasi pemahaman bacaan tanpa batas waktu. Baca teks dengan teliti dan temukan jawaban terbaik.';
+        ? "Kuis {$displayCount} Soal berbasis bacaan dengan batas waktu total {$durationMinutes} menit. Uji ketepatan & kecepatan analisismu."
+        : "Kuis {$displayCount} Soal evaluasi pemahaman bacaan tanpa batas waktu. Baca teks dengan teliti dan temukan jawaban terbaik.";
 @endphp
 
 @section('title', $modeTitle)
-@section('breadcrumb', $modeTitle)
+@section('breadcrumb_items')
+    <span>/</span><a href="{{ route('quiz.index') }}" class="hover:text-blue-600">Challenge Socrates</a><span>/</span><strong>{{ $modeTitle }}</strong>
+@endsection
 
 @section('content')
     <style>

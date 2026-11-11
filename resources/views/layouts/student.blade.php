@@ -56,7 +56,7 @@
         <main class="main-content">
             <header class="topbar">
                 <button class="icon-button menu-toggle" type="button" aria-label="Buka navigasi" aria-controls="primary-navigation" aria-expanded="false" data-menu-toggle><x-icon name="menu" /></button>
-                <div class="breadcrumb"><a href="{{ route('dashboard') }}">Ruang belajar</a><span>/</span><strong>@yield('breadcrumb', 'Halaman')</strong></div>
+                <div class="breadcrumb"><a href="{{ route('dashboard') }}">Ruang belajar</a>@hasSection('breadcrumb_items')@yield('breadcrumb_items')@else<span>/</span><strong>@yield('breadcrumb', 'Halaman')</strong>@endif</div>
                 <div class="topbar-actions">
                     <span class="today-label">{{ now()->locale('id')->translatedFormat('l, d F Y') }}</span>
                     <button class="icon-button notification-button" type="button" aria-label="Notifikasi"><x-icon name="bell" /><i></i></button>
