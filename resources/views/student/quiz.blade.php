@@ -4,14 +4,17 @@
     $isTimed = $mode === 'timed_quiz';
     $durationMinutes = (int) ($quizDurationMinutes ?? ($document->quiz_duration_minutes ?: 15));
     $durationSeconds = (int) ($quizDurationSeconds ?? ($durationMinutes * 60));
+    $displayCount = $questionsPayload->count();
     $modeTitle = $isTimed ? 'Kuis Timer Pilihan Ganda' : 'Latihan Pilihan Ganda';
     $modeSubtitle = $isTimed
-        ? "Kuis 10 Soal berbasis bacaan dengan batas waktu total {$durationMinutes} menit. Uji ketepatan & kecepatan analisismu."
-        : 'Kuis 10 Soal evaluasi pemahaman bacaan tanpa batas waktu. Baca teks dengan teliti dan temukan jawaban terbaik.';
+        ? "Kuis {$displayCount} Soal berbasis bacaan dengan batas waktu total {$durationMinutes} menit. Uji ketepatan & kecepatan analisismu."
+        : "Kuis {$displayCount} Soal evaluasi pemahaman bacaan tanpa batas waktu. Baca teks dengan teliti dan temukan jawaban terbaik.";
 @endphp
 
 @section('title', $modeTitle)
-@section('breadcrumb', $modeTitle)
+@section('breadcrumb_items')
+    <span>/</span><a href="{{ route('quiz.index') }}" class="hover:text-blue-600">Challenge Socrates</a><span>/</span><strong>{{ $modeTitle }}</strong>
+@endsection
 
 @section('content')
     <style>
@@ -85,12 +88,14 @@
             <p class="welcome-subtitle">{{ $modeSubtitle }}</p>
         </div>
         <div class="flex items-center gap-2.5">
-            <a class="back-link" href="{{ route('quiz.index') }}" title="Lihat semua kuis tersedia">
-                <x-icon name="list" /> <span>Daftar Kuis</span>
+            <a class="back-link" href="{{ route('quiz.index') }}" title="Kembali ke Challenge Socrates">
+                <x-icon name="arrow-left" /> <span>Kembali</span>
             </a>
-            <a class="back-link" href="{{ route('reading', ['document' => $document->id]) }}" title="Kembali ke halaman teks bacaan">
-                <x-icon name="arrow-left" /> <span>Kembali ke bacaan</span>
-            </a>
+            @if ($isLocked)
+                <a class="back-link !bg-purple-50 !text-purple-700 !border-purple-200 hover:!bg-purple-100" href="{{ route('progress') }}" title="Lihat Progress Belajar">
+                    <x-icon name="trending-up" /> <span>Lihat Progress</span>
+                </a>
+            @endif
         </div>
     </section>
 
@@ -344,7 +349,12 @@
 
                     <div class="flex items-center gap-2">
                         @if ($isLocked)
-                            <a class="outline-button" href="{{ route('dashboard') }}">Dashboard</a>
+                            <a class="outline-button !border-purple-200 !text-purple-700 bg-purple-50/50 hover:bg-purple-100" href="{{ route('progress') }}">
+                                <x-icon name="trending-up" /> <span>Lihat Progress</span>
+                            </a>
+                            <a class="outline-button" href="{{ route('quiz.index') }}">
+                                <x-icon name="gamepad-2" /> <span>Challenge Socrates</span>
+                            </a>
                         @endif
                         <button type="button" class="challenge-button" data-btn-next>
                             <span data-next-label>Lanjut</span>
@@ -379,12 +389,15 @@
                         </div>
                     </div>
 
-                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
-                        <button type="button" class="outline-button justify-center" data-btn-review-scorecard>
+                    <div class="flex flex-wrap items-center justify-center gap-3">
+                        <button type="button" class="outline-button" data-btn-review-scorecard>
                             <x-icon name="eye" /> <span>Tinjau Pembahasan Soal</span>
                         </button>
-                        <a href="{{ route('progress') }}" class="challenge-button justify-center">
-                            <span>Lihat Progress Saya</span> <x-icon name="arrow-right" />
+                        <a href="{{ route('quiz.index') }}" class="outline-button">
+                            <x-icon name="gamepad-2" /> <span>Challenge Socrates</span>
+                        </a>
+                        <a href="{{ route('progress') }}" class="challenge-button">
+                            <span>Lihat Progress</span> <x-icon name="arrow-right" />
                         </a>
                     </div>
                 </div>
@@ -756,7 +769,7 @@
     btnNext.addEventListener('click', () => {
         if (isLocked) {
             if (current >= questions.length - 1) {
-                window.location.href = "{{ route('dashboard') }}";
+                window.location.href = "{{ route('quiz.index') }}";
                 return;
             }
             renderQuestion(current + 1);

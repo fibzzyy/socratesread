@@ -180,7 +180,7 @@ class TeacherChallengeTest extends TestCase
         $this->assertEquals('essay', $suggestions[0]['type']);
     }
 
-    public function test_student_can_open_teacher_challenge_with_automatic_seeding_when_empty(): void
+    public function test_student_sees_empty_message_when_teacher_challenge_is_empty(): void
     {
         $student = User::factory()->create(['role' => 'student']);
         $teacher = User::factory()->create(['role' => 'teacher']);
@@ -199,10 +199,17 @@ class TeacherChallengeTest extends TestCase
 
         $response = $this->actingAs($student)->get(route('student.teacher-challenges.show', $document));
         $response->assertOk();
-        $response->assertSee('Tantangan khusus dari guru pengampu');
-        $response->assertSee('100 poin');
+        $response->assertSee('Tidak Ada Tantangan dari Guru');
+        $response->assertSee('Challenge Socrates');
 
-        $this->assertGreaterThan(0, $document->teacherChallenges()->count());
+        // Pastikan tidak melakukan auto-seed soal
+        $this->assertEquals(0, $document->fresh()->teacherChallenges()->count());
+
+        // Halaman katalog Challenge Socrates juga menampilkan pesan kosong tanpa tombol 0 soal
+        $quizIndexResponse = $this->actingAs($student)->get(route('quiz.index'));
+        $quizIndexResponse->assertOk();
+        $quizIndexResponse->assertSee('Tidak ada tantangan dari guru');
+        $quizIndexResponse->assertDontSee('Buka Tantangan Guru (0 Soal)');
     }
 
     public function test_student_submitting_incorrect_essay_gets_zero_points_and_sees_correct_model_answer(): void
@@ -244,5 +251,50 @@ class TeacherChallengeTest extends TestCase
         $viewResponse->assertSee('0.00 / 100 Poin');
         $viewResponse->assertSee('Kunci Jawaban yang Benar Berdasarkan Materi');
         $viewResponse->assertSee('Kunci utama (primary key) berfungsi menjamin keunikan');
+    }
+
+    public function test_teacher_can_clear_all_challenges_for_document(): void
+    {
+        $teacher = User::factory()->create(['role' => 'teacher']);
+        $document = Document::query()->create([
+            'uploaded_by' => $teacher->id,
+            'title' => 'Materi Uji',
+            'category' => 'SISTEM OPERASI',
+            'target_grade' => '10',
+            'body' => 'Pengujian penghapusan seluruh tantangan guru.',
+            'excerpt' => 'Konsep pengujian.',
+            'estimated_minutes' => 5,
+            'is_published' => true,
+        ]);
+
+        TeacherChallenge::query()->create([
+            'document_id' => $document->id,
+            'type' => 'essay',
+            'sequence' => 1,
+            'question' => 'Pertanyaan 1',
+        ]);
+
+        $this->assertEquals(1, $document->teacherChallenges()->count());
+
+        $response = $this->actingAs($teacher)->postJson(route('teacher.documents.challenges.store', $document), [
+            'challenges' => [],
+        ]);
+
+        $response->assertOk();
+        $response->assertJson([
+            'success' => true,
+            'total_challenges' => 0,
+            'points_per_question' => 0,
+        ]);
+
+        $this->assertEquals(0, $document->fresh()->teacherChallenges()->count());
+
+        // Calling index should also return 0 without auto-seeding
+        $indexResponse = $this->actingAs($teacher)->getJson(route('teacher.documents.challenges.index', $document));
+        $indexResponse->assertOk();
+        $indexResponse->assertJson([
+            'total_challenges' => 0,
+            'challenges' => [],
+        ]);
     }
 }

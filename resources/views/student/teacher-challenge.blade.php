@@ -2,10 +2,8 @@
 
 @section('title', 'Tantangan Guru: ' . $document->title)
 
-@section('breadcrumb')
-    <a href="{{ route('reading', ['document' => $document->id]) }}" class="text-slate-500 hover:text-blue-600">Bacaan</a>
-    <span class="mx-1">/</span>
-    <strong>Tantangan Guru</strong>
+@section('breadcrumb_items')
+    <span>/</span><a href="{{ route('quiz.index') }}" class="hover:text-blue-600">Challenge Socrates</a><span>/</span><strong>Tantangan Guru</strong>
 @endsection
 
 @section('content')
@@ -13,7 +11,11 @@
         <div>
             <p class="eyebrow">TANTANGAN DARI GURU PENGAMPU</p>
             <h1 id="challenge-heading">Tantangan: {{ $document->title }}</h1>
-            <p class="welcome-subtitle">Tantangan khusus dari guru pengampu. Terdiri dari {{ $totalQuestions }} soal bernilai total 100 poin (masing-masing maks {{ $pointsPerQuestion }} poin).</p>
+            @if ($totalQuestions > 0)
+                <p class="welcome-subtitle">Tantangan khusus dari guru pengampu. Terdiri dari {{ $totalQuestions }} soal bernilai total 100 poin (masing-masing maks {{ $pointsPerQuestion }} poin).</p>
+            @else
+                <p class="welcome-subtitle">Informasi tantangan khusus dari guru pengampu untuk materi ini.</p>
+            @endif
         </div>
         <div class="inline-flex items-center gap-2 rounded-2xl bg-white border border-slate-200/80 px-4 py-2 text-xs font-semibold text-slate-700 shadow-2xs">
             <x-icon name="book-open-text" class="w-4 h-4 text-blue-600" />
@@ -28,7 +30,29 @@
         </div>
     @endif
 
-    @if ($submission && $submission->isCompleted())
+    @if ($challenges->isEmpty() && ! ($submission && $submission->isCompleted()))
+        <section class="panel p-8 sm:p-10 rounded-2xl border border-slate-200/80 bg-white text-center shadow-xs space-y-4">
+            <div class="w-14 h-14 rounded-2xl bg-slate-100 text-slate-500 grid place-items-center mx-auto">
+                <x-icon name="info" class="w-7 h-7" />
+            </div>
+            <div class="max-w-md mx-auto space-y-1.5">
+                <h2 class="text-lg font-bold text-slate-900">Tidak Ada Tantangan dari Guru</h2>
+                <p class="text-xs text-slate-500 leading-relaxed">
+                    Saat ini belum ada soal tantangan dari guru untuk materi <strong>{{ $document->title }}</strong>. Kamu tetap bisa membaca materi atau mengerjakan Kuis Timer Pilihan Ganda.
+                </p>
+            </div>
+            <div class="flex flex-wrap items-center justify-center gap-3 pt-2">
+                <a href="{{ route('quiz.index') }}" class="outline-button">
+                    <x-icon name="arrow-left" class="w-4 h-4" />
+                    <span>Kembali ke Challenge Socrates</span>
+                </a>
+                <a href="{{ route('reading', ['document' => $document->id]) }}" class="challenge-button">
+                    <x-icon name="book-open-text" class="w-4 h-4" />
+                    <span>Buka Ruang Baca</span>
+                </a>
+            </div>
+        </section>
+    @elseif ($submission && $submission->isCompleted())
         {{-- ============================================================== --}}
         {{-- TAMPILAN 1: HASIL PENGERJAAN TANTANGAN TERKUNCI & TERANALISIS  --}}
         {{-- ============================================================== --}}
@@ -145,68 +169,95 @@
                             </div>
                         @endif
                     @else
-                        {{-- Review Soal Esai: Jawaban Murid, Evaluasi AI, Kunci Jawaban Ideal, dan Bukti Materi --}}
-                        <div class="space-y-3">
-                            <!-- Jawaban Murid -->
-                            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs">
-                                <small class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Jawaban Anda:</small>
-                                <p class="text-slate-800 leading-relaxed whitespace-pre-line font-medium">{{ $ans['student_answer'] ?? '(Tidak diisi)' }}</p>
+                        {{-- Review Soal Esai: Desain Bersih & Elegan Mirip Gemini NotebookLM --}}
+                        <div class="space-y-4">
+                            <!-- 1. Box Jawaban Anda (NotebookLM Style) -->
+                            <div class="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200/90 text-xs">
+                                <span class="text-xs font-bold text-slate-500 block mb-2">Jawaban Anda</span>
+                                <p class="text-slate-800 text-xs sm:text-sm leading-relaxed whitespace-pre-line font-medium">{{ $ans['student_answer'] ?? '(Tidak diisi)' }}</p>
                             </div>
 
-                            <!-- Evaluasi Analisis AI Socrates -->
-                            <div class="p-3.5 rounded-xl {{ $status === 'salah' ? 'bg-rose-50/80 border border-rose-200 text-rose-950' : ($status === 'hampir_benar' ? 'bg-amber-50/80 border border-amber-200 text-amber-950' : 'bg-blue-50/80 border border-blue-200 text-blue-950') }} text-xs">
-                                <div class="flex items-center gap-2 mb-1.5 font-bold">
-                                    <x-icon name="sparkles" class="w-4 h-4 {{ $status === 'salah' ? 'text-rose-600' : ($status === 'hampir_benar' ? 'text-amber-600' : 'text-blue-600') }}" />
-                                    <span>Evaluasi Analisis: Tingkat "{{ $levelText }}" (Kesesuaian {{ $qualityScore }}%)</span>
-                                </div>
-                                <p class="leading-relaxed">{{ $feedbackText }}</p>
+                            <!-- 2. Box Ulasan / Evaluasi Analisis AI (NotebookLM Style: 1 Box Utuh & Rapi) -->
+                            @php($boxTheme = $status === 'salah' ? 'border-rose-400 bg-rose-50/50 text-rose-950' : ($status === 'hampir_benar' ? 'border-amber-400 bg-amber-50/50 text-amber-950' : 'border-emerald-400 bg-emerald-50/50 text-emerald-950'))
+                            @php($iconTheme = $status === 'salah' ? 'text-rose-600' : ($status === 'hampir_benar' ? 'text-amber-600' : 'text-emerald-600'))
 
-                                @if (! $isStrictlyWrong && ! empty($ans['missing_concepts']) && is_array($ans['missing_concepts']))
-                                    <div class="mt-2 pt-2 border-t {{ $status === 'salah' ? 'border-rose-200 text-rose-900' : 'border-amber-200 text-amber-900' }} text-[11px]">
-                                        <strong class="font-bold">Poin yang belum lengkap / perlu diperbaiki:</strong>
-                                        <ul class="list-disc list-inside mt-0.5 space-y-0.5">
-                                            @foreach ($ans['missing_concepts'] as $concept)
-                                                <li>{{ $concept }}</li>
-                                            @endforeach
-                                        </ul>
+                            <div class="p-4 sm:p-5 rounded-2xl border {{ $boxTheme }} transition-all shadow-2xs">
+                                <!-- Status Header murni persis NotebookLM Gemini + Persentase Ketepatan Jawaban -->
+                                <div class="flex items-center justify-between gap-2 mb-2.5">
+                                    <div class="flex items-center gap-1.5 text-xs sm:text-sm font-bold {{ $iconTheme }}">
+                                        @if ($status === 'salah')
+                                            <x-icon name="x" class="w-4 h-4 stroke-[3]" />
+                                            <span>Belum tepat.</span>
+                                        @elseif ($status === 'hampir_benar')
+                                            <x-icon name="alert-triangle" class="w-4 h-4 stroke-[2.5]" />
+                                            <span>Hampir benar.</span>
+                                        @else
+                                            <x-icon name="check" class="w-4 h-4 stroke-[3]" />
+                                            <span>Benar.</span>
+                                        @endif
                                     </div>
+                                    <span class="text-xs font-black px-2.5 py-0.5 rounded-full {{ $status === 'salah' ? 'bg-rose-100 text-rose-800' : ($status === 'hampir_benar' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800') }}">
+                                        Ketepatan {{ $qualityScore }}%
+                                    </span>
+                                </div>
+
+                                @php($cleanFeedback = trim(preg_replace('/\s*Menambahkan keterkaitan bukti konkret akan membuatnya lebih kuat\.?/i', '', (string) $feedbackText)))
+                                @if (empty($cleanFeedback) || ($status === 'benar' && str_contains($feedbackText, 'Menambahkan keterkaitan bukti')))
+                                    @php($cleanFeedback = 'Jawaban Anda sudah sangat tepat. Anda berhasil memahami konsep yang ditanyakan dengan baik menggunakan pemikiran dan bahasa Anda sendiri.')
+                                @endif
+
+                                <!-- Narrative Feedback AI (Respons / Analisis atas jawaban siswa) -->
+                                <p class="text-xs sm:text-sm leading-relaxed text-slate-800 font-normal">{{ $cleanFeedback }}</p>
+
+                                @if ($status !== 'benar')
+                                    {{-- Bagian perbaikan & kunci jawaban HANYA dimunculkan jika jawaban SALAH atau HAMPIR BENAR --}}
+                                    @if (! $isStrictlyWrong && ! empty($ans['missing_concepts']) && is_array($ans['missing_concepts']))
+                                        <div class="mt-3 pt-3 border-t border-slate-200/60 text-xs">
+                                            <strong class="font-bold text-slate-800 block mb-1">Poin yang belum lengkap / perlu diperbaiki:</strong>
+                                            <ul class="list-disc list-inside space-y-0.5 text-slate-700">
+                                                @foreach ($ans['missing_concepts'] as $concept)
+                                                    <li>{{ $concept }}</li>
+                                                @endforeach
+                                            </ul>
+                                        </div>
+                                    @endif
+
+                                    <!-- Kunci Jawaban yang Benar Berdasarkan Materi (Muncul untuk bahan belajar saat jawaban belum tepat) -->
+                                    <div class="mt-3.5 pt-3 border-t border-slate-200/70 text-xs">
+                                        <strong class="font-bold text-slate-800 block mb-1">Kunci Jawaban yang Benar Berdasarkan Materi:</strong>
+                                        <p class="text-slate-700 leading-relaxed font-medium whitespace-pre-line">{{ $modelAns }}</p>
+                                    </div>
+
+                                    <!-- Rujukan Bukti Bacaan -->
+                                    @if (! empty($refExcerpt))
+                                        <div class="mt-2.5 pt-2 border-t border-slate-200/50 text-[11px] text-slate-500">
+                                            <span class="font-semibold text-slate-700">Rujukan Teks:</span>
+                                            <span class="italic">"{{ $refExcerpt }}"</span>
+                                        </div>
+                                    @endif
                                 @endif
                             </div>
-
-                            <!-- KUNCI JAWABAN YANG BENAR (AUTHORITATIVE MODEL ANSWER) -->
-                            <div class="p-4 rounded-xl bg-emerald-50/90 border border-emerald-300 text-xs shadow-2xs">
-                                <div class="flex items-center gap-2 mb-1.5 text-emerald-950 font-extrabold uppercase tracking-wide">
-                                    <x-icon name="check-circle" class="w-4 h-4 text-emerald-600 shrink-0" />
-                                    <span>Kunci Jawaban yang Benar Berdasarkan Materi:</span>
-                                </div>
-                                <p class="text-emerald-950 font-medium leading-relaxed whitespace-pre-line">{{ $modelAns }}</p>
-                            </div>
-
-                            <!-- BUKTI / RUJUKAN DARI TEKS MATERI -->
-                            @if (! empty($refExcerpt))
-                                <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-700 leading-relaxed">
-                                    <strong class="text-slate-800 block mb-0.5 font-bold flex items-center gap-1.5">
-                                        <x-icon name="book-open-text" class="w-3.5 h-3.5 text-blue-600" />
-                                        <span>Teks Bukti / Rujukan dalam Bacaan:</span>
-                                    </strong>
-                                    <span class="italic text-slate-600 font-serif">"{{ $refExcerpt }}"</span>
-                                </div>
-                            @endif
                         </div>
                     @endif
                 </article>
             @endforeach
         </div>
 
-        <div class="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3">
-            <a href="{{ route('reading', ['document' => $document->id]) }}" class="outline-button justify-center">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <a href="{{ route('quiz.index') }}" class="outline-button">
                 <x-icon name="arrow-left" class="w-4 h-4" />
-                <span>Kembali ke Bacaan</span>
+                <span>Kembali ke Challenge Socrates</span>
             </a>
-            <a href="{{ route('quiz.timed', ['document' => $document->id]) }}" class="challenge-button justify-center">
-                <span>Lanjut ke Challenge Socrates</span>
-                <x-icon name="arrow-right" class="w-4 h-4" />
-            </a>
+            <div class="flex items-center gap-2">
+                <a href="{{ route('progress') }}" class="outline-button !border-purple-200 !text-purple-700 bg-purple-50/50 hover:bg-purple-100/70">
+                    <x-icon name="trending-up" class="w-4 h-4" />
+                    <span>Lihat Progress</span>
+                </a>
+                <a href="{{ route('quiz.index') }}" class="challenge-button">
+                    <span>Lanjut ke Challenge Socrates</span>
+                    <x-icon name="arrow-right" class="w-4 h-4" />
+                </a>
+            </div>
         </div>
     @else
         {{-- ============================================================== --}}
@@ -263,19 +314,66 @@
                 @endforeach
             </div>
 
-            <div class="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
-                <a href="{{ route('reading', ['document' => $document->id]) }}" class="outline-button justify-center">
+            <div class="flex items-center justify-between p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
+                <a href="{{ route('quiz.index') }}" class="outline-button">
                     <x-icon name="arrow-left" class="w-4 h-4" />
-                    <span>Kembali</span>
+                    <span>Kembali ke Challenge Socrates</span>
                 </a>
-                <button type="submit" class="challenge-button justify-center" onclick="return confirm('Apakah Anda yakin ingin mengumpulkan seluruh jawaban tantangan guru sekarang?')">
+                <button type="button" id="btnOpenSubmitTeacherModal" class="challenge-button">
                     <span>Kirim Jawaban Tantangan</span>
                     <x-icon name="arrow-right" class="w-4 h-4" />
                 </button>
             </div>
         </form>
 
+        <!-- Modal Pop-Up Konfirmasi Pengumpulan Jawaban Tantangan Guru -->
+        <div id="teacherSubmitModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs transition-opacity" role="dialog" aria-modal="true">
+            <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-slate-100 text-center transform transition-all scale-100">
+                <div class="w-16 h-16 rounded-2xl mx-auto mb-4 grid place-items-center bg-blue-100 text-blue-600">
+                    <x-icon name="send" class="w-8 h-8" />
+                </div>
+                <h3 class="text-xl font-bold text-slate-900 mb-2">Kumpulkan Jawaban Tantangan?</h3>
+                <p class="text-xs text-slate-600 leading-relaxed mb-6">
+                    Seluruh jawaban esai dan pilihan ganda Anda akan dikumpulkan dan dinilai secara objektif oleh AI Socrates. Pastikan semua pertanyaan telah dijawab dengan seksama.
+                </p>
+                <div class="flex items-center justify-center gap-3">
+                    <button type="button" id="btnCancelTeacherSubmit" class="outline-button w-1/2 justify-center py-2.5 text-xs font-semibold">
+                        Periksa Kembali
+                    </button>
+                    <button type="button" id="btnConfirmTeacherSubmit" class="challenge-button !bg-blue-600 hover:!bg-blue-700 !border-blue-600 w-1/2 justify-center py-2.5 text-xs font-bold">
+                        Kumpulkan Sekarang
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <script>
+            // Modal Konfirmasi Pengumpulan
+            const teacherSubmitModal = document.getElementById('teacherSubmitModal');
+            const btnOpenSubmitTeacherModal = document.getElementById('btnOpenSubmitTeacherModal');
+            const btnCancelTeacherSubmit = document.getElementById('btnCancelTeacherSubmit');
+            const btnConfirmTeacherSubmit = document.getElementById('btnConfirmTeacherSubmit');
+            const teacherChallengeForm = document.getElementById('teacherChallengeForm');
+
+            if (btnOpenSubmitTeacherModal && teacherSubmitModal) {
+                btnOpenSubmitTeacherModal.addEventListener('click', () => {
+                    teacherSubmitModal.classList.remove('hidden');
+                });
+            }
+
+            if (btnCancelTeacherSubmit && teacherSubmitModal) {
+                btnCancelTeacherSubmit.addEventListener('click', () => {
+                    teacherSubmitModal.classList.add('hidden');
+                });
+            }
+
+            if (btnConfirmTeacherSubmit && teacherChallengeForm) {
+                btnConfirmTeacherSubmit.addEventListener('click', () => {
+                    teacherSubmitModal.classList.add('hidden');
+                    teacherChallengeForm.submit();
+                });
+            }
+
             // Klik 1x untuk memilih jawaban, klik lagi pada opsi yang sama untuk membatalkan pilihan
             document.querySelectorAll('[data-mcq-group]').forEach(group => {
                 const radios = group.querySelectorAll('[data-mcq-radio]');

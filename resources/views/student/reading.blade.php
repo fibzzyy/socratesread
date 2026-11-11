@@ -31,12 +31,17 @@
                 <div class="session-progress"><div class="progress-track"><span style="width:{{ $session->isCompleted() ? 100 : $session->progress_percent }}%"></span></div><span>{{ $session->isCompleted() ? 100 : $session->progress_percent }}%</span></div>
 
                 @php
+                    $hasTeacherChallenges = $document->teacherChallenges()->exists();
                     $readingElapsedSeconds = $session->started_at ? (int) $session->started_at->diffInSeconds(now()) : 0;
                     $isTeacherChallengeUnlocked = $session->isCompleted() || $readingElapsedSeconds >= 120;
                     $remainingLockSeconds = max(0, 120 - $readingElapsedSeconds);
                 @endphp
 
-                @if ($session->isCompleted())
+                @if (! $hasTeacherChallenges)
+                    <a class="challenge-button session-cta" href="{{ route('quiz.timed', ['document' => $document->id]) }}">
+                        <span>Buka Challenge Socrates</span> <x-icon name="arrow-right" />
+                    </a>
+                @elseif ($session->isCompleted())
                     <a class="challenge-button session-cta !bg-emerald-600 hover:!bg-emerald-700" href="{{ route('student.teacher-challenges.show', ['document' => $document->id]) }}">
                         <x-icon name="lock" class="size-3.5" /> <span>Lihat hasil jawaban</span>
                     </a>
@@ -69,7 +74,14 @@
                         <x-icon name="arrow-right" class="w-3.5 h-3.5 text-indigo-500 shrink-0" />
                     </a>
 
-                    @if ($isTeacherChallengeUnlocked)
+                    @if (! $hasTeacherChallenges)
+                        <div class="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-500 text-xs font-semibold">
+                            <div class="flex items-center gap-2">
+                                <x-icon name="info" class="w-4 h-4 text-slate-400 shrink-0" />
+                                <span>2. Tantangan Guru (Tidak ada tantangan dari guru)</span>
+                            </div>
+                        </div>
+                    @elseif ($isTeacherChallengeUnlocked)
                         <a id="tcItemLink" class="flex items-center justify-between p-2.5 rounded-xl border border-amber-300 bg-amber-50/90 hover:bg-amber-100 text-amber-950 text-xs font-bold transition shadow-xs" href="{{ route('student.teacher-challenges.show', ['document' => $document->id]) }}">
                             <div class="flex items-center gap-2">
                                 <x-icon name="award" class="w-4 h-4 text-amber-600 shrink-0" />

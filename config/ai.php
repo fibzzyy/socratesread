@@ -9,6 +9,6 @@ return [
         'history_characters' => (int) env('AI_HISTORY_CHARACTERS', 600),
         'passage_characters' => (int) env('AI_PASSAGE_CHARACTERS', 6000),
         'max_output_tokens' => (int) env('AI_MAX_OUTPUT_TOKENS', 300),
-        'timeout_seconds' => (int) env('AI_TIMEOUT_SECONDS', 25),
+        'timeout_seconds' => (int) env('AI_TIMEOUT_SECONDS', 60),
     ],
 ];

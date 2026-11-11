@@ -74,9 +74,16 @@ class ChallengeController extends Controller
 
         $challengeQuestions = $questions->map(fn ($question) => $question->only(['id', 'skill', 'prompt', 'context', 'hint']))->values();
         $savedAnswers = $session->answers()->pluck('answer_text', 'socratic_question_id');
+        $savedEvaluations = $session->answers()->get()->keyBy('socratic_question_id')->map(function ($ans) {
+            return [
+                'score' => (int) ($ans->score ?? 0),
+                'understanding_level' => (string) ($ans->understanding_level ?? ''),
+                'evaluation' => $ans->evaluation ?? [],
+            ];
+        });
         $isLocked = $session->isCompleted();
 
-        return view('student.challenge', compact('session', 'questions', 'challengeQuestions', 'savedAnswers', 'isLocked'));
+        return view('student.challenge', compact('session', 'questions', 'challengeQuestions', 'savedAnswers', 'savedEvaluations', 'isLocked'));
     }
 
     public function saveAnswer(Request $request, AnswerEvaluationPipeline $evaluator): JsonResponse
@@ -152,6 +159,9 @@ class ChallengeController extends Controller
                 'progress_percent' => 100,
                 'completed_at' => now(),
             ]);
+
+            // Pastikan event reading_completed juga tercatat pada riwayat belajar
+            $gamification->awardOnce($session, 'reading_completed', 10, 'Menyelesaikan bacaan');
 
             return $gamification->awardOnce($session, 'challenge_completed', 20, 'Menyelesaikan Socratic Challenge');
         });

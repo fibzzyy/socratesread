@@ -175,6 +175,8 @@ class ReadingController extends Controller
             ->firstOrFail();
 
         if ($session->isCompleted()) {
+            $gamification->awardOnce($session, 'reading_completed', 10, 'Menyelesaikan bacaan');
+
             return response()->json([
                 'progress' => 100,
                 'xp_awarded' => 0,
@@ -182,10 +184,17 @@ class ReadingController extends Controller
             ]);
         }
 
-        $session->update(['progress_percent' => max($session->progress_percent, $data['progress'])]);
-        $xpAwarded = $data['progress'] === 100
-            ? $gamification->awardOnce($session, 'reading_completed', 10, 'Menyelesaikan bacaan')
-            : 0;
+        if ($data['progress'] === 100) {
+            $session->update([
+                'progress_percent' => 100,
+                'status' => 'completed',
+                'completed_at' => $session->completed_at ?? now(),
+            ]);
+            $xpAwarded = $gamification->awardOnce($session, 'reading_completed', 10, 'Menyelesaikan bacaan');
+        } else {
+            $session->update(['progress_percent' => max($session->progress_percent, $data['progress'])]);
+            $xpAwarded = 0;
+        }
 
         return response()->json(['progress' => $session->progress_percent, 'xp_awarded' => $xpAwarded]);
     }

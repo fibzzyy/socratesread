@@ -102,4 +102,32 @@ class DocumentAiProcessingTest extends TestCase
         $this->assertSame(1, $document->questions[0]->sequence);
         $this->assertSame('Pengertian & Konsep Utama', $document->questions[0]->skill);
     }
+
+    public function test_heuristic_quiz_questions_focus_on_material_content_with_unique_options(): void
+    {
+        $mockModel = Mockery::mock(LanguageModel::class);
+        $mockModel->shouldReceive('isConfigured')->andReturn(false);
+
+        $processor = new DocumentAiProcessor($mockModel);
+
+        $body = <<<TEXT
+LEMBAR KERJA MAHASISWA IDENTIFIKASI KALIMAT
+1. "Target reduksi redundansi data sebesar 30% yang dicanangkan pada awal semester ini akhirnya tertuang dalam dokumentasi arsitektur basis data yang baru."
+2. "Spesifikasi kebutuhan perangkat lunak ini memerlukan integrasi modul enkripsi asimetris dengan algoritma RSA 2048-bit untuk menjamin kerahasiaan data pengguna."
+3. "Penerapan metodologi Agile Scrum dalam siklus pengembangan sistem informasi akuntansi ini dirancang guna meminimalkan risiko keterlambatan rilis produk."
+4. "Berdasarkan rencana strategis triwulan pertama, alokasi kapasitas penyimpanan komputasi awan yang semula dipatok sebesar 5 Terabita kini menyisakan ruang 1,2 Terabita."
+5. "Pengujian beban (load testing) pada sistem gateway pembayaran dengan simulasi 10.000 transaksi per detik menempatkan utilisasi CPU pada batas aman 70%."
+TEXT;
+
+        $questions = $processor->generateHeuristicQuizQuestions($body, 'BAHAN MATERI', 'SISTEM OPERASI', 10);
+
+        $this->assertCount(10, $questions);
+        foreach ($questions as $q) {
+            $this->assertStringNotContainsString('manakah pernyataan yang paling tepat', mb_strtolower($q['question']));
+            $this->assertStringNotContainsString('LEMBAR KERJA MAHASISWA', $q['question']);
+
+            $optionTexts = array_map(fn ($o) => mb_strtolower(trim($o['text'])), $q['options']);
+            $this->assertCount(4, array_unique($optionTexts), 'All 4 options must be strictly unique.');
+        }
+    }
 }
