@@ -22,11 +22,6 @@ class StudentTeacherChallengeController extends Controller
     {
         $challenges = $document->teacherChallenges()->orderBy('sequence')->get();
 
-        if ($challenges->isEmpty()) {
-            $this->seedDefaultTeacherChallenges($document);
-            $challenges = $document->teacherChallenges()->orderBy('sequence')->get();
-        }
-
         $user = auth()->user();
         $submission = StudentTeacherChallengeSubmission::query()
             ->where('user_id', $user->id)
@@ -54,8 +49,12 @@ class StudentTeacherChallengeController extends Controller
         $challenges = $document->teacherChallenges()->orderBy('sequence')->get();
 
         if ($challenges->isEmpty()) {
-            $this->seedDefaultTeacherChallenges($document);
-            $challenges = $document->teacherChallenges()->orderBy('sequence')->get();
+            if ($request->wantsJson()) {
+                return response()->json(['message' => 'Tidak ada tantangan dari guru untuk materi ini.'], 422);
+            }
+
+            return redirect()->route('student.teacher-challenges.show', ['document' => $document->id])
+                ->with('status', 'Tidak ada tantangan dari guru untuk materi ini.');
         }
 
         $user = $request->user();
@@ -204,6 +203,14 @@ class StudentTeacherChallengeController extends Controller
             ['user_id' => $user->id, 'document_id' => $document->id],
             ['status' => 'completed', 'progress_percent' => 100, 'started_at' => now()]
         );
+        $session->update([
+            'status' => 'completed',
+            'progress_percent' => 100,
+            'completed_at' => $session->completed_at ?? now(),
+        ]);
+
+        // Pastikan capaian membaca tercatat jika belum ada
+        $gamification->awardOnce($session, 'reading_completed', 10, 'Menyelesaikan bacaan');
 
         // Catat ke learning_activities
         DB::table('learning_activities')->updateOrInsert(

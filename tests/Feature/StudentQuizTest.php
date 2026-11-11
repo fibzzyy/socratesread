@@ -296,4 +296,61 @@ class StudentQuizTest extends TestCase
 
         $response->assertRedirect(route('quiz.index'));
     }
+
+    public function test_changing_quiz_question_count_updates_in_progress_quiz_and_grading_accurately(): void
+    {
+        $student = User::factory()->create(['role' => 'student']);
+        $document = $this->createDocumentWith10QuizQuestions();
+        $teacher = User::find($document->uploaded_by);
+
+        // Ensure AI isn't waited on in test
+        config(['services.openrouter.api_key' => '']);
+
+        // Student starts quiz while count = 10
+        $initialView = $this->actingAs($student)->get(route('quiz.timed', ['document' => $document->id]));
+        $initialView->assertOk();
+        $initialView->assertSee('Kuis 10 Soal');
+        $this->assertCount(10, $initialView->viewData('questionsPayload'));
+
+        // Teacher increases count to 20 -> preserves 1..10 and adds 11..20
+        $this->actingAs($teacher)->patchJson(route('teacher.documents.quiz_duration', $document), [
+            'quiz_question_count' => 20,
+            'quiz_duration_minutes' => 25,
+        ])->assertOk()->assertJson(['quiz_question_count' => 20, 'quiz_duration_minutes' => 25]);
+
+        $updatedView = $this->actingAs($student)->get(route('quiz.timed', ['document' => $document->id]));
+        $updatedView->assertOk();
+        $updatedView->assertSee('Kuis 20 Soal');
+        $this->assertCount(20, $updatedView->viewData('questionsPayload'));
+        $this->assertEquals(20, $updatedView->viewData('attempt')->total_questions);
+
+        // Teacher reduces count back to 10 -> student should see 10 and get 100 when all 10 are correct
+        $this->actingAs($teacher)->patchJson(route('teacher.documents.quiz_duration', $document), [
+            'quiz_question_count' => 10,
+        ])->assertOk();
+
+        $reducedView = $this->actingAs($student)->get(route('quiz.timed', ['document' => $document->id]));
+        $reducedView->assertOk();
+        $reducedView->assertSee('Kuis 10 Soal');
+        $questions = $reducedView->viewData('quizQuestions');
+        $this->assertCount(10, $questions);
+
+        $answers = [];
+        foreach ($questions as $q) {
+            $answers[$q->id] = $q->correct_answer;
+        }
+
+        $submitRes = $this->actingAs($student)->postJson(route('quiz.submit'), [
+            'attempt_id' => $reducedView->viewData('attempt')->id,
+            'answers' => $answers,
+            'time_spent_seconds' => 60,
+        ]);
+
+        $submitRes->assertOk()->assertJson([
+            'completed' => true,
+            'score' => 100,
+            'correct_count' => 10,
+            'total_questions' => 10,
+        ]);
+    }
 }

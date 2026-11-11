@@ -18,11 +18,6 @@ class TeacherChallengeController extends Controller
 
         $challenges = $document->teacherChallenges()->orderBy('sequence')->get();
 
-        if ($challenges->isEmpty()) {
-            app(\App\Http\Controllers\Student\StudentTeacherChallengeController::class)->seedDefaultTeacherChallenges($document);
-            $challenges = $document->teacherChallenges()->orderBy('sequence')->get();
-        }
-
         return response()->json([
             'document_id' => $document->id,
             'title' => $document->title,
@@ -55,7 +50,7 @@ class TeacherChallengeController extends Controller
         abort_unless($document->uploaded_by === auth()->id(), 403);
 
         $data = $request->validate([
-            'challenges' => ['required', 'array', 'min:1'],
+            'challenges' => ['nullable', 'array'],
             'challenges.*.type' => ['required', 'in:essay,multiple_choice'],
             'challenges.*.question' => ['required', 'string', 'max:2000'],
             'challenges.*.options' => ['nullable', 'array'],
@@ -67,10 +62,12 @@ class TeacherChallengeController extends Controller
             'challenges.*.rubric' => ['nullable', 'string', 'max:2000'],
         ]);
 
-        DB::transaction(function () use ($document, $data): void {
+        $challenges = $data['challenges'] ?? [];
+
+        DB::transaction(function () use ($document, $challenges): void {
             $document->teacherChallenges()->delete();
 
-            foreach ($data['challenges'] as $index => $item) {
+            foreach ($challenges as $index => $item) {
                 $document->teacherChallenges()->create([
                     'sequence' => $index + 1,
                     'type' => $item['type'],
@@ -82,16 +79,18 @@ class TeacherChallengeController extends Controller
             }
         });
 
+        $count = count($challenges);
+
         if ($request->wantsJson()) {
             return response()->json([
                 'success' => true,
-                'message' => 'Tantangan guru berhasil disimpan. Total skor diatur ke 100 poin.',
-                'total_challenges' => count($data['challenges']),
-                'points_per_question' => round(100 / count($data['challenges']), 2),
+                'message' => $count > 0 ? 'Tantangan guru berhasil disimpan. Total skor diatur ke 100 poin.' : 'Seluruh soal tantangan guru berhasil dikosongkan.',
+                'total_challenges' => $count,
+                'points_per_question' => $count > 0 ? round(100 / $count, 2) : 0,
             ]);
         }
 
-        return back()->with('status', 'Tantangan guru berhasil diperbarui. Total skor kuis/esai tetap 100 poin.');
+        return back()->with('status', 'Tantangan guru berhasil diperbarui.');
     }
 
     public function destroy(Document $document, TeacherChallenge $challenge): RedirectResponse|JsonResponse

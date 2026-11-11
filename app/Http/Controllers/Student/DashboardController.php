@@ -60,19 +60,40 @@ class DashboardController extends Controller
         $summary = $gamification->summary($user, $selectedGrade, $classDocumentIds);
         $weeklyActivity = $gamification->weeklyActivity($user, $selectedGrade, $classDocumentIds);
         $recentActivities = $gamification->recentActivities($user, 5, $selectedGrade, $classDocumentIds);
-        $completedReadings = $user->learningActivities()
+        $completedDocIds = $user->readingSessions()
             ->whereIn('document_id', $classDocumentIds)
-            ->where('event_type', 'reading_completed')
-            ->count();
+            ->where(function ($q) {
+                $q->where('status', 'completed')->orWhere('progress_percent', '>=', 100);
+            })
+            ->pluck('document_id')
+            ->merge(
+                $user->learningActivities()
+                    ->whereIn('document_id', $classDocumentIds)
+                    ->where('event_type', 'reading_completed')
+                    ->pluck('document_id')
+            )
+            ->unique();
+        $completedReadings = $completedDocIds->count();
         $completedChallenges = $user->learningActivities()
             ->whereIn('document_id', $classDocumentIds)
             ->where('event_type', 'challenge_completed')
             ->count();
-        $weeklyReadingCount = $user->learningActivities()
+        $weeklyReadingCount = $user->readingSessions()
             ->whereIn('document_id', $classDocumentIds)
-            ->where('event_type', 'reading_completed')
-            ->whereBetween('activity_date', [now()->subDays(6)->toDateString(), now()->toDateString()])
-            ->count();
+            ->where(function ($q) {
+                $q->where('status', 'completed')->orWhere('progress_percent', '>=', 100);
+            })
+            ->whereBetween('updated_at', [now()->subDays(6)->startOfDay(), now()->endOfDay()])
+            ->distinct('document_id')
+            ->count('document_id');
+
+        if ($weeklyReadingCount === 0) {
+            $weeklyReadingCount = $user->learningActivities()
+                ->whereIn('document_id', $classDocumentIds)
+                ->where('event_type', 'reading_completed')
+                ->whereBetween('activity_date', [now()->subDays(6)->toDateString(), now()->toDateString()])
+                ->count();
+        }
 
         if ($isPriorGrade || ! $hasEnrolledClass) {
             $readingDocuments = collect();
