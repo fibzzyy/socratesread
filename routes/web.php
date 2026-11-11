@@ -44,8 +44,10 @@ Route::get('/avatar/{user}', function (\App\Models\User $user) {
     );
 })->name('avatar');
 
+Route::get('/', \App\Http\Controllers\LandingPageController::class)->name('home');
+
 Route::middleware('auth')->group(function () {
-    Route::get('/', DashboardController::class)->name('dashboard');
+    Route::get('/dashboard', DashboardController::class)->name('dashboard');
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile');
     Route::get('/settings/profile', [ProfileController::class, 'edit'])->name('settings.profile');
     Route::put('/settings/profile', [ProfileController::class, 'update'])->name('settings.profile.update');

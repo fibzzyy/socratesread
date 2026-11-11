@@ -72,7 +72,7 @@
                     <x-icon name="award" class="w-6 h-6" />
                 </div>
                 <div>
-                    <div class="flex items-center gap-2">
+                    <div class="flex flex-wrap items-center gap-2">
                         <span class="text-xs font-bold uppercase tracking-wider text-emerald-900">Tantangan Guru Selesai</span>
                         <span class="rounded-full bg-emerald-600 text-white text-[10px] font-black px-2.5 py-0.5">Skor {{ $displayTotalScore }} / 100</span>
                         <span class="rounded-full bg-blue-600 text-white text-[10px] font-black px-2 py-0.5">+{{ $submission->xp_awarded }} XP</span>
