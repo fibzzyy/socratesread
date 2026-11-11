@@ -331,11 +331,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let isBookOpen = false;
 
-    // Initial state: If intro overlay is active, place Athena perched comfortably atop the closed book
-    if (introOverlay && !introOverlay.classList.contains('is-hidden') && introOwlPopup) {
-        introOwlPopup.classList.add('is-perched-on-book');
-    }
-
     function updateOwlSpeech(text) {
         if (!introOwlBubble) return;
         introOwlBubble.style.opacity = '0';
@@ -480,11 +475,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function reopenBook() {
         if (!introOverlay || !bookStage) return;
+        isBookOpen = false;
         if (introOwlPopup) {
-            introOwlPopup.classList.remove('is-swooping');
+            introOwlPopup.classList.remove('is-swooping', 'is-perched-on-book', 'athena-intro-hinggap');
         }
-        bookStage.classList.remove('is-closing');
-        closeBookSequence();
+        bookStage.classList.remove('is-closing', 'is-open');
+        introOverlay.classList.remove('is-book-open');
+        bookStage.style.transform = '';
+        const book3d = document.getElementById('book-3d');
+        if (book3d) {
+            book3d.style.transform = '';
+        }
+        if (openControlsBar) openControlsBar.classList.add('is-hidden');
+        if (openBookBtn) openBookBtn.classList.remove('is-hidden');
+
         introOverlay.classList.remove('is-hidden');
         document.body.classList.add('overflow-hidden');
         window.scrollTo({ top: 0, behavior: 'smooth' });
