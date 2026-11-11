@@ -1,0 +1,1496 @@
+/* ==========================================================================
+   SocratesRead: Landing Page & 3D Book & Athena Mascot Styles
+   Crafted with Antislop Standards: Purposeful, Accessible, Responsive
+   ========================================================================== */
+
+:root {
+    --sr-navy-950: #060c18;
+    --sr-navy-900: #0B132B;
+    --sr-navy-800: #132247;
+    --sr-navy-700: #1C2D5A;
+    --sr-blue-600: #2563EB;
+    --sr-blue-500: #3B82F6;
+    --sr-blue-400: #60A5FA;
+    --sr-violet-600: #7C3AED;
+    --sr-violet-500: #8B5CF6;
+    --sr-gold-600: #D97706;
+    --sr-gold-500: #F59E0B;
+    --sr-gold-400: #FBBF24;
+    --sr-parchment-50: #FDFBF7;
+    --sr-parchment-100: #F7F3E9;
+    --sr-ink-900: #0F172A;
+    --sr-ink-700: #334155;
+    --sr-ink-500: #64748B;
+}
+
+/* --------------------------------------------------------------------------
+   3D Book Opening Intro Overlay
+   -------------------------------------------------------------------------- */
+.book-intro-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at center, #132247 0%, #060c18 80%);
+    overflow: hidden;
+    transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.8s ease;
+}
+
+.book-intro-overlay.is-hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+/* Aurora Ambient Background Glow (Inspired by ReactBits.dev) */
+.aurora-ambient-glow {
+    position: absolute;
+    inset: -40%;
+    background: radial-gradient(ellipse at 30% 35%, rgba(37, 99, 235, 0.26) 0%, transparent 60%),
+                radial-gradient(ellipse at 70% 65%, rgba(124, 58, 237, 0.22) 0%, transparent 60%),
+                radial-gradient(ellipse at 50% 80%, rgba(245, 158, 11, 0.16) 0%, transparent 50%);
+    filter: blur(60px);
+    pointer-events: none;
+    animation: auroraWave 14s ease-in-out infinite alternate;
+    z-index: 1;
+}
+
+@keyframes auroraWave {
+    0% { transform: scale(1) rotate(0deg); opacity: 0.65; }
+    50% { transform: scale(1.08) rotate(3deg); opacity: 0.85; }
+    100% { transform: scale(1.04) rotate(-3deg); opacity: 0.7; }
+}
+
+.book-intro-overlay .stars-canvas {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.4;
+    z-index: 2;
+}
+
+.book-stage {
+    perspective: 1400px;
+    width: 320px;
+    height: 440px;
+    position: relative;
+    cursor: pointer;
+    user-select: none;
+    z-index: 10;
+    transition: transform 1.2s cubic-bezier(0.22, 1, 0.36, 1);
+    transform: translateX(0);
+}
+
+@media (max-width: 639px) {
+    .book-stage {
+        width: 220px;
+        height: 320px;
+    }
+    .book-stage.is-open {
+        transform: translateX(110px) scale(0.65) !important;
+    }
+}
+
+@media (min-width: 640px) and (max-width: 1023px) {
+    .book-stage {
+        width: 300px;
+        height: 420px;
+    }
+    .book-stage.is-open {
+        transform: translateX(150px) scale(0.85) !important;
+    }
+}
+
+@media (min-width: 1024px) {
+    .book-stage {
+        width: 360px;
+        height: 500px;
+    }
+    .book-stage.is-open {
+        transform: translateX(180px);
+    }
+}
+
+.book-stage.is-closing {
+    transform: translateX(0) !important;
+    transition: transform 0.75s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.book-3d {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+    transform: rotateX(12deg) rotateY(-18deg) rotateZ(0deg);
+    transition: transform 1.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.book-stage.is-open .book-3d {
+    transform: rotateX(6deg) rotateY(0deg) rotateZ(0deg);
+}
+
+.book-stage.is-closing .book-3d {
+    transform: rotateX(12deg) rotateY(-18deg) rotateZ(0deg) !important;
+    transition: transform 0.75s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.book-stage:not(.is-open):hover .book-3d {
+    transform: rotateX(8deg) rotateY(-8deg) translateY(-8px);
+}
+
+/* Book Spine (Authentic Leather Spine with Raised Ribs & Embossing) */
+.book-spine {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 48px;
+    height: 100%;
+    background: linear-gradient(90deg, #060c18 0%, #101d3b 35%, #182c58 60%, #0a1329 100%);
+    transform: rotateY(-90deg) translateX(-24px);
+    transform-origin: left center;
+    border-radius: 4px 0 0 4px;
+    box-shadow: inset -2px 0 8px rgba(0, 0, 0, 0.7), inset 2px 0 4px rgba(245, 158, 11, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.book-spine-text {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    color: #fef08a;
+    font-size: 13px;
+    letter-spacing: 0.28em;
+    font-weight: 700;
+    text-transform: uppercase;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8), 0 0 8px rgba(245, 158, 11, 0.4);
+    z-index: 5;
+}
+
+/* Spine Raised Bands (Faux hubs / ribs on vintage leather books) */
+.book-spine-rib {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 5px;
+    background: linear-gradient(180deg, rgba(245, 158, 11, 0.6) 0%, rgba(15, 23, 42, 0.95) 45%, rgba(245, 158, 11, 0.5) 100%);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+    z-index: 2;
+}
+.book-spine-rib.rib-1 { top: 16%; }
+.book-spine-rib.rib-2 { top: 34%; }
+.book-spine-rib.rib-3 { top: 66%; }
+.book-spine-rib.rib-4 { top: 84%; }
+
+/* Book Headband (Authentic woven bookbinding cloth at top & bottom of spine) */
+.book-headband {
+    position: absolute;
+    left: 0;
+    width: 28px;
+    height: 6px;
+    z-index: 14;
+    background: repeating-linear-gradient(
+        90deg,
+        #f59e0b 0px,
+        #f59e0b 3px,
+        #1e3a8a 3px,
+        #1e3a8a 6px,
+        #b91c1c 6px,
+        #b91c1c 9px
+    );
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+    border-radius: 2px;
+    transform: rotateY(-90deg) translateX(-14px);
+    transform-origin: left center;
+}
+
+.book-headband-top {
+    top: 2px;
+}
+
+.book-headband-bottom {
+    bottom: 2px;
+}
+
+/* Silk Ribbon Bookmark draping down the center gutter */
+.book-ribbon-bookmark {
+    position: absolute;
+    left: 0;
+    top: 6px;
+    width: 10px;
+    height: 120px;
+    background: linear-gradient(180deg, #991b1b 0%, #b91c1c 60%, #7f1d1d 100%);
+    box-shadow: 1px 2px 6px rgba(0, 0, 0, 0.45);
+    z-index: 15;
+    transform: rotateY(-90deg) translateX(-5px) rotateZ(-3deg);
+    transform-origin: top center;
+    border-radius: 1px 1px 0 0;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.5s ease 0.4s;
+}
+
+.book-stage.is-open .book-ribbon-bookmark {
+    opacity: 1;
+}
+
+.book-ribbon-tail {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-bottom: 7px solid #091224;
+}
+
+/* Book Covers & Sheets */
+.book-cover-back {
+    position: absolute;
+    inset: 0;
+    background: #091224;
+    border-radius: 4px 12px 12px 4px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 60px rgba(37, 99, 235, 0.2);
+    transform: translateZ(-20px);
+}
+
+.book-sheet-stack {
+    position: absolute;
+    inset: 6px 10px 6px 8px;
+    background: #fdfaf3;
+    border-radius: 0 8px 8px 0;
+    transform: translateZ(0px);
+    box-shadow: 
+        inset 0 0 16px rgba(0, 0, 0, 0.05),
+        2px 0 0 #f0e8d8,
+        4px 0 0 #e4dcce,
+        6px 0 0 #d9d0c0,
+        8px 0 0 #cec4b2,
+        10px 3px 14px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.5s ease 0.3s, visibility 0.5s ease 0.3s;
+}
+
+/* Gutter shadow: deep curvature roll into the spine binding */
+.book-sheet-stack::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 26px;
+    background: linear-gradient(90deg, rgba(30, 20, 10, 0.32) 0%, rgba(30, 20, 10, 0.14) 8%, rgba(0, 0, 0, 0.03) 20%, transparent 100%);
+    pointer-events: none;
+    z-index: 10;
+}
+
+.book-stage.is-open .book-sheet-stack {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.book-stage.is-closing .book-sheet-stack {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    transition: opacity 0.35s ease 0.15s !important;
+}
+
+/* Cascading Fanning Paper Leaves (Fluttering to Middle Spread) */
+.book-fanning-leaves {
+    position: absolute;
+    inset: 6px 10px 6px 8px;
+    pointer-events: none;
+    z-index: 9;
+    transform-style: preserve-3d;
+}
+
+.book-flip-leaf {
+    position: absolute;
+    inset: 0;
+    transform-origin: left center;
+    transform-style: preserve-3d;
+    transform: rotateY(0deg);
+    border-radius: 0 8px 8px 0;
+    transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s ease;
+    opacity: 0;
+    visibility: hidden;
+}
+
+.book-stage.is-open .book-flip-leaf {
+    opacity: 1;
+    visibility: visible;
+}
+
+.book-flip-leaf .leaf-face {
+    position: absolute;
+    inset: 0;
+    border-radius: 0 8px 8px 0;
+    backface-visibility: hidden;
+    background: #fdfaf3;
+    overflow: hidden;
+}
+
+.book-flip-leaf .leaf-lines {
+    position: absolute;
+    inset: 18px;
+    background: repeating-linear-gradient(
+        transparent,
+        transparent 15px,
+        rgba(0, 0, 0, 0.04) 15px,
+        rgba(0, 0, 0, 0.04) 16px
+    );
+    opacity: 0.6;
+}
+
+.book-flip-leaf .leaf-front {
+    background: linear-gradient(90deg, #ede5d5 0%, #fbf8f0 12%, #fdfaf3 100%);
+    box-shadow: inset -2px 0 5px rgba(0, 0, 0, 0.08), 2px 0 6px rgba(0, 0, 0, 0.12);
+    border-right: 1px solid rgba(217, 206, 187, 0.8);
+}
+
+.book-flip-leaf .leaf-back {
+    transform: rotateY(180deg);
+    border-radius: 8px 0 0 8px;
+    background: linear-gradient(-90deg, #ede5d5 0%, #fbf8f0 12%, #fdfaf3 100%);
+    box-shadow: inset 2px 0 5px rgba(0, 0, 0, 0.08), -2px 0 6px rgba(0, 0, 0, 0.12);
+    border-left: 1px solid rgba(217, 206, 187, 0.8);
+}
+
+/* Staggered page fluttering cascade with dynamic 3D arching bend */
+.book-stage.is-open .book-flip-leaf.leaf-1 {
+    animation: flipCascade 0.74s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.10s forwards;
+}
+
+.book-stage.is-open .book-flip-leaf.leaf-2 {
+    animation: flipCascade 0.78s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.22s forwards;
+}
+
+.book-stage.is-open .book-flip-leaf.leaf-3 {
+    animation: flipCascade 0.82s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.34s forwards;
+}
+
+.book-stage.is-open .book-flip-leaf.leaf-4 {
+    animation: flipCascade 0.86s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.46s forwards;
+}
+
+@keyframes flipCascade {
+    0% {
+        transform: rotateY(0deg) translateZ(0);
+        opacity: 1;
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+    }
+    35% {
+        transform: rotateY(-50deg) translateZ(28px) skewY(-1.5deg);
+        filter: drop-shadow(-8px 14px 20px rgba(0, 0, 0, 0.3));
+    }
+    65% {
+        transform: rotateY(-115deg) translateZ(24px) skewY(1.5deg);
+        filter: drop-shadow(-14px 18px 24px rgba(0, 0, 0, 0.35));
+    }
+    94% {
+        transform: rotateY(-174deg) translateZ(4px) skewY(0deg);
+        opacity: 1;
+        filter: drop-shadow(-2px 4px 8px rgba(0, 0, 0, 0.15));
+    }
+    100% {
+        transform: rotateY(-175deg) translateZ(1px);
+        opacity: 0;
+    }
+}
+
+/* Staggered page text reveal (Inspired by 21st.dev) */
+.book-stage.is-open .book-cover-back-face .book-page-content,
+.book-stage.is-open .book-sheet-stack .book-page-content {
+    animation: pageTextReveal 0.65s cubic-bezier(0.16, 1, 0.3, 1) 0.45s both;
+}
+
+@keyframes pageTextReveal {
+    0% {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.book-cover-front {
+    position: absolute;
+    inset: 0;
+    transform-origin: left center;
+    transform-style: preserve-3d;
+    transform: rotateY(0deg) translateZ(10px);
+    transition: transform 1.2s cubic-bezier(0.22, 1, 0.36, 1);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.7);
+    z-index: 10;
+    background: #091224;
+    border-radius: 4px 12px 12px 4px;
+}
+
+.book-cover-front-face {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 35%, #182c58 0%, #0e1933 60%, #060b17 100%);
+    border-radius: 4px 12px 12px 4px;
+    border: 2px solid rgba(245, 158, 11, 0.55);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    backface-visibility: hidden;
+    box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.6);
+}
+
+/* Antique Gold Corner Protectors (Filigree brackets) */
+.book-corner {
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    border: 2px solid rgba(245, 158, 11, 0.65);
+    pointer-events: none;
+    z-index: 5;
+}
+
+.book-corner-tl {
+    top: 8px;
+    left: 8px;
+    border-right: none;
+    border-bottom: none;
+    border-top-left-radius: 6px;
+}
+.book-corner-tr {
+    top: 8px;
+    right: 8px;
+    border-left: none;
+    border-bottom: none;
+    border-top-right-radius: 6px;
+}
+.book-corner-bl {
+    bottom: 8px;
+    left: 8px;
+    border-right: none;
+    border-top: none;
+    border-bottom-left-radius: 6px;
+}
+.book-corner-br {
+    bottom: 8px;
+    right: 8px;
+    border-left: none;
+    border-top: none;
+    border-bottom-right-radius: 6px;
+}
+
+/* Inner Fillet Page Borders on Parchment */
+.book-page-border-inner {
+    position: absolute;
+    inset: 10px;
+    border: 1px solid rgba(180, 140, 80, 0.22);
+    border-radius: 4px;
+    pointer-events: none;
+}
+.book-page-border-inner::after {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    border: 0.5px dashed rgba(180, 140, 80, 0.18);
+    border-radius: 2px;
+}
+
+.book-cover-back-face {
+    position: absolute;
+    inset: 6px 10px 6px 8px;
+    background: #fdfaf3;
+    border-radius: 8px 0 0 8px;
+    transform: rotateY(180deg) translateZ(1px);
+    backface-visibility: hidden;
+    box-shadow: 
+        inset 0 0 16px rgba(0, 0, 0, 0.05),
+        -2px 0 0 #f0e8d8,
+        -4px 0 0 #e4dcce,
+        -6px 0 0 #d9d0c0,
+        -8px 0 0 #cec4b2,
+        -10px 3px 14px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+}
+
+/* Symmetrical Gutter shadow for Left Page */
+.book-cover-back-face::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    width: 26px;
+    background: linear-gradient(-90deg, rgba(30, 20, 10, 0.32) 0%, rgba(30, 20, 10, 0.14) 8%, rgba(0, 0, 0, 0.03) 20%, transparent 100%);
+    pointer-events: none;
+    z-index: 10;
+}
+
+.book-stage.is-open .book-cover-front {
+    transform: rotateY(-175deg) translateZ(8px);
+}
+
+.book-stage.is-closing .book-cover-front {
+    transform: rotateY(0deg) translateZ(10px) !important;
+    transition: transform 0.75s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.book-cover-border {
+    position: absolute;
+    inset: 12px;
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    border-radius: 8px;
+    pointer-events: none;
+}
+
+.book-cover-border::after {
+    content: '';
+    position: absolute;
+    inset: 4px;
+    border: 1px dashed rgba(245, 158, 11, 0.25);
+    border-radius: 6px;
+}
+
+/* Light burst on book opening */
+.book-light-burst {
+    position: absolute;
+    inset: -50px;
+    background: radial-gradient(circle at center, rgba(245, 158, 11, 0.4) 0%, rgba(99, 102, 241, 0.2) 40%, transparent 70%);
+    border-radius: 50%;
+    opacity: 0;
+    transform: scale(0.6);
+    transition: opacity 0.8s ease 0.3s, transform 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.3s;
+    pointer-events: none;
+}
+
+.book-stage.is-open .book-light-burst {
+    opacity: 1;
+    transform: scale(1.4);
+}
+
+/* Intro controls */
+.book-intro-controls {
+    margin-top: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    z-index: 20;
+}
+
+.btn-open-book {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.875rem 1.75rem;
+    background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+    color: #ffffff;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    border-radius: 9999px;
+    box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.2) inset;
+    transition: all 0.25s ease;
+    cursor: pointer;
+    border: none;
+}
+
+.btn-open-book:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 15px 30px -5px rgba(37, 99, 235, 0.7);
+    background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+}
+
+.btn-open-book:focus-visible {
+    outline: 2px solid #F59E0B;
+    outline-offset: 3px;
+}
+
+/* Book Intro Controls Bar */
+.book-intro-controls {
+    margin-top: 1.75rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    z-index: 50;
+    max-width: 92vw;
+}
+
+.book-intro-open-bar {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.375rem 0.5rem;
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 9999px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.08);
+    transition: all 0.3s ease;
+}
+
+.book-intro-open-bar.is-hidden {
+    display: none !important;
+}
+
+.btn-book-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.55rem 1.1rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    border-radius: 9999px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+    white-space: nowrap;
+}
+
+.btn-close-book {
+    background: rgba(255, 255, 255, 0.08);
+    color: #e2e8f0;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.btn-close-book:hover {
+    background: rgba(255, 255, 255, 0.18);
+    color: #ffffff;
+    border-color: rgba(245, 158, 11, 0.5);
+    transform: translateY(-1px);
+}
+
+.btn-get-started-cta {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    color: #ffffff;
+    font-weight: 700;
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.45);
+}
+
+.btn-get-started-cta:hover {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.7);
+    transform: translateY(-1px);
+}
+
+/* Shimmer CTA Sweep (Inspired by ReactBits.dev & 21st.dev) */
+.shimmer-cta {
+    position: relative;
+    overflow: hidden;
+}
+
+.shimmer-cta::after {
+    content: '';
+    position: absolute;
+    inset: -50% -100%;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.3) 50%,
+        transparent 100%
+    );
+    transform: rotate(25deg);
+    animation: shimmerSweep 3.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    pointer-events: none;
+}
+
+@keyframes shimmerSweep {
+    0% {
+        transform: translateX(-150%) rotate(25deg);
+    }
+    30%, 100% {
+        transform: translateX(150%) rotate(25deg);
+    }
+}
+
+@media (max-width: 639px) {
+    .book-intro-open-bar {
+        gap: 0.5rem;
+        padding: 0.35rem 0.6rem;
+    }
+    .btn-book-action {
+        padding: 0.5rem 0.9rem;
+        font-size: 0.75rem;
+    }
+}
+
+/* Athena Owl Flying Mascot & Flight Elevation */
+.intro-owl-popup,
+.intro-owl-flight {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%) scale(0.2);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 150;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: grab;
+    user-select: none;
+    touch-action: none;
+    transition: left 0.8s cubic-bezier(0.2, 0.9, 0.3, 1), 
+                top 0.8s cubic-bezier(0.2, 0.9, 0.3, 1),
+                transform 0.8s cubic-bezier(0.2, 0.9, 0.3, 1),
+                opacity 0.5s ease;
+}
+
+/* When the book is open, Athena takes flight safely away from the 2-page book spread */
+.book-intro-overlay.is-book-open .intro-owl-popup,
+.book-intro-overlay.is-book-open .intro-owl-flight {
+    opacity: 1;
+    pointer-events: auto;
+    /* Desktop (>= 1024px): anchored to top-right corner, 100% clear of the 2-page book spread */
+    left: auto;
+    right: clamp(1.5rem, 4vw, 5rem);
+    top: clamp(4.5rem, 10vh, 6.5rem);
+    transform: scale(0.88);
+    animation: owlFlightHoverDesktop 3.2s ease-in-out infinite 0.9s;
+}
+
+@media (min-width: 640px) and (max-width: 1023px) {
+    .book-intro-overlay.is-book-open .intro-owl-popup,
+    .book-intro-overlay.is-book-open .intro-owl-flight {
+        left: 50%;
+        right: auto;
+        top: 65px;
+        transform: translate(-50%, 0) scale(0.68);
+        animation: owlFlightHoverTablet 3.2s ease-in-out infinite 0.9s;
+    }
+}
+
+@media (max-width: 639px) {
+    .book-intro-overlay.is-book-open .intro-owl-popup,
+    .book-intro-overlay.is-book-open .intro-owl-flight {
+        left: 50%;
+        right: auto;
+        top: 48px;
+        transform: translate(-50%, 0) scale(0.55);
+        animation: owlFlightHoverMobile 3.2s ease-in-out infinite 0.9s;
+    }
+}
+
+/* User dragging state */
+.intro-owl-popup.is-dragging {
+    cursor: grabbing !important;
+    transition: none !important;
+    animation: none !important;
+    z-index: 300 !important;
+}
+
+.intro-owl-popup.is-custom-placed {
+    /* Retain custom left & top dropped by user */
+    transition: transform 0.2s ease, opacity 0.4s ease;
+}
+
+/* Owl Drag Helper Badge */
+.owl-drag-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 9px;
+    background: rgba(15, 23, 42, 0.82);
+    border: 1px solid rgba(245, 158, 11, 0.55);
+    border-radius: 9999px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #fef08a;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    margin-bottom: 6px;
+    user-select: none;
+    pointer-events: none;
+    backdrop-filter: blur(6px);
+    transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.intro-owl-popup:hover .owl-drag-badge {
+    transform: scale(1.06);
+    background: rgba(30, 41, 59, 0.95);
+    border-color: #fde047;
+}
+
+.intro-owl-popup.is-dragging .owl-drag-badge {
+    background: #d97706;
+    color: #ffffff;
+    border-color: #fef08a;
+    box-shadow: 0 6px 16px rgba(217, 119, 6, 0.6);
+}
+
+.owl-interactive-svg-wrap {
+    pointer-events: none;
+    transition: transform 0.25s ease;
+}
+
+@keyframes owlFlightHoverDesktop {
+    0%, 100% {
+        transform: scale(0.88) translateY(0) rotate(0deg);
+    }
+    50% {
+        transform: scale(0.9) translateY(-8px) rotate(-1.5deg);
+    }
+}
+
+@keyframes owlFlightHoverTablet {
+    0%, 100% {
+        transform: translate(-50%, 0) scale(0.68) rotate(0deg);
+    }
+    50% {
+        transform: translate(-50%, -6px) scale(0.7) rotate(-1.5deg);
+    }
+}
+
+@keyframes owlFlightHoverMobile {
+    0%, 100% {
+        transform: translate(-50%, 0) scale(0.55) rotate(0deg);
+    }
+    50% {
+        transform: translate(-50%, -4px) scale(0.57) rotate(-1.5deg);
+    }
+}
+
+/* Wing Flapping Keyframes for Athena in Soaring Raptor Flight */
+.owl-flight-wing-left {
+    transform-origin: 110px 135px;
+    animation: owlWingFlapLeft 0.9s ease-in-out infinite alternate;
+}
+
+.owl-flight-wing-right {
+    transform-origin: 190px 135px;
+    animation: owlWingFlapRight 0.9s ease-in-out infinite alternate;
+}
+
+@keyframes owlWingFlapLeft {
+    0% {
+        transform: rotate(-12deg);
+    }
+    100% {
+        transform: rotate(10deg);
+    }
+}
+
+@keyframes owlWingFlapRight {
+    0% {
+        transform: rotate(12deg);
+    }
+    100% {
+        transform: rotate(-10deg);
+    }
+}
+
+/* Flight Sparkles & Golden Stardust */
+.flight-sparkles {
+    position: absolute;
+    inset: -20px -30px;
+    pointer-events: none;
+    z-index: -1;
+}
+
+.flight-sparkles .sparkle {
+    position: absolute;
+    color: var(--sr-gold-400);
+    font-size: 14px;
+    filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.8));
+    opacity: 0;
+}
+
+.book-stage.is-open .flight-sparkles .sparkle {
+    animation: sparkleFloat 2.4s ease-in-out infinite;
+}
+
+.flight-sparkles .sp-1 { top: 20%; left: 8%; animation-delay: 0.2s; font-size: 16px; }
+.flight-sparkles .sp-2 { top: 35%; right: 6%; animation-delay: 0.6s; font-size: 13px; }
+.flight-sparkles .sp-3 { top: 60%; left: 4%; animation-delay: 1.0s; font-size: 18px; color: #60A5FA; }
+.flight-sparkles .sp-4 { top: 65%; right: 10%; animation-delay: 1.4s; font-size: 15px; }
+.flight-sparkles .sp-5 { top: 80%; left: 16%; animation-delay: 0.8s; font-size: 12px; }
+.flight-sparkles .sp-6 { top: 85%; right: 22%; animation-delay: 1.8s; font-size: 14px; color: #FBBF24; }
+
+@keyframes sparkleFloat {
+    0% {
+        opacity: 0;
+        transform: translateY(0) scale(0.6);
+    }
+    40% {
+        opacity: 0.9;
+        transform: translateY(-12px) scale(1.1);
+    }
+    80% {
+        opacity: 0.7;
+        transform: translateY(-24px) scale(0.9);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-32px) scale(0.4);
+    }
+}
+
+/* Swoop glide exit on "Mulai Sekarang" click */
+.intro-owl-flight.is-swooping,
+.intro-owl-popup.is-swooping {
+    transform: translate(-50%, 320px) scale(0.6) translateZ(180px) rotateX(25deg) !important;
+    opacity: 0 !important;
+    transition: transform 0.9s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.7s ease !important;
+}
+
+.btn-open-book.is-hidden,
+.btn-get-started.is-hidden {
+    display: none !important;
+}
+
+.intro-owl-bubble {
+    background: #ffffff;
+    color: #0F172A;
+    border: 1.5px solid #E2E8F0;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(245, 158, 11, 0.2);
+    border-radius: 14px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: 'Crimson Pro', Georgia, serif;
+    max-width: 260px;
+    text-align: center;
+    white-space: normal;
+    line-height: 1.4;
+    margin-bottom: 6px;
+    position: relative;
+    animation: owlBubbleFloat 3s ease-in-out infinite;
+}
+
+.intro-owl-bubble::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 6px 6px 0 6px;
+    border-style: solid;
+    border-color: #ffffff transparent transparent transparent;
+}
+
+@keyframes owlBubbleFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+}
+
+.btn-skip-intro {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    padding: 0.5rem 1rem;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.8125rem;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 9999px;
+    backdrop-filter: blur(8px);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 20;
+}
+
+.btn-skip-intro:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.16);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.btn-skip-intro:focus-visible {
+    outline: 2px solid #F59E0B;
+    outline-offset: 2px;
+}
+
+@media (max-width: 639px) {
+    .btn-skip-intro {
+        top: 0.875rem;
+        right: 0.875rem;
+        padding: 0.35rem 0.75rem;
+        font-size: 0.75rem;
+    }
+}
+
+/* --------------------------------------------------------------------------
+   Athena Owl Mascot Styles & Hinggap Perch Animation
+   -------------------------------------------------------------------------- */
+.athena-hero-stage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    max-width: 340px;
+    margin-left: auto;
+    margin-right: auto;
+    position: relative;
+}
+
+.athena-mascot-wrapper {
+    position: relative;
+    display: inline-block;
+    cursor: pointer;
+    user-select: none;
+    z-index: 20;
+}
+
+.athena-mascot-svg {
+    filter: drop-shadow(0 15px 25px rgba(11, 19, 43, 0.25));
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.athena-mascot-wrapper:hover .athena-mascot-svg {
+    transform: scale(1.03) translateY(-4px);
+}
+
+/* Athena Hinggap (Landing & Perching on Books) Animation Sequence */
+.athena-mascot-wrapper.athena-hero-hinggap,
+.athena-mascot-wrapper.athena-hero-arrival {
+    animation: athenaHinggapSequence 1.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes athenaHinggapSequence {
+    0% {
+        opacity: 0;
+        /* Gliding approach in midair, flared wings */
+        transform: translateY(-85px) scale(1.16) rotate(-4deg);
+        filter: drop-shadow(0 35px 40px rgba(11, 19, 43, 0.35));
+    }
+    30% {
+        opacity: 1;
+        /* Airbrake flare: pitching upward, slowing down */
+        transform: translateY(-28px) scale(1.08) rotate(3deg);
+        filter: drop-shadow(0 25px 30px rgba(11, 19, 43, 0.3));
+    }
+    55% {
+        /* Touchdown: talons grip the books, compression squash */
+        transform: translateY(7px) scale(1.05, 0.88) rotate(0deg);
+        filter: drop-shadow(0 10px 15px rgba(11, 19, 43, 0.4));
+    }
+    72% {
+        /* Elastic rebound bounce */
+        transform: translateY(-6px) scale(0.97, 1.05) rotate(-1.5deg);
+    }
+    86% {
+        /* Soft settle */
+        transform: translateY(2px) scale(1.02, 0.99) rotate(0.8deg);
+    }
+    100% {
+        opacity: 1;
+        /* Upright, majestic, relaxed posture */
+        transform: translateY(0) scale(1) rotate(0deg);
+        filter: drop-shadow(0 15px 25px rgba(11, 19, 43, 0.25));
+    }
+}
+
+/* Wing Folding Effect during Hinggap */
+.athena-hero-hinggap .owl-wing-folded-left,
+.athena-hero-arrival .owl-wing-folded-left {
+    transform-origin: 90px 150px;
+    animation: wingFoldLeft 1.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.athena-hero-hinggap .owl-wing-folded-right,
+.athena-hero-arrival .owl-wing-folded-right {
+    transform-origin: 210px 150px;
+    animation: wingFoldRight 1.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes wingFoldLeft {
+    0%, 30% {
+        transform: scale(1.15) rotate(-12deg) translateX(-6px);
+    }
+    55% {
+        transform: scale(1.04) rotate(4deg);
+    }
+    100% {
+        transform: scale(1) rotate(0deg) translateX(0);
+    }
+}
+
+@keyframes wingFoldRight {
+    0%, 30% {
+        transform: scale(1.15) rotate(12deg) translateX(6px);
+    }
+    55% {
+        transform: scale(1.04) rotate(-4deg);
+    }
+    100% {
+        transform: scale(1) rotate(0deg) translateX(0);
+    }
+}
+
+/* Head curious tilt upon settling */
+.athena-hero-hinggap .owl-head-group,
+.athena-hero-arrival .owl-head-group {
+    transform-origin: 150px 112px;
+    animation: headSettleTilt 1.35s ease-out both;
+}
+
+@keyframes headSettleTilt {
+    0%, 55% {
+        transform: rotate(0deg);
+    }
+    75% {
+        transform: rotate(3.5deg);
+    }
+    90% {
+        transform: rotate(-1.5deg);
+    }
+    100% {
+        transform: rotate(0deg);
+    }
+}
+
+/* Golden Stardust Burst on Perch Touchdown */
+.athena-landing-sparkles {
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 220px;
+    height: 40px;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.athena-landing-sparkles .sparkle {
+    position: absolute;
+    color: #f59e0b;
+    font-size: 14px;
+    opacity: 0;
+}
+
+.athena-hero-hinggap .athena-landing-sparkles .sparkle,
+.athena-hero-arrival .athena-landing-sparkles .sparkle {
+    animation: landingSparklePop 0.9s ease-out 0.5s both;
+}
+
+.athena-landing-sparkles .lsp-1 { left: 18%; bottom: 6px; animation-delay: 0.52s; }
+.athena-landing-sparkles .lsp-2 { right: 18%; bottom: 8px; animation-delay: 0.55s; color: #60a5fa; }
+.athena-landing-sparkles .lsp-3 { left: 32%; bottom: 12px; animation-delay: 0.58s; }
+.athena-landing-sparkles .lsp-4 { right: 30%; bottom: 10px; animation-delay: 0.62s; }
+
+@keyframes landingSparklePop {
+    0% {
+        opacity: 0;
+        transform: translateY(0) scale(0.3);
+    }
+    40% {
+        opacity: 1;
+        transform: translateY(-16px) scale(1.2);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-28px) scale(0.4);
+    }
+}
+
+/* Pupil transition */
+.owl-pupil {
+    transition: transform 0.08s ease-out;
+    transform-origin: center;
+}
+
+/* Owl blinking */
+@keyframes owlBlinkKeyframe {
+    0%, 94%, 98%, 100% {
+        transform: scaleY(1);
+    }
+    96% {
+        transform: scaleY(0.08);
+    }
+}
+
+.owl-eyelid {
+    transform-origin: 50% 50%;
+    animation: owlBlinkKeyframe 5.5s infinite;
+}
+
+/* Owl breathing idle */
+@keyframes owlBreatheKeyframe {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-3px);
+    }
+}
+
+.owl-body-group {
+    animation: owlBreatheKeyframe 4s ease-in-out infinite;
+}
+
+/* Spectacle glint */
+@keyframes glintKeyframe {
+    0%, 80%, 100% {
+        opacity: 0.35;
+        transform: translateX(-4px) rotate(25deg);
+    }
+    85%, 90% {
+        opacity: 0.85;
+        transform: translateX(4px) rotate(25deg);
+    }
+}
+
+.owl-glint {
+    animation: glintKeyframe 6s ease-in-out infinite;
+}
+
+/* Speech bubble: Strictly Centered directly above Athena across ALL Viewports */
+.athena-speech-bubble {
+    position: relative;
+    width: 100%;
+    max-width: 320px;
+    margin-left: auto;
+    margin-right: auto;
+    margin-bottom: 0.875rem;
+    background: #ffffff;
+    border: 1px solid #E2E8F0;
+    box-shadow: 0 12px 28px -6px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.02);
+    border-radius: 16px;
+    padding: 1rem 1.25rem;
+    z-index: 30;
+    transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    pointer-events: auto;
+}
+
+/* Speech bubble pointer pointing down straight into Athena's cap */
+.athena-speech-bubble::before {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 9px 9px 0 9px;
+    border-style: solid;
+    border-color: #CBD5E1 transparent transparent transparent;
+}
+
+.athena-speech-bubble::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 8px 8px 0 8px;
+    border-style: solid;
+    border-color: #ffffff transparent transparent transparent;
+}
+
+.athena-speech-bubble.athena-hero-greet {
+    animation: bubbleArrivalPulse 0.75s cubic-bezier(0.16, 1, 0.3, 1) 0.35s both;
+}
+
+@keyframes bubbleArrivalPulse {
+    0% {
+        opacity: 0;
+        transform: translateY(12px) scale(0.95);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Athena perched on closed book in intro overlay */
+.intro-owl-popup.is-perched-on-book {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    left: 50% !important;
+    top: calc(50% - 175px) !important;
+    transform: translate(-50%, -50%) scale(0.72) !important;
+    animation: owlPerchFloat 3.2s ease-in-out infinite !important;
+    z-index: 100 !important;
+}
+
+@media (max-width: 639px) {
+    .intro-owl-popup.is-perched-on-book {
+        top: calc(50% - 125px) !important;
+        transform: translate(-50%, -50%) scale(0.55) !important;
+    }
+}
+
+@media (min-width: 640px) and (max-width: 1023px) {
+    .intro-owl-popup.is-perched-on-book {
+        top: calc(50% - 155px) !important;
+        transform: translate(-50%, -50%) scale(0.65) !important;
+    }
+}
+
+.intro-owl-popup.athena-intro-hinggap {
+    animation: owlIntroHinggapAnim 1.25s cubic-bezier(0.22, 1, 0.36, 1) both !important;
+}
+
+@keyframes owlIntroHinggapAnim {
+    0% {
+        opacity: 1;
+        top: 25%;
+        left: 65%;
+        transform: translate(-50%, -50%) scale(0.9) rotate(-6deg);
+    }
+    40% {
+        top: calc(50% - 210px);
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0.8) rotate(4deg);
+    }
+    65% {
+        top: calc(50% - 170px);
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0.74, 0.65) rotate(0deg);
+    }
+    82% {
+        top: calc(50% - 178px);
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0.70, 0.74) rotate(-1deg);
+    }
+    100% {
+        top: calc(50% - 175px);
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0.72) rotate(0deg);
+    }
+}
+
+@keyframes owlPerchFloat {
+    0%, 100% {
+        transform: translate(-50%, -50%) scale(0.72) translateY(0);
+    }
+    50% {
+        transform: translate(-50%, -50%) scale(0.72) translateY(-4px);
+    }
+}
+
+/* Floating Dock for Athena Mascot */
+.athena-floating-dock {
+    position: fixed;
+    bottom: max(1.25rem, env(safe-area-inset-bottom, 1.25rem));
+    right: max(1.25rem, env(safe-area-inset-right, 1.25rem));
+    z-index: 90;
+    display: flex;
+    align-items: flex-end;
+    gap: 0.75rem;
+    transform: translateY(120px);
+    opacity: 0;
+    visibility: hidden;
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease, visibility 0.4s;
+}
+
+.athena-floating-dock.is-visible {
+    transform: translateY(0);
+    opacity: 1;
+    visibility: visible;
+}
+
+.athena-mini-trigger {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #132247 0%, #0B132B 100%);
+    border: 2px solid var(--sr-gold-400);
+    box-shadow: 0 8px 24px rgba(11, 19, 43, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    padding: 4px;
+}
+
+.athena-mini-trigger:hover {
+    transform: scale(1.08) translateY(-2px);
+    box-shadow: 0 12px 30px rgba(11, 19, 43, 0.5);
+}
+
+.athena-mini-trigger:focus-visible {
+    outline: 2px solid var(--sr-blue-600);
+    outline-offset: 3px;
+}
+
+/* --------------------------------------------------------------------------
+   Interactive Socratic Sandbox
+   -------------------------------------------------------------------------- */
+.socratic-sandbox-card {
+    background: var(--sr-parchment-50);
+    border: 1px solid #E2E8F0;
+    border-radius: 1.25rem;
+    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+}
+
+.socratic-passage {
+    font-family: 'Crimson Pro', Georgia, serif;
+    font-size: 1.1875rem;
+    line-height: 1.85;
+    color: var(--sr-ink-900);
+    background: #ffffff;
+    border-radius: 0.875rem;
+    padding: 1.5rem;
+    border-left: 4px solid var(--sr-blue-600);
+}
+
+.socratic-option-btn {
+    width: 100%;
+    text-align: left;
+    padding: 1rem 1.25rem;
+    border-radius: 0.875rem;
+    border: 1.5px solid #E2E8F0;
+    background: #ffffff;
+    color: var(--sr-ink-900);
+    font-size: 0.9375rem;
+    line-height: 1.5;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.socratic-option-btn:hover {
+    border-color: var(--sr-blue-500);
+    background: #F8FAFC;
+    transform: translateX(4px);
+}
+
+.socratic-option-btn.is-active {
+    border-color: var(--sr-blue-600);
+    background: #EFF6FF;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.12);
+}
+
+.socratic-option-btn:focus-visible {
+    outline: 2px solid var(--sr-blue-600);
+    outline-offset: 2px;
+}
+
+/* --------------------------------------------------------------------------
+   Accessibility & Reduced Motion
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+    .book-intro-overlay,
+    .book-3d,
+    .book-cover-front,
+    .book-light-burst,
+    .owl-eyelid,
+    .owl-body-group,
+    .owl-glint,
+    .athena-mascot-svg,
+    .athena-floating-dock {
+        animation: none !important;
+        transition: none !important;
+    }
+
+    .book-stage.is-open .book-3d {
+        transform: none !important;
+    }
+
+    .book-stage.is-open .book-cover-front {
+        opacity: 0;
+        visibility: hidden;
+    }
+}

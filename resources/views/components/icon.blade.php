@@ -16,6 +16,10 @@
             <path d="M6 13h2" />
             <path d="M6 9h2" />
             @break
+        @case('book-minus')
+            <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
+            <path d="M9 10h6" />
+            @break
         @case('copy')
             <rect x="8" y="8" width="13" height="13" rx="2" />
             <path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3" />

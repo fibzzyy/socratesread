@@ -6,6 +6,7 @@
     <meta name="theme-color" content="#ffffff">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Ruang belajar') SocratesRead</title>
+    <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
@@ -16,7 +17,12 @@
     <div class="app-shell">
         <button class="scrim" type="button" aria-label="Tutup navigasi" data-menu-close></button>
         <aside class="sidebar" id="primary-navigation" aria-label="Navigasi utama">
-            <a class="brand" href="{{ route('dashboard') }}" aria-label="SocratesRead, beranda"><span class="brand-name">socrates<span>read</span><small>LEARN THROUGH QUESTIONS</small></span></a>
+            <a class="brand" href="{{ route('dashboard') }}" aria-label="SocratesRead, beranda">
+                <span class="brand-logo-wrap">
+                    <img src="{{ asset('images/logo.png') }}" alt="Logo SocratesRead" class="brand-logo">
+                </span>
+                <span class="brand-name">socrates<span>read</span><small>LEARN THROUGH QUESTIONS</small></span>
+            </a>
             <div class="nav-label">MENU UTAMA</div>
             <nav class="nav-list" aria-label="Menu utama">
                 <a class="nav-link {{ request()->routeIs('dashboard') ? 'is-active' : '' }}" href="{{ route('dashboard') }}" @if(request()->routeIs('dashboard')) aria-current="page" @endif><x-icon name="layout-dashboard" /><span>Dashboard</span></a>

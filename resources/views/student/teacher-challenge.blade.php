@@ -48,7 +48,7 @@
                     <x-icon name="award" class="w-6 h-6" />
                 </div>
                 <div>
-                    <div class="flex items-center gap-2">
+                    <div class="flex flex-wrap items-center gap-2">
                         <span class="text-xs font-bold uppercase tracking-wider text-emerald-900">Tantangan Guru Selesai</span>
                         <span class="rounded-full bg-emerald-600 text-white text-[10px] font-black px-2.5 py-0.5">Skor {{ $displayTotalScore }} / 100</span>
                         <span class="rounded-full bg-blue-600 text-white text-[10px] font-black px-2 py-0.5">+{{ $submission->xp_awarded }} XP</span>
@@ -198,12 +198,12 @@
             @endforeach
         </div>
 
-        <div class="flex items-center justify-between">
-            <a href="{{ route('reading', ['document' => $document->id]) }}" class="outline-button">
+        <div class="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <a href="{{ route('reading', ['document' => $document->id]) }}" class="outline-button justify-center">
                 <x-icon name="arrow-left" class="w-4 h-4" />
                 <span>Kembali ke Bacaan</span>
             </a>
-            <a href="{{ route('quiz.timed', ['document' => $document->id]) }}" class="challenge-button">
+            <a href="{{ route('quiz.timed', ['document' => $document->id]) }}" class="challenge-button justify-center">
                 <span>Lanjut ke Challenge Socrates</span>
                 <x-icon name="arrow-right" class="w-4 h-4" />
             </a>
@@ -263,12 +263,12 @@
                 @endforeach
             </div>
 
-            <div class="flex items-center justify-between p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
-                <a href="{{ route('reading', ['document' => $document->id]) }}" class="outline-button">
+            <div class="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
+                <a href="{{ route('reading', ['document' => $document->id]) }}" class="outline-button justify-center">
                     <x-icon name="arrow-left" class="w-4 h-4" />
                     <span>Kembali</span>
                 </a>
-                <button type="submit" class="challenge-button" onclick="return confirm('Apakah Anda yakin ingin mengumpulkan seluruh jawaban tantangan guru sekarang?')">
+                <button type="submit" class="challenge-button justify-center" onclick="return confirm('Apakah Anda yakin ingin mengumpulkan seluruh jawaban tantangan guru sekarang?')">
                     <span>Kirim Jawaban Tantangan</span>
                     <x-icon name="arrow-right" class="w-4 h-4" />
                 </button>

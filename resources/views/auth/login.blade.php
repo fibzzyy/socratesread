@@ -6,6 +6,7 @@
     <meta name="theme-color" content="#ffffff">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Masuk — SocratesRead</title>
+    <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
@@ -13,8 +14,11 @@
 </head>
 <body class="min-h-screen bg-[#f7f8fa] font-sans text-[#172033] antialiased">
     <main class="grid min-h-screen content-center justify-items-center gap-[22px] px-[18px] py-[38px] max-[520px]:gap-[18px] max-[520px]:px-[14px] max-[520px]:py-[22px]">
-        <a class="font-display text-[19px] font-bold leading-none tracking-[-.5px] text-[#172033]" href="{{ route('login') }}">
-            socrates<strong class="text-blue-600">read</strong>
+        <a class="inline-flex items-center gap-2.5 font-display text-[20px] font-bold leading-none tracking-[-.5px] text-[#172033]" href="{{ route('login') }}">
+            <span class="flex items-center justify-center w-8 h-8 rounded-lg bg-white shadow-xs p-1 border border-slate-200">
+                <img src="{{ asset('images/logo.png') }}" alt="Logo SocratesRead" class="w-full h-full object-contain">
+            </span>
+            <span>socrates<strong class="text-blue-600">read</strong></span>
         </a>
 
         <section class="w-full max-w-[450px] rounded-xl border border-[#e9edf4] bg-white p-[34px] max-[520px]:px-5 max-[520px]:py-[25px]" aria-labelledby="auth-title">
