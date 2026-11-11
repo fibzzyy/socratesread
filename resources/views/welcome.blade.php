@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#ffffff">
+    <meta name="theme-color" content="#102f50">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Dashboard SocratesRead</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -11,12 +11,12 @@
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body>
+<body class="dashboard-page">
     @php($userInitials = collect(explode(' ', auth()->user()->name))->filter()->take(2)->map(fn ($part) => mb_substr($part, 0, 1))->implode(''))
     <div class="app-shell">
         <button class="scrim" type="button" aria-label="Tutup navigasi" data-menu-close></button>
-        <aside class="sidebar" id="primary-navigation" aria-label="Navigasi utama">
-            <a class="brand" href="{{ route('dashboard') }}" aria-label="SocratesRead, beranda"><span class="brand-name">socrates<span>read</span><small>LEARN THROUGH QUESTIONS</small></span></a>
+        <aside class="sidebar sidebar-theme" id="primary-navigation" aria-label="Navigasi utama">
+            <a class="brand" href="{{ route('dashboard') }}" aria-label="SocratesRead, beranda"><img class="brand-logo" src="{{ asset('images/socratesread-logo.jpeg') }}" alt=""><span class="brand-name">socrates<span>read</span><small>LEARN · THINK · GROW</small></span></a>
 
             <div class="nav-label">MENU UTAMA</div>
             <nav class="nav-list" aria-label="Menu utama">
@@ -46,7 +46,7 @@
         <main class="main-content" id="dashboard">
             <header class="topbar">
                 <button class="icon-button menu-toggle" type="button" aria-label="Buka navigasi" aria-controls="primary-navigation" aria-expanded="false" data-menu-toggle><x-icon name="menu" /></button>
-                <div class="breadcrumb"><a href="{{ route('dashboard') }}">Ruang belajar</a><span>/</span><strong>Dashboard</strong></div>
+                <div class="breadcrumb"><strong>Dashboard Siswa</strong></div>
                 <div class="topbar-actions">
                     <span class="today-label">{{ now()->locale('id')->translatedFormat('l, d F Y') }}</span>
                     <button class="icon-button notification-button" type="button" aria-label="Notifikasi"><x-icon name="bell" /><i></i></button>
@@ -158,8 +158,7 @@
 
                 <section class="hero-card" aria-label="Tantangan membaca hari ini">
                     <div class="hero-copy"><span class="hero-kicker"><span class="sparkle" aria-hidden="true"><x-icon name="target" /></span> MISI HARI INI</span><h2>Baca dengan rasa ingin tahu.<br><span>Pikirkan lebih jauh.</span></h2><p>Satu bacaan, satu pertanyaan hebat, satu langkah lebih dekat pada pemahaman.</p><a class="hero-cta" href="#bacaan">Lanjutkan perjalanan <x-icon name="arrow-right" /></a></div>
-                    <div class="hero-art" aria-hidden="true"><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><div class="orbit orbit-three"></div><div class="thought-card"><span class="thought-icon"><x-icon name="message-circle" /></span><span class="thought-lines"><i></i><i></i><i></i></span><span class="thought-check"><x-icon name="check" /></span></div></div>
-                    <aside class="hero-focus-summary" aria-label="Fokus latihan hari ini"><span>FOKUS MEMBACA</span><strong>Temukan bukti, lalu jelaskan alasanmu.</strong><small>Latihan hari ini · 5 menit</small></aside>
+                    <div class="hero-art" aria-hidden="true"><img class="burhan-owl" src="{{ asset('images/burhan.png') }}" alt=""></div>
                 </section>
 
                 <section class="stats-grid" aria-label="Ringkasan belajar">

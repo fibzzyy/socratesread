@@ -15,8 +15,8 @@
     @php($userInitials = collect(explode(' ', auth()->user()->name))->filter()->take(2)->map(fn ($part) => mb_substr($part, 0, 1))->implode(''))
     <div class="app-shell">
         <button class="scrim" type="button" aria-label="Tutup navigasi" data-menu-close></button>
-        <aside class="sidebar" id="primary-navigation" aria-label="Navigasi utama">
-            <a class="brand" href="{{ route('dashboard') }}" aria-label="SocratesRead, beranda"><span class="brand-name">socrates<span>read</span><small>LEARN THROUGH QUESTIONS</small></span></a>
+        <aside class="sidebar sidebar-theme" id="primary-navigation" aria-label="Navigasi utama">
+            <a class="brand" href="{{ route('dashboard') }}" aria-label="SocratesRead, beranda"><img class="brand-logo" src="{{ asset('images/socratesread-logo.jpeg') }}" alt=""><span class="brand-name">socrates<span>read</span><small>LEARN · THINK · GROW</small></span></a>
             <div class="nav-label">MENU UTAMA</div>
             <nav class="nav-list" aria-label="Menu utama">
                 <a class="nav-link {{ request()->routeIs('dashboard') ? 'is-active' : '' }}" href="{{ route('dashboard') }}" @if(request()->routeIs('dashboard')) aria-current="page" @endif><x-icon name="layout-dashboard" /><span>Dashboard</span></a>
@@ -31,7 +31,7 @@
                 <a class="nav-link {{ request()->routeIs('achievements*') ? 'is-active' : '' }}" href="{{ route('achievements') }}" @if(request()->routeIs('achievements*')) aria-current="page" @endif><x-icon name="award" /><span>Pencapaian</span></a>
             </nav>
             <div class="sidebar-spacer"></div>
-            <div class="sidebar-tip"><span class="tip-icon" aria-hidden="true"><x-icon name="lightbulb" /></span><strong>Berpikir lebih dalam</strong><p>Setiap kuis dan tantangan adalah langkah menuju pemahaman baru.</p><a href="{{ route('quiz.index') }}">Challenge Socrates <x-icon name="arrow-right" /></a></div>
+            <div class="sidebar-tip"><span class="tip-icon" aria-hidden="true"><x-icon name="lightbulb" /></span><strong>Berpikir lebih dalam</strong><p>Setiap pertanyaan adalah langkah menuju pemahaman baru.</p><a href="{{ route('reading') }}">Pilih bacaan <x-icon name="arrow-right" /></a></div>
             <div class="profile-button">
                 <a href="{{ route('profile') }}" class="avatar avatar-sidebar avatar-link" title="Profil">
                     @if (auth()->user()->avatarUrl())
