@@ -34,7 +34,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    background: radial-gradient(circle at center, #132247 0%, #060c18 80%);
+    background: radial-gradient(ellipse 95% 75% at 50% 25%, #1e3a8a 0%, #172554 35%, #0f172a 75%, #080e1a 100%);
     overflow: hidden;
     transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.8s ease;
 }
@@ -45,14 +45,16 @@
     pointer-events: none;
 }
 
-/* Aurora Ambient Background Glow (Inspired by ReactBits.dev) */
+/* Aurora Ambient Background Glow (Brightened for vivid contrast) */
 .aurora-ambient-glow {
     position: absolute;
-    inset: -40%;
-    background: radial-gradient(ellipse at 30% 35%, rgba(37, 99, 235, 0.26) 0%, transparent 60%),
-                radial-gradient(ellipse at 70% 65%, rgba(124, 58, 237, 0.22) 0%, transparent 60%),
-                radial-gradient(ellipse at 50% 80%, rgba(245, 158, 11, 0.16) 0%, transparent 50%);
-    filter: blur(60px);
+    inset: -30%;
+    background: 
+        radial-gradient(ellipse at 50% 20%, rgba(147, 197, 253, 0.35) 0%, rgba(59, 130, 246, 0.22) 40%, transparent 70%),
+        radial-gradient(circle at 85% 25%, rgba(167, 139, 250, 0.26) 0%, transparent 55%),
+        radial-gradient(circle at 15% 35%, rgba(56, 189, 248, 0.24) 0%, transparent 50%),
+        radial-gradient(circle at 50% 85%, rgba(251, 191, 36, 0.14) 0%, transparent 60%);
+    filter: blur(55px);
     pointer-events: none;
     animation: auroraWave 14s ease-in-out infinite alternate;
     z-index: 1;
@@ -68,8 +70,33 @@
     position: absolute;
     inset: 0;
     pointer-events: none;
-    opacity: 0.4;
     z-index: 2;
+    overflow: hidden;
+}
+
+.star-particle {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+    animation: starTwinkle var(--twinkle-dur, 2.5s) ease-in-out infinite var(--twinkle-del, 0s);
+    will-change: opacity, transform;
+}
+
+.star-particle.sparkle-4pt {
+    border-radius: 0;
+    clip-path: polygon(50% 0%, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0% 50%, 38% 38%);
+}
+
+@keyframes starTwinkle {
+    0%, 100% {
+        opacity: var(--min-opacity, 0.15);
+        transform: scale(0.65);
+    }
+    50% {
+        opacity: var(--max-opacity, 0.95);
+        transform: scale(1.35);
+        box-shadow: 0 0 6px currentColor, 0 0 14px currentColor;
+    }
 }
 
 .book-stage {
@@ -86,11 +113,21 @@
 
 @media (max-width: 639px) {
     .book-stage {
-        width: 220px;
-        height: 320px;
+        width: 195px;
+        height: 330px;
     }
     .book-stage.is-open {
-        transform: translateX(110px) scale(0.65) !important;
+        transform: translateX(76px) scale(0.78) !important;
+    }
+    .book-cover-front-face {
+        padding: 16px 12px;
+    }
+    .book-cover-border {
+        inset: 8px;
+    }
+    .book-corner {
+        width: 16px;
+        height: 16px;
     }
 }
 
@@ -100,7 +137,7 @@
         height: 420px;
     }
     .book-stage.is-open {
-        transform: translateX(150px) scale(0.85) !important;
+        transform: translateX(128px) scale(0.85) !important;
     }
 }
 
@@ -259,6 +296,7 @@
     transform: translateZ(-20px);
 }
 
+
 .book-sheet-stack {
     position: absolute;
     inset: 6px 10px 6px 8px;
@@ -266,12 +304,18 @@
     border-radius: 0 8px 8px 0;
     transform: translateZ(0px);
     box-shadow: 
-        inset 0 0 16px rgba(0, 0, 0, 0.05),
-        2px 0 0 #f0e8d8,
-        4px 0 0 #e4dcce,
-        6px 0 0 #d9d0c0,
-        8px 0 0 #cec4b2,
-        10px 3px 14px rgba(0, 0, 0, 0.25);
+        inset 0 0 18px rgba(0, 0, 0, 0.05),
+        2px 0 0 #f7f1e5,
+        4px 0 0 #ede2ce,
+        6px 0 0 #e4d7c0,
+        8px 0 0 #d9cbb0,
+        10px 0 0 #cfc0a2,
+        12px 0 0 #c4b494,
+        14px 0 0 #b9a886,
+        16px 0 0 #af9d78,
+        18px 0 0 #a4916a,
+        0 4px 10px rgba(0, 0, 0, 0.15),
+        22px 8px 28px rgba(0, 0, 0, 0.4);
     overflow: hidden;
     opacity: 0;
     visibility: hidden;
@@ -515,12 +559,18 @@
     transform: rotateY(180deg) translateZ(1px);
     backface-visibility: hidden;
     box-shadow: 
-        inset 0 0 16px rgba(0, 0, 0, 0.05),
-        -2px 0 0 #f0e8d8,
-        -4px 0 0 #e4dcce,
-        -6px 0 0 #d9d0c0,
-        -8px 0 0 #cec4b2,
-        -10px 3px 14px rgba(0, 0, 0, 0.25);
+        inset 0 0 18px rgba(0, 0, 0, 0.05),
+        -2px 0 0 #f7f1e5,
+        -4px 0 0 #ede2ce,
+        -6px 0 0 #e4d7c0,
+        -8px 0 0 #d9cbb0,
+        -10px 0 0 #cfc0a2,
+        -12px 0 0 #c4b494,
+        -14px 0 0 #b9a886,
+        -16px 0 0 #af9d78,
+        -18px 0 0 #a4916a,
+        0 4px 10px rgba(0, 0, 0, 0.15),
+        -22px 8px 28px rgba(0, 0, 0, 0.4);
     overflow: hidden;
 }
 
@@ -747,6 +797,22 @@
                 opacity 0.5s ease;
 }
 
+/* Luminous Halo behind Athena for High Contrast & Radiance */
+.intro-owl-popup::before {
+    content: '';
+    position: absolute;
+    top: 58%;
+    left: 50%;
+    width: 280px;
+    height: 230px;
+    transform: translate(-50%, -50%);
+    background: radial-gradient(circle, rgba(191, 219, 254, 0.45) 0%, rgba(147, 197, 253, 0.22) 40%, transparent 70%);
+    border-radius: 50%;
+    filter: blur(28px);
+    pointer-events: none;
+    z-index: -1;
+}
+
 /* When the book is open, Athena takes flight safely away from the 2-page book spread */
 .book-intro-overlay.is-book-open .intro-owl-popup,
 .book-intro-overlay.is-book-open .intro-owl-flight {
@@ -776,8 +842,8 @@
     .book-intro-overlay.is-book-open .intro-owl-flight {
         left: 50%;
         right: auto;
-        top: 48px;
-        transform: translate(-50%, 0) scale(0.55);
+        top: 36px;
+        transform: translate(-50%, 0) scale(0.58);
         animation: owlFlightHoverMobile 3.2s ease-in-out infinite 0.9s;
     }
 }
@@ -791,8 +857,18 @@
 }
 
 .intro-owl-popup.is-custom-placed {
-    /* Retain custom left & top dropped by user */
-    transition: transform 0.2s ease, opacity 0.4s ease;
+    right: auto !important;
+    transition: none !important;
+    animation: owlCustomPlacedHover 3.2s ease-in-out infinite !important;
+}
+
+@keyframes owlCustomPlacedHover {
+    0%, 100% {
+        transform: translate(-50%, -50%) scale(var(--owl-scale, 0.88)) translateY(0) rotate(0deg);
+    }
+    50% {
+        transform: translate(-50%, -50%) scale(var(--owl-scale, 0.88)) translateY(-6px) rotate(-1deg);
+    }
 }
 
 /* Owl Drag Helper Badge */
@@ -832,6 +908,7 @@
 .owl-interactive-svg-wrap {
     pointer-events: none;
     transition: transform 0.25s ease;
+    filter: drop-shadow(0 0 18px rgba(191, 219, 254, 0.6)) drop-shadow(0 10px 24px rgba(0, 0, 0, 0.45));
 }
 
 @keyframes owlFlightHoverDesktop {
@@ -854,10 +931,10 @@
 
 @keyframes owlFlightHoverMobile {
     0%, 100% {
-        transform: translate(-50%, 0) scale(0.55) rotate(0deg);
+        transform: translate(-50%, 0) scale(0.58) rotate(0deg);
     }
     50% {
-        transform: translate(-50%, -4px) scale(0.57) rotate(-1.5deg);
+        transform: translate(-50%, 0) scale(0.60) translateY(-4px) rotate(-1.5deg);
     }
 }
 
@@ -1013,10 +1090,22 @@
 
 @media (max-width: 639px) {
     .btn-skip-intro {
-        top: 0.875rem;
-        right: 0.875rem;
-        padding: 0.35rem 0.75rem;
-        font-size: 0.75rem;
+        top: 0.75rem;
+        right: 0.75rem;
+        padding: 0.3rem 0.65rem;
+        font-size: 0.7rem;
+    }
+    .intro-owl-bubble {
+        max-width: 220px;
+        font-size: 11.5px;
+        padding: 5px 12px;
+    }
+    .owl-drag-badge {
+        padding: 2px 7px;
+        font-size: 9.5px;
+    }
+    .book-intro-controls {
+        margin-top: 0.85rem;
     }
 }
 
@@ -1302,117 +1391,49 @@
     }
 }
 
-/* Athena perched on closed book in intro overlay */
-.intro-owl-popup.is-perched-on-book {
-    opacity: 1 !important;
-    pointer-events: auto !important;
-    left: 50% !important;
-    top: calc(50% - 175px) !important;
-    transform: translate(-50%, -50%) scale(0.72) !important;
-    animation: owlPerchFloat 3.2s ease-in-out infinite !important;
-    z-index: 100 !important;
+
+
+/* --------------------------------------------------------------------------
+   ReactBits & 21st.dev Interactive Cards & Micro-interactions
+   -------------------------------------------------------------------------- */
+.spotlight-card {
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
 }
 
-@media (max-width: 639px) {
-    .intro-owl-popup.is-perched-on-book {
-        top: calc(50% - 125px) !important;
-        transform: translate(-50%, -50%) scale(0.55) !important;
-    }
-}
-
-@media (min-width: 640px) and (max-width: 1023px) {
-    .intro-owl-popup.is-perched-on-book {
-        top: calc(50% - 155px) !important;
-        transform: translate(-50%, -50%) scale(0.65) !important;
-    }
-}
-
-.intro-owl-popup.athena-intro-hinggap {
-    animation: owlIntroHinggapAnim 1.25s cubic-bezier(0.22, 1, 0.36, 1) both !important;
-}
-
-@keyframes owlIntroHinggapAnim {
-    0% {
-        opacity: 1;
-        top: 25%;
-        left: 65%;
-        transform: translate(-50%, -50%) scale(0.9) rotate(-6deg);
-    }
-    40% {
-        top: calc(50% - 210px);
-        left: 50%;
-        transform: translate(-50%, -50%) scale(0.8) rotate(4deg);
-    }
-    65% {
-        top: calc(50% - 170px);
-        left: 50%;
-        transform: translate(-50%, -50%) scale(0.74, 0.65) rotate(0deg);
-    }
-    82% {
-        top: calc(50% - 178px);
-        left: 50%;
-        transform: translate(-50%, -50%) scale(0.70, 0.74) rotate(-1deg);
-    }
-    100% {
-        top: calc(50% - 175px);
-        left: 50%;
-        transform: translate(-50%, -50%) scale(0.72) rotate(0deg);
-    }
-}
-
-@keyframes owlPerchFloat {
-    0%, 100% {
-        transform: translate(-50%, -50%) scale(0.72) translateY(0);
-    }
-    50% {
-        transform: translate(-50%, -50%) scale(0.72) translateY(-4px);
-    }
-}
-
-/* Floating Dock for Athena Mascot */
-.athena-floating-dock {
-    position: fixed;
-    bottom: max(1.25rem, env(safe-area-inset-bottom, 1.25rem));
-    right: max(1.25rem, env(safe-area-inset-right, 1.25rem));
-    z-index: 90;
-    display: flex;
-    align-items: flex-end;
-    gap: 0.75rem;
-    transform: translateY(120px);
+.spotlight-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+        320px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+        rgba(37, 99, 235, 0.1),
+        transparent 80%
+    );
     opacity: 0;
-    visibility: hidden;
-    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease, visibility 0.4s;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    z-index: 1;
 }
 
-.athena-floating-dock.is-visible {
-    transform: translateY(0);
+.spotlight-card:hover::before {
     opacity: 1;
-    visibility: visible;
 }
 
-.athena-mini-trigger {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #132247 0%, #0B132B 100%);
-    border: 2px solid var(--sr-gold-400);
-    box-shadow: 0 8px 24px rgba(11, 19, 43, 0.35);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: transform 0.25s ease, box-shadow 0.25s ease;
-    padding: 4px;
+.shimmer-border {
+    position: relative;
 }
 
-.athena-mini-trigger:hover {
-    transform: scale(1.08) translateY(-2px);
-    box-shadow: 0 12px 30px rgba(11, 19, 43, 0.5);
+.shimmer-border:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px -8px rgba(37, 99, 235, 0.16);
 }
 
-.athena-mini-trigger:focus-visible {
-    outline: 2px solid var(--sr-blue-600);
-    outline-offset: 3px;
+@media (max-width: 640px) {
+    .spotlight-card:hover {
+        transform: none;
+    }
 }
 
 /* --------------------------------------------------------------------------
@@ -1469,6 +1490,47 @@
 }
 
 /* --------------------------------------------------------------------------
+   21st.dev & ReactBits Component Keyframes (ShinyText, BorderBeam, Aurora)
+   -------------------------------------------------------------------------- */
+@keyframes shiny-text {
+    0%, 100% {
+        background-position: -200% 0;
+    }
+    50% {
+        background-position: 200% 0;
+    }
+}
+
+.animate-shiny-text {
+    animation: shiny-text 3.5s ease-in-out infinite;
+}
+
+@keyframes border-beam {
+    100% {
+        offset-distance: 100%;
+    }
+}
+
+.animate-border-beam {
+    animation: border-beam var(--duration, 6s) infinite linear;
+}
+
+@keyframes auroraStarTwinkle {
+    0% {
+        opacity: 0.25;
+        transform: scale(0.85);
+    }
+    50% {
+        opacity: 0.95;
+        transform: scale(1.15);
+    }
+    100% {
+        opacity: 0.35;
+        transform: scale(0.9);
+    }
+}
+
+/* --------------------------------------------------------------------------
    Accessibility & Reduced Motion
    -------------------------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
@@ -1479,8 +1541,7 @@
     .owl-eyelid,
     .owl-body-group,
     .owl-glint,
-    .athena-mascot-svg,
-    .athena-floating-dock {
+    .athena-mascot-svg {
         animation: none !important;
         transition: none !important;
     }

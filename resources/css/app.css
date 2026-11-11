@@ -6,6 +6,7 @@
 @source '../../storage/framework/views/*.php';
 @source '../**/*.blade.php';
 @source '../**/*.js';
+@source '../**/*.jsx';
 
 @theme {
     --font-sans: 'DM Sans', ui-sans-serif, system-ui, sans-serif;

@@ -273,24 +273,39 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Audio toggle button handler
+    // Audio toggle button handler (ON / OFF toggle, non-circular)
     const audioToggleBtns = document.querySelectorAll('[data-audio-toggle]');
     function updateAudioButtons() {
         audioToggleBtns.forEach(btn => {
             const iconSound = btn.querySelector('.icon-sound-on');
             const iconMute = btn.querySelector('.icon-sound-off');
             const textSpan = btn.querySelector('.sound-label');
+            const isNavbarBtn = btn.classList.contains('sound-toggle-nav') || btn.closest('header');
 
             if (isSoundEnabled) {
                 if (iconSound) iconSound.classList.remove('hidden');
                 if (iconMute) iconMute.classList.add('hidden');
-                if (textSpan) textSpan.textContent = 'Suara: Aktif';
+                if (textSpan) textSpan.innerHTML = '<span class="hidden sm:inline">Suara: </span>ON';
                 btn.setAttribute('aria-pressed', 'true');
+                if (isNavbarBtn) {
+                    btn.classList.add('bg-blue-50/70', 'border-blue-300', 'text-blue-700');
+                    btn.classList.remove('bg-white', 'bg-slate-100', 'border-slate-200', 'text-slate-700');
+                } else {
+                    btn.classList.remove('bg-white', 'bg-blue-50', 'border', 'border-blue-300', 'border-slate-200');
+                    btn.classList.add('bg-transparent', 'text-blue-400');
+                }
             } else {
                 if (iconSound) iconSound.classList.add('hidden');
                 if (iconMute) iconMute.classList.remove('hidden');
-                if (textSpan) textSpan.textContent = 'Suara: Hening';
+                if (textSpan) textSpan.innerHTML = '<span class="hidden sm:inline">Suara: </span>OFF';
                 btn.setAttribute('aria-pressed', 'false');
+                if (isNavbarBtn) {
+                    btn.classList.remove('bg-white', 'bg-blue-50', 'bg-blue-50/70', 'border-blue-300', 'text-blue-700');
+                    btn.classList.add('bg-slate-100', 'border-slate-200', 'text-slate-700');
+                } else {
+                    btn.classList.remove('bg-white', 'bg-blue-50', 'border', 'border-blue-300', 'border-slate-200');
+                    btn.classList.add('bg-transparent', 'text-slate-400');
+                }
             }
         });
     }
@@ -306,6 +321,54 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
     updateAudioButtons();
+
+    // =========================================================================
+    // 1B. Dynamic Random Twinkling Stars Generator for Intro Celestial Sky
+    // =========================================================================
+    function initTwinklingStars() {
+        const starsCanvas = document.getElementById('stars-canvas');
+        if (!starsCanvas) return;
+        starsCanvas.innerHTML = '';
+
+        const starCount = 55;
+        const colors = ['#ffffff', '#fef08a', '#bae6fd', '#fde047', '#e0e7ff', '#7dd3fc'];
+
+        for (let i = 0; i < starCount; i++) {
+            const star = document.createElement('div');
+            star.className = 'star-particle';
+
+            const isSparkle = Math.random() < 0.22; // 22% 4-pointed sparkle stars
+            if (isSparkle) {
+                star.classList.add('sparkle-4pt');
+            }
+
+            const size = isSparkle
+                ? (Math.random() * 5 + 4).toFixed(1)
+                : (Math.random() * 2.5 + 1.2).toFixed(1);
+
+            const x = (Math.random() * 96 + 2).toFixed(2);
+            const y = (Math.random() * 94 + 3).toFixed(2);
+            const dur = (Math.random() * 2.6 + 1.6).toFixed(2);
+            const del = (Math.random() * 3.5).toFixed(2);
+            const minOp = (Math.random() * 0.15 + 0.1).toFixed(2);
+            const maxOp = (Math.random() * 0.35 + 0.65).toFixed(2);
+            const color = colors[Math.floor(Math.random() * colors.length)];
+
+            star.style.width = `${size}px`;
+            star.style.height = `${size}px`;
+            star.style.left = `${x}%`;
+            star.style.top = `${y}%`;
+            star.style.backgroundColor = color;
+            star.style.color = color;
+            star.style.setProperty('--twinkle-dur', `${dur}s`);
+            star.style.setProperty('--twinkle-del', `${del}s`);
+            star.style.setProperty('--min-opacity', minOp);
+            star.style.setProperty('--max-opacity', maxOp);
+
+            starsCanvas.appendChild(star);
+        }
+    }
+    initTwinklingStars();
 
     // =========================================================================
     // 2. Interactive 3D Book Controller (2-Page Spread, ReactBits Tilt & Athena Mascot)
@@ -347,9 +410,13 @@ document.addEventListener('DOMContentLoaded', () => {
         isBookOpen = true;
         playBookOpenSound();
 
-        // Athena takes off from book perch into soaring flight
+        // Athena resets any previous drag state and takes flight into view
         if (introOwlPopup) {
-            introOwlPopup.classList.remove('is-perched-on-book', 'athena-intro-hinggap');
+            introOwlPopup.classList.remove('is-swooping', 'is-perched-on-book', 'athena-intro-hinggap', 'is-custom-placed', 'is-dragging');
+            introOwlPopup.style.left = '';
+            introOwlPopup.style.right = '';
+            introOwlPopup.style.top = '';
+            introOwlPopup.style.transform = '';
         }
 
         bookStage.classList.add('is-open');
@@ -381,17 +448,17 @@ document.addEventListener('DOMContentLoaded', () => {
             book3d.style.transform = '';
         }
 
-        // Athena swoops down and hinggaps gracefully atop the closed book
+        // Athena disappears smoothly when cover closes
         if (introOwlPopup) {
-            introOwlPopup.classList.remove('is-swooping');
-            introOwlPopup.classList.add('is-perched-on-book', 'athena-intro-hinggap');
-            playAthenaHinggapSound();
+            introOwlPopup.classList.remove('is-swooping', 'is-perched-on-book', 'athena-intro-hinggap', 'is-custom-placed', 'is-dragging');
+            introOwlPopup.style.left = '';
+            introOwlPopup.style.right = '';
+            introOwlPopup.style.top = '';
+            introOwlPopup.style.transform = '';
         }
 
         if (openControlsBar) openControlsBar.classList.add('is-hidden');
         if (openBookBtn) openBookBtn.classList.remove('is-hidden');
-
-        updateOwlSpeech('"Buku telah kututup rapi. Ketuk sampul kapan pun kamu ingin membaca kembali!" ✨');
     }
 
     function proceedToLanding() {
@@ -477,7 +544,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!introOverlay || !bookStage) return;
         isBookOpen = false;
         if (introOwlPopup) {
-            introOwlPopup.classList.remove('is-swooping', 'is-perched-on-book', 'athena-intro-hinggap');
+            introOwlPopup.classList.remove('is-swooping', 'is-perched-on-book', 'athena-intro-hinggap', 'is-custom-placed', 'is-dragging');
+            introOwlPopup.style.left = '';
+            introOwlPopup.style.right = '';
+            introOwlPopup.style.top = '';
+            introOwlPopup.style.transform = '';
         }
         bookStage.classList.remove('is-closing', 'is-open');
         introOverlay.classList.remove('is-book-open');
@@ -604,23 +675,42 @@ document.addEventListener('DOMContentLoaded', () => {
         let lastDragX = 0;
         let currentTilt = 0;
 
-        function startOwlDrag(clientX, clientY) {
-            isDraggingOwl = true;
-            introOwlPopup.classList.add('is-dragging', 'is-custom-placed');
+        function getOwlBaseScale() {
+            if (window.innerWidth < 640) return 0.58;
+            if (window.innerWidth < 1024) return 0.70;
+            return 0.88;
+        }
 
+        function startOwlDrag(clientX, clientY) {
+            if (!introOwlPopup) return;
+            isDraggingOwl = true;
+            const baseScale = getOwlBaseScale();
+            introOwlPopup.style.setProperty('--owl-scale', baseScale);
+
+            // Calculate current visual center relative to overlay/viewport
             const rect = introOwlPopup.getBoundingClientRect();
             elemInitialX = rect.left + rect.width / 2;
             elemInitialY = rect.top + rect.height / 2;
             dragStartX = clientX;
             dragStartY = clientY;
             lastDragX = clientX;
+            currentTilt = 0;
+
+            // Anchor element cleanly before first move to prevent any jumping
+            introOwlPopup.style.right = 'auto';
+            introOwlPopup.style.left = `${elemInitialX}px`;
+            introOwlPopup.style.top = `${elemInitialY}px`;
+            introOwlPopup.style.transform = `translate(-50%, -50%) scale(${baseScale * 1.04}) rotate(0deg)`;
+
+            introOwlPopup.classList.add('is-dragging', 'is-custom-placed');
 
             updateOwlSpeech('"Wuuush! Aku terbang bersamamu! ✨"');
             playAthenaChime();
         }
 
         function moveOwlDrag(clientX, clientY) {
-            if (!isDraggingOwl) return;
+            if (!isDraggingOwl || !introOwlPopup) return;
+            const baseScale = getOwlBaseScale();
 
             const deltaX = clientX - dragStartX;
             const deltaY = clientY - dragStartY;
@@ -628,26 +718,28 @@ document.addEventListener('DOMContentLoaded', () => {
             let newX = elemInitialX + deltaX;
             let newY = elemInitialY + deltaY;
 
-            // Clamping inside viewport with margin
-            const margin = 50;
-            newX = Math.max(margin, Math.min(window.innerWidth - margin, newX));
-            newY = Math.max(margin, Math.min(window.innerHeight - margin, newY));
+            // Clamping inside viewport bounds considering scaled size
+            const padX = Math.max(50, (introOwlPopup.offsetWidth * baseScale) / 3);
+            const padY = Math.max(40, (introOwlPopup.offsetHeight * baseScale) / 3);
+            newX = Math.max(padX, Math.min(window.innerWidth - padX, newX));
+            newY = Math.max(padY, Math.min(window.innerHeight - padY, newY));
 
             // Dynamic banking tilt based on motion velocity
             const moveDeltaX = clientX - lastDragX;
             lastDragX = clientX;
-            currentTilt = Math.max(-12, Math.min(12, moveDeltaX * 1.5));
+            currentTilt = Math.max(-10, Math.min(10, moveDeltaX * 1.2));
 
             introOwlPopup.style.left = `${newX}px`;
             introOwlPopup.style.top = `${newY}px`;
-            introOwlPopup.style.transform = `translate(-50%, -50%) scale(1.04) rotate(${currentTilt}deg)`;
+            introOwlPopup.style.transform = `translate(-50%, -50%) scale(${baseScale * 1.04}) rotate(${currentTilt}deg)`;
         }
 
         function endOwlDrag() {
-            if (!isDraggingOwl) return;
+            if (!isDraggingOwl || !introOwlPopup) return;
             isDraggingOwl = false;
+            const baseScale = getOwlBaseScale();
             introOwlPopup.classList.remove('is-dragging');
-            introOwlPopup.style.transform = 'translate(-50%, -50%) scale(0.95) rotate(0deg)';
+            introOwlPopup.style.transform = `translate(-50%, -50%) scale(${baseScale}) rotate(0deg)`;
             updateOwlSpeech('"Tempat yang nyaman! Ayo lanjutkan membaca 📖"');
         }
 
@@ -682,6 +774,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         introOwlPopup.addEventListener('pointercancel', (e) => {
             if (isDraggingOwl) {
+                try {
+                    introOwlPopup.releasePointerCapture(e.pointerId);
+                } catch (err) {}
                 endOwlDrag();
             }
         });
@@ -750,13 +845,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (speechBubble) {
             speechBubble.style.opacity = '0';
-            speechBubble.style.transform = 'translateX(-50%) translateY(6px)';
+            speechBubble.style.transform = 'translateY(6px)';
 
             setTimeout(() => {
                 if (quoteText) quoteText.textContent = `"${wisdom.quote}"`;
                 if (quoteAuthor) quoteAuthor.textContent = wisdom.author;
                 speechBubble.style.opacity = '1';
-                speechBubble.style.transform = 'translateX(-50%) translateY(0)';
+                speechBubble.style.transform = 'translateY(0)';
                 playAthenaChime();
             }, 200);
         }
@@ -834,31 +929,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // =========================================================================
-    // 4. Floating Mascot Dock & Scroll-To-Top
+    // 4. Interactive Spotlight Cards (ReactBits pattern)
     // =========================================================================
-    const floatingDock = document.getElementById('athena-floating-dock');
-    const floatingTrigger = document.getElementById('athena-floating-trigger');
-
-    window.addEventListener('scroll', () => {
-        if (!floatingDock) return;
-        if (window.scrollY > 400) {
-            floatingDock.classList.add('is-visible');
-        } else {
-            floatingDock.classList.remove('is-visible');
-        }
-    }, { passive: true });
-
-    if (floatingTrigger) {
-        floatingTrigger.addEventListener('click', () => {
-            const sandboxSection = document.getElementById('demo-sokratik');
-            if (sandboxSection) {
-                sandboxSection.scrollIntoView({ behavior: 'smooth' });
-                playAthenaChime();
-            } else {
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            }
+    const spotlightCards = document.querySelectorAll('.spotlight-card');
+    spotlightCards.forEach(card => {
+        card.addEventListener('mousemove', (e) => {
+            const rect = card.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            card.style.setProperty('--mouse-x', `${x}px`);
+            card.style.setProperty('--mouse-y', `${y}px`);
         });
-    }
+    });
 
     // =========================================================================
     // 5. Interactive Socratic Sandbox
@@ -874,19 +956,19 @@ document.addEventListener('DOMContentLoaded', () => {
             type: 'dogmatic',
             title: 'Tinjauan Kritis: Pendekatan Hafalan Pasif',
             text: 'Kamu memilih menyimpulkan teks berdasarkan apa yang lazim dikatakan tanpa menguji bukti dalam teks. Dalam berpikir kritis, ini disebut argumentum ad verecundiam (menerima otoritas tanpa audit bukti).',
-            question: 'Pertanyaan Pemantik Athena: "Jika premis awal yang kamu percaya ternyata bersumber dari kutipan yang keliru, bagaimana kamu mempertahankan kesimpulanmu?"'
+            question: 'Pertanyaan Athena: "Jika premis awal yang kamu percaya ternyata bersumber dari kutipan yang keliru, bagaimana kamu mempertahankan kesimpulanmu?"'
         },
         '2': {
             type: 'skeptic',
             title: 'Tinjauan Kritis: Skeptisisme Tanpa Konstruksi',
             text: 'Kamu meragukan seluruh klaim teks secara total. Keraguan memang titik mula berpikir, namun skeptisisme yang menolak semua data tanpa pembanding rasional justru menghentikan proses penyelidikan ilmiah.',
-            question: 'Pertanyaan Pemantik Athena: "Bila setiap bukti kamu anggap bias, standar bukti seperti apa yang secara adil bersedia kamu terima sebagai kebenaran?"'
+            question: 'Pertanyaan Athena: "Bila setiap bukti kamu anggap bias, standar bukti seperti apa yang secara adil bersedia kamu terima sebagai kebenaran?"'
         },
         '3': {
             type: 'socratic',
             title: 'Luar Biasa: Pendekatan Dialektika Sokratik!',
             text: 'Tepat sekali! Kamu mengidentifikasi hubungan logis antara premis penulis, menguji konsistensi asumsi yang tidak tertulis, dan mencari bukti pembantah sebelum menarik inferensi objektif.',
-            question: 'Pertanyaan Pengembang Athena: "Bagaimana jika argumen tandingan ini diajukan dalam konteks abad ke-21? Nilai etis apa yang paling diuji di sini?"'
+            question: 'Pertanyaan Athena: "Bagaimana jika argumen tandingan ini diajukan dalam konteks abad ke-21? Nilai etis apa yang paling diuji di sini?"'
         }
     };
 
