@@ -6,6 +6,7 @@
     <meta name="theme-color" content="#f7f8fa">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Masuk — SocratesRead</title>
+    <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">

@@ -10,9 +10,17 @@ class ExampleTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_the_application_requires_authentication_for_the_student_dashboard(): void
+    public function test_landing_page_renders_successfully(): void
     {
         $response = $this->get('/');
+        $response->assertOk();
+        $response->assertSee('SocratesRead');
+        $response->assertSee('Mulai Sekarang');
+    }
+
+    public function test_the_application_requires_authentication_for_the_student_dashboard(): void
+    {
+        $response = $this->get('/dashboard');
 
         $response->assertRedirect(route('login'));
     }
@@ -22,7 +30,7 @@ class ExampleTest extends TestCase
         $teacher = User::factory()->create(['role' => 'teacher']);
 
         $this->actingAs($teacher)
-            ->get('/')
+            ->get('/dashboard')
             ->assertRedirect(route('teacher.dashboard'));
     }
 
@@ -35,7 +43,7 @@ class ExampleTest extends TestCase
             'graduation_year' => (int) date('Y') + 2,
         ]);
 
-        $response = $this->actingAs($student)->get('/');
+        $response = $this->actingAs($student)->get('/dashboard');
 
         $response->assertOk();
         $response->assertSee('Ruang belajar');
@@ -54,13 +62,13 @@ class ExampleTest extends TestCase
         ]);
 
         // Saat mengakses default dashboard, otomatis membuka Kelas 11
-        $response = $this->actingAs($transferStudent)->get('/');
+        $response = $this->actingAs($transferStudent)->get('/dashboard');
         $response->assertOk();
         $response->assertSee('Kelas 11');
         $response->assertDontSee('Belum Ada Riwayat di Kelas');
 
         // Saat memilih Kelas 10 (sebelum masuk), halaman menampilkan Empty State informatif
-        $priorResponse = $this->actingAs($transferStudent)->get('/?grade=10');
+        $priorResponse = $this->actingAs($transferStudent)->get('/dashboard?grade=10');
         $priorResponse->assertOk();
         $priorResponse->assertSee('Belum Ada Riwayat di Kelas 10');
         $priorResponse->assertSee('terdaftar di SocratesRead pada jenjang <strong>Kelas 11</strong>', false);

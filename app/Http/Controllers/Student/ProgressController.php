@@ -34,9 +34,19 @@ class ProgressController extends Controller
             $docIds = $classDocs->pluck('id')->all();
             $totalDocs = count($docIds);
 
-            $completedReadings = $user->learningActivities()
-                ->where('event_type', 'reading_completed')
+            $completedReadings = $user->readingSessions()
                 ->whereIn('document_id', $docIds)
+                ->where(function ($q) {
+                    $q->where('status', 'completed')->orWhere('progress_percent', '>=', 100);
+                })
+                ->pluck('document_id')
+                ->merge(
+                    $user->learningActivities()
+                        ->where('event_type', 'reading_completed')
+                        ->whereIn('document_id', $docIds)
+                        ->pluck('document_id')
+                )
+                ->unique()
                 ->count();
 
             $completedChallenges = $user->learningActivities()
@@ -77,21 +87,42 @@ class ProgressController extends Controller
         $weeklyActivity = $gamification->weeklyActivity($user, $filterDocumentIds);
         $recentActivities = $gamification->recentActivities($user, 8, $filterDocumentIds);
 
-        $readingsQuery = $user->learningActivities()
-            ->where('event_type', 'reading_completed')
-            ->when($filterDocumentIds !== null, fn ($q) => $q->whereIn('document_id', $filterDocumentIds));
-        $completedReadings = $readingsQuery->count();
+        $completedDocIds = $user->readingSessions()
+            ->when($filterDocumentIds !== null, fn ($q) => $q->whereIn('document_id', $filterDocumentIds))
+            ->where(function ($q) {
+                $q->where('status', 'completed')->orWhere('progress_percent', '>=', 100);
+            })
+            ->pluck('document_id')
+            ->merge(
+                $user->learningActivities()
+                    ->where('event_type', 'reading_completed')
+                    ->when($filterDocumentIds !== null, fn ($q) => $q->whereIn('document_id', $filterDocumentIds))
+                    ->pluck('document_id')
+            )
+            ->unique();
+        $completedReadings = $completedDocIds->count();
 
         $challengesQuery = $user->learningActivities()
             ->whereIn('event_type', ['challenge_completed', 'quiz_timed_quiz', 'quiz_practice', 'teacher_challenge'])
             ->when($filterDocumentIds !== null, fn ($q) => $q->whereIn('document_id', $filterDocumentIds));
         $completedChallenges = $challengesQuery->distinct('document_id')->count('document_id');
 
-        $weeklyReadingCount = $user->learningActivities()
-            ->where('event_type', 'reading_completed')
-            ->whereBetween('activity_date', [now()->subDays(6)->toDateString(), now()->toDateString()])
+        $weeklyReadingCount = $user->readingSessions()
             ->when($filterDocumentIds !== null, fn ($q) => $q->whereIn('document_id', $filterDocumentIds))
-            ->count();
+            ->where(function ($q) {
+                $q->where('status', 'completed')->orWhere('progress_percent', '>=', 100);
+            })
+            ->whereBetween('updated_at', [now()->subDays(6)->startOfDay(), now()->endOfDay()])
+            ->distinct('document_id')
+            ->count('document_id');
+
+        if ($weeklyReadingCount === 0) {
+            $weeklyReadingCount = $user->learningActivities()
+                ->where('event_type', 'reading_completed')
+                ->whereBetween('activity_date', [now()->subDays(6)->toDateString(), now()->toDateString()])
+                ->when($filterDocumentIds !== null, fn ($q) => $q->whereIn('document_id', $filterDocumentIds))
+                ->count();
+        }
 
         // 5. Kompetensi Membaca (5 skill sokratik) dengan persentase realistis dan realtime
         $skillsCompetency = $this->getSkillsCompetency($user, $filterDocumentIds, $totalDocsInScope);

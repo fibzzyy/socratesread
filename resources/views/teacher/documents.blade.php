@@ -105,9 +105,9 @@
                 <div class="teacher-document-copy">
                     <div class="flex items-center gap-2 flex-wrap">
                         <strong>{{ $document->title }}</strong>
-                        <span class="rounded bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700 border border-indigo-200/60 inline-flex items-center gap-1">
+                        <span data-quiz-badge-doc="{{ $document->id }}" class="rounded bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700 border border-indigo-200/60 inline-flex items-center gap-1">
                             <x-icon name="gamepad-2" class="w-3 h-3 text-indigo-600"/>
-                            Kuis Socrates: {{ $document->quiz_question_count ?? 10 }} Soal (⏱️ {{ $document->quiz_duration_minutes ?? 15 }}m)
+                            <span data-quiz-badge-text>Kuis Socrates: {{ $document->quiz_question_count ?? 10 }} Soal (⏱️ {{ $document->quiz_duration_minutes ?? 15 }}m)</span>
                         </span>
                         <span class="rounded bg-purple-50 px-2 py-0.5 text-[10px] font-bold text-purple-700 border border-purple-200/60 inline-flex items-center gap-1">
                             <x-icon name="award" class="w-3 h-3 text-purple-600"/>
@@ -194,7 +194,7 @@
     <!-- Drawer Pratinjau Dokumen & Soal Sokratik -->
     <div id="docPreviewModal" class="hidden fixed inset-0 z-50 overflow-hidden" role="dialog" aria-modal="true" aria-labelledby="modalDocTitle">
         <div id="docModalBackdrop" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs transition-opacity"></div>
-        <div class="fixed inset-y-0 right-0 max-w-full flex pl-10">
+        <div class="fixed inset-y-0 right-0 max-w-full flex pl-0 sm:pl-10">
             <div id="docModalPanel" class="w-screen max-w-lg md:max-w-xl bg-white shadow-2xl flex flex-col transform transition ease-in-out duration-300">
                 <!-- Header Drawer -->
                 <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4 bg-slate-50/80">
@@ -647,9 +647,10 @@
                 selects.forEach(select => {
                     select.addEventListener('change', async () => {
                         const formData = new FormData(form);
+                        selects.forEach(s => { s.disabled = true; });
                         if (savedPill) {
                             savedPill.textContent = '⏳ Menyimpan...';
-                            savedPill.classList.remove('hidden', 'text-emerald-600', 'bg-emerald-50');
+                            savedPill.classList.remove('hidden', 'text-emerald-600', 'bg-emerald-50', 'text-rose-600', 'bg-rose-50');
                             savedPill.classList.add('text-amber-700', 'bg-amber-50');
                         }
                         try {
@@ -664,13 +665,17 @@
                             });
                             if (res.ok) {
                                 const json = await res.json();
+                                const docId = form.dataset.docId;
+                                const badgeText = document.querySelector(`[data-quiz-badge-doc="${docId}"] [data-quiz-badge-text]`);
+                                if (badgeText && json.quiz_question_count && json.quiz_duration_minutes) {
+                                    badgeText.textContent = `Kuis Socrates: ${json.quiz_question_count} Soal (⏱️ ${json.quiz_duration_minutes}m)`;
+                                }
                                 if (savedPill) {
                                     savedPill.textContent = `✓ ${json.quiz_question_count || ''} Soal Tersimpan`;
-                                    savedPill.classList.remove('text-amber-700', 'bg-amber-50');
+                                    savedPill.classList.remove('text-amber-700', 'bg-amber-50', 'text-rose-600', 'bg-rose-50');
                                     savedPill.classList.add('text-emerald-600', 'bg-emerald-50');
                                     setTimeout(() => savedPill.classList.add('hidden'), 2500);
                                 }
-                                const docId = form.dataset.docId;
                                 const scriptEl = document.getElementById('doc-preview-data-' + docId);
                                 if (scriptEl) {
                                     try {
@@ -687,7 +692,7 @@
                             } else {
                                 if (savedPill) {
                                     savedPill.textContent = '⚠️ Gagal simpan';
-                                    savedPill.classList.remove('text-amber-700', 'bg-amber-50');
+                                    savedPill.classList.remove('text-amber-700', 'bg-amber-50', 'text-emerald-600', 'bg-emerald-50');
                                     savedPill.classList.add('text-rose-600', 'bg-rose-50');
                                     setTimeout(() => savedPill.classList.add('hidden'), 3000);
                                 }
@@ -696,8 +701,12 @@
                             console.error('Gagal memperbarui pengaturan kuis:', err);
                             if (savedPill) {
                                 savedPill.textContent = '⚠️ Error';
+                                savedPill.classList.remove('text-amber-700', 'bg-amber-50', 'text-emerald-600', 'bg-emerald-50');
+                                savedPill.classList.add('text-rose-600', 'bg-rose-50');
                                 setTimeout(() => savedPill.classList.add('hidden'), 3000);
                             }
+                        } finally {
+                            selects.forEach(s => { s.disabled = false; });
                         }
                     });
                 });
@@ -908,8 +917,7 @@
 
             btnSaveAllChallenges?.addEventListener('click', async () => {
                 if (!currentStoreUrl) return;
-                if (activeChallenges.length === 0) {
-                    alert('Harap tambahkan minimal 1 soal tantangan.');
+                if (activeChallenges.length === 0 && !confirm('Tidak ada soal tantangan. Apakah Anda yakin ingin mengosongkan/menghapus seluruh soal tantangan guru untuk materi ini?')) {
                     return;
                 }
 

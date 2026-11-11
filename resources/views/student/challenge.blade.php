@@ -53,24 +53,51 @@
             </div>
             <div class="answer-area" data-answer-area>
                 <div class="flex items-center justify-between mb-1.5">
-                    <label for="student-answer">{{ $isLocked ? 'Jawabanmu (Terkunci)' : 'Jawabanmu' }}</label>
+                    <label for="student-answer" class="text-xs font-bold text-slate-700 uppercase tracking-wider">{{ $isLocked ? 'Jawaban Anda (Terkunci)' : 'Jawaban Anda' }}</label>
                     @if ($isLocked)
                         <span class="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-100/60 px-2 py-0.5 rounded">
                             <x-icon name="check-circle" class="w-3 h-3 text-emerald-600" /> Tersimpan Permanen
                         </span>
                     @endif
                 </div>
-                <textarea id="student-answer" rows="5" maxlength="800" placeholder="{{ $isLocked ? 'Belum ada jawaban tersimpan.' : 'Tuliskan pemikiranmu di sini. Coba sertakan bukti dari bacaan…' }}" data-answer {{ $isLocked ? 'readonly disabled' : '' }} class="{{ $isLocked ? '!bg-slate-50 !text-slate-800 !cursor-not-allowed !border-slate-200 font-medium' : '' }}">{{ $savedAnswers->get($questions->first()->id) }}</textarea>
+                <textarea id="student-answer" rows="5" maxlength="800" placeholder="{{ $isLocked ? 'Belum ada jawaban tersimpan.' : 'Tuliskan pemikiranmu di sini sepahammu. Coba sertakan bukti dari bacaan…' }}" data-answer {{ $isLocked ? 'readonly disabled' : '' }} class="{{ $isLocked ? '!bg-slate-50 !text-slate-800 !cursor-not-allowed !border-slate-200 font-medium' : '' }}">{{ $savedAnswers->get($questions->first()->id) }}</textarea>
                 <div class="answer-hint-row">
                     <button type="button" class="hint-button" data-hint-toggle aria-expanded="false"><x-icon name="lightbulb" /><span data-hint-label>Beri saya petunjuk</span></button>
                     @if (! $isLocked)
                         <span class="character-count"><span data-count>0</span>/800</span>
                     @else
-                        <span class="text-[10px] text-slate-500 font-medium">Mode Hanya Baca</span>
+                        <span class="text-[10px] text-slate-500 font-medium">Mode Review / Terkunci</span>
                     @endif
                 </div>
                 <div class="hint-box" hidden data-hint>{{ $questions->first()->hint }}</div>
-                <p class="answer-error" role="alert" data-answer-error hidden>Tuliskan jawaban singkatmu sebelum melanjutkan.</p>
+                <p class="answer-error" role="alert" data-answer-error hidden>Tuliskan jawaban singkatmu sebelum memeriksa.</p>
+
+                <!-- Review / Analisis Jawaban AI (NotebookLM Style) -->
+                <div class="evaluation-review-box mt-4 rounded-2xl border p-4 sm:p-5 transition-all duration-300" data-eval-box hidden>
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+                        <div class="inline-flex items-center gap-1.5 text-xs font-bold" data-eval-badge>
+                            <!-- Badge diisi oleh JavaScript -->
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-xs font-black px-2.5 py-0.5 rounded-full" data-eval-score-text>Skor: 0 / 100</span>
+                        </div>
+                    </div>
+
+                    <!-- Teks Feedback / Analisis AI -->
+                    <p class="text-xs sm:text-sm leading-relaxed font-medium" data-eval-feedback-text></p>
+
+                    <!-- Poin Konsep yang Belum Lengkap -->
+                    <div class="mt-3 pt-3 border-t border-slate-200/70 text-xs" data-eval-missing-box hidden>
+                        <strong class="font-bold text-[11px] uppercase tracking-wider block mb-1">Poin yang Perlu Diperdalam:</strong>
+                        <ul class="list-disc list-inside space-y-1 text-slate-700" data-eval-missing-list></ul>
+                    </div>
+
+                    <!-- Petunjuk Perbaikan -->
+                    <div class="mt-2.5 pt-2.5 border-t border-slate-200/70 text-xs" data-eval-hint-box hidden>
+                        <strong class="font-bold text-[11px] uppercase tracking-wider block mb-0.5">Petunjuk Perbaikan:</strong>
+                        <p class="italic text-slate-700" data-eval-hint-text></p>
+                    </div>
+                </div>
             </div>
             <div class="question-actions">
                 <div class="flex items-center gap-2">
@@ -80,10 +107,15 @@
                 <div class="flex items-center gap-2">
                     @if ($isLocked)
                         <a class="outline-button" href="{{ route('dashboard') }}">Dashboard</a>
+                    @else
+                        <button class="outline-button" type="button" data-edit-btn hidden>
+                            <x-icon name="pencil" class="w-3.5 h-3.5" />
+                            <span>Ubah Jawaban</span>
+                        </button>
                     @endif
-                    <button class="challenge-button" type="button" data-next-question>
-                        <span data-next-label>{{ $isLocked ? ($questions->count() > 1 ? 'Pertanyaan berikutnya' : 'Selesai meninjau') : ($questions->count() > 1 ? 'Lanjutkan' : 'Selesaikan') }}</span>
-                        <x-icon name="arrow-right" />
+                    <button class="challenge-button" type="button" data-action-btn>
+                        <span data-action-label>{{ $isLocked ? ($questions->count() > 1 ? 'Pertanyaan berikutnya' : 'Selesai meninjau') : 'Periksa Jawaban' }}</span>
+                        <x-icon name="arrow-right" data-action-icon />
                     </button>
                 </div>
             </div>
@@ -99,21 +131,36 @@
 (() => {
     const questions = @json($challengeQuestions);
     const savedAnswers = @json($savedAnswers);
+    const savedEvaluations = @json($savedEvaluations ?? []);
     const isLocked = Boolean(@json($isLocked));
     let current = 0;
+
     const form = document.querySelector('[data-challenge]');
     const answer = form.querySelector('[data-answer]');
     const hintButton = form.querySelector('[data-hint-toggle]');
     const hint = form.querySelector('[data-hint]');
     const prevButton = form.querySelector('[data-prev-question]');
-    const nextButton = form.querySelector('[data-next-question]');
+    const editButton = form.querySelector('[data-edit-btn]');
+    const actionButton = form.querySelector('[data-action-btn]');
+    const actionLabel = form.querySelector('[data-action-label]');
     const countEl = form.querySelector('[data-count]');
+    const errorEl = form.querySelector('[data-answer-error]');
+
+    // Evaluation review box elements
+    const evalBox = form.querySelector('[data-eval-box]');
+    const evalBadge = form.querySelector('[data-eval-badge]');
+    const evalScoreText = form.querySelector('[data-eval-score-text]');
+    const evalFeedbackText = form.querySelector('[data-eval-feedback-text]');
+    const evalMissingBox = form.querySelector('[data-eval-missing-box]');
+    const evalMissingList = form.querySelector('[data-eval-missing-list]');
+    const evalHintBox = form.querySelector('[data-eval-hint-box]');
+    const evalHintText = form.querySelector('[data-eval-hint-text]');
 
     if (countEl) countEl.textContent = answer.value.length;
     if (!isLocked) {
         answer.addEventListener('input', () => {
             if (countEl) countEl.textContent = answer.value.length;
-            form.querySelector('[data-answer-error]').hidden = true;
+            errorEl.hidden = true;
         });
     }
 
@@ -124,31 +171,109 @@
         hintButton.querySelector('[data-hint-label]').textContent = opening ? 'Sembunyikan petunjuk' : 'Beri saya petunjuk';
     });
 
+    const renderEvaluation = (evalData) => {
+        if (!evalData) {
+            evalBox.hidden = true;
+            return;
+        }
+
+        evalBox.hidden = false;
+
+        const score = Number(evalData.score ?? (evalData.evaluation && evalData.evaluation.score) ?? 0);
+        const rawLevel = String(evalData.understanding_level || (evalData.evaluation && evalData.evaluation.understanding_level) || '');
+        const feedback = String(evalData.feedback || (evalData.evaluation && evalData.evaluation.feedback) || 'Jawaban Anda telah dievaluasi berdasarkan materi bacaan.');
+        const missing = (evalData.missing_concepts || (evalData.evaluation && evalData.evaluation.missing_concepts) || []);
+        const hintText = evalData.hint || (evalData.evaluation && evalData.evaluation.hint) || '';
+
+        let boxClasses = '';
+        let badgeHtml = '';
+        let scoreClass = '';
+
+        if (score >= 70 || rawLevel.toLowerCase().includes('mahir') || rawLevel.toLowerCase().includes('tepat') || rawLevel.toLowerCase().includes('baik')) {
+            boxClasses = 'border-emerald-300 bg-emerald-50/80 text-emerald-950';
+            scoreClass = 'bg-emerald-100 text-emerald-800';
+            badgeHtml = `<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800"><svg class="w-3.5 h-3.5 mr-1 text-emerald-600 stroke-[3]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>✓ Benar / Tepat & Sesuai</span>`;
+        } else if (score >= 40 || rawLevel.toLowerCase().includes('hampir') || rawLevel.toLowerCase().includes('cukup')) {
+            boxClasses = 'border-amber-300 bg-amber-50/80 text-amber-950';
+            scoreClass = 'bg-amber-100 text-amber-900';
+            badgeHtml = `<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900"><svg class="w-3.5 h-3.5 mr-1 text-amber-600 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>⚠ Hampir Benar / Perlu Perbaikan</span>`;
+        } else {
+            boxClasses = 'border-rose-300 bg-rose-50/80 text-rose-950';
+            scoreClass = 'bg-rose-100 text-rose-900';
+            badgeHtml = `<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-900"><svg class="w-3.5 h-3.5 mr-1 text-rose-600 stroke-[3]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>✕ Belum Tepat</span>`;
+        }
+
+        evalBox.className = `evaluation-review-box mt-4 rounded-2xl border p-4 sm:p-5 transition-all duration-300 ${boxClasses}`;
+        evalBadge.innerHTML = badgeHtml;
+        evalScoreText.className = `text-xs font-black px-2.5 py-0.5 rounded-full ${scoreClass}`;
+        evalScoreText.textContent = `Skor: ${score} / 100`;
+        evalFeedbackText.textContent = feedback;
+
+        if (Array.isArray(missing) && missing.length > 0) {
+            evalMissingList.innerHTML = missing.map(c => `<li>${c}</li>`).join('');
+            evalMissingBox.hidden = false;
+        } else {
+            evalMissingBox.hidden = true;
+        }
+
+        if (hintText && String(hintText).trim().length > 0) {
+            evalHintText.textContent = String(hintText).trim();
+            evalHintBox.hidden = false;
+        } else {
+            evalHintBox.hidden = true;
+        }
+    };
+
     const updateQuestionView = (idx) => {
         current = idx;
-        const question = questions[current];
+        const q = questions[current];
+        const qId = String(q.id);
+
         form.querySelector('[data-question-number]').textContent = `PERTANYAAN ${current + 1} DARI ${questions.length}`;
-        form.querySelector('[data-question-skill]').textContent = question.skill.toLocaleUpperCase('id-ID');
-        form.querySelector('[data-question-text]').textContent = question.prompt;
-        form.querySelector('.question-context').textContent = question.context || '';
+        form.querySelector('[data-question-skill]').textContent = q.skill.toLocaleUpperCase('id-ID');
+        form.querySelector('[data-question-text]').textContent = q.prompt;
+        form.querySelector('.question-context').textContent = q.context || '';
         form.querySelector('[data-question-progress]').style.width = `${Math.round(((current + 1) / questions.length) * 100)}%`;
-        hint.textContent = question.hint || '';
+
+        hint.textContent = q.hint || '';
         hint.hidden = true;
         hintButton.setAttribute('aria-expanded', 'false');
         hintButton.querySelector('[data-hint-label]').textContent = 'Beri saya petunjuk';
-        answer.value = savedAnswers[String(question.id)] || '';
+
+        answer.value = savedAnswers[qId] || '';
         if (countEl) countEl.textContent = String(answer.value.length);
+        errorEl.hidden = true;
 
         if (prevButton) {
             prevButton.hidden = current === 0;
         }
 
+        const existingEval = savedEvaluations[qId] || null;
+
         if (isLocked) {
-            nextButton.disabled = false;
-            nextButton.querySelector('[data-next-label]').textContent = current === questions.length - 1 ? 'Selesai meninjau' : 'Pertanyaan berikutnya';
+            answer.readOnly = true;
+            answer.disabled = true;
+            if (editButton) editButton.hidden = true;
+            renderEvaluation(existingEval);
+            actionButton.disabled = false;
+            actionLabel.textContent = current === questions.length - 1 ? 'Selesai meninjau' : 'Pertanyaan berikutnya';
         } else {
-            nextButton.disabled = false;
-            nextButton.querySelector('[data-next-label]').textContent = current === questions.length - 1 ? 'Selesaikan' : 'Lanjutkan';
+            if (existingEval) {
+                renderEvaluation(existingEval);
+                answer.readOnly = true;
+                answer.classList.add('!bg-slate-50');
+                if (editButton) editButton.hidden = false;
+                actionButton.disabled = false;
+                actionLabel.textContent = current === questions.length - 1 ? 'Selesaikan Tantangan' : 'Pertanyaan Berikutnya';
+            } else {
+                renderEvaluation(null);
+                answer.readOnly = false;
+                answer.disabled = false;
+                answer.classList.remove('!bg-slate-50');
+                if (editButton) editButton.hidden = true;
+                actionButton.disabled = false;
+                actionLabel.textContent = 'Periksa Jawaban';
+            }
         }
     };
 
@@ -160,7 +285,22 @@
         });
     }
 
-    nextButton.addEventListener('click', async () => {
+    if (editButton) {
+        editButton.addEventListener('click', () => {
+            answer.readOnly = false;
+            answer.disabled = false;
+            answer.classList.remove('!bg-slate-50');
+            answer.focus();
+            evalBox.hidden = true;
+            editButton.hidden = true;
+            actionLabel.textContent = 'Periksa Jawaban';
+        });
+    }
+
+    actionButton.addEventListener('click', async () => {
+        const q = questions[current];
+        const qId = String(q.id);
+
         if (isLocked) {
             if (current >= questions.length - 1) {
                 window.location.href = "{{ route('dashboard') }}";
@@ -170,14 +310,63 @@
             return;
         }
 
+        const existingEval = savedEvaluations[qId] || null;
+        const isCurrentlyReviewed = existingEval && evalBox.hidden === false;
+
+        // If the student already reviewed this question, move to the next or complete
+        if (isCurrentlyReviewed) {
+            if (current >= questions.length - 1) {
+                actionButton.disabled = true;
+                actionLabel.textContent = 'Menyelesaikan…';
+                const csrf = document.querySelector('meta[name="csrf-token"]').content;
+                const send = (url, payload) => fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                try {
+                    const finishResponse = await send(form.dataset.completeUrl, {
+                        session_id: Number(form.dataset.sessionId)
+                    });
+                    if (!finishResponse.ok) {
+                        const errData = await finishResponse.json().catch(() => ({}));
+                        throw new Error(errData.message || 'Tantangan belum dapat diselesaikan. Coba lagi.');
+                    }
+                    const finishData = await finishResponse.json();
+                    form.querySelector('[data-answer-area]').hidden = true;
+                    form.querySelector('.question-actions').hidden = true;
+                    form.querySelector('.question-body').hidden = true;
+                    form.querySelector('.question-topline').hidden = true;
+                    form.querySelector('.question-progress').hidden = true;
+                    const completeEl = form.querySelector('[data-complete]');
+                    completeEl.hidden = false;
+                    completeEl.querySelector('h2').textContent = finishData.xp_awarded ? `Tantangan selesai! (+${finishData.xp_awarded} XP)` : 'Tantangan selesai!';
+                    completeEl.querySelector('p').textContent = 'Jawabanmu telah tersimpan permanen dan terkunci untuk penilaian guru.';
+                    return;
+                } catch (err) {
+                    errorEl.textContent = err.message;
+                    errorEl.hidden = false;
+                    actionButton.disabled = false;
+                    actionLabel.textContent = 'Selesaikan Tantangan';
+                    return;
+                }
+            } else {
+                updateQuestionView(current + 1);
+                return;
+            }
+        }
+
+        // Student is submitting/checking an answer
         if (!answer.value.trim()) {
-            form.querySelector('[data-answer-error]').hidden = false;
+            errorEl.textContent = 'Tuliskan jawaban singkatmu sebelum memeriksa.';
+            errorEl.hidden = false;
             answer.focus();
             return;
         }
 
-        nextButton.disabled = true;
-        nextButton.querySelector('[data-next-label]').textContent = 'Menyimpan…';
+        actionButton.disabled = true;
+        actionLabel.textContent = 'Menganalisis Jawaban…';
         const csrf = document.querySelector('meta[name="csrf-token"]').content;
         const send = (url, payload) => fetch(url, {
             method: 'POST',
@@ -188,47 +377,36 @@
         try {
             const saveResponse = await send(form.dataset.answerUrl, {
                 session_id: Number(form.dataset.sessionId),
-                question_id: questions[current].id,
+                question_id: q.id,
                 answer: answer.value.trim()
             });
+
             if (!saveResponse.ok) {
                 const errData = await saveResponse.json().catch(() => ({}));
                 throw new Error(errData.message || 'Jawaban belum tersimpan. Periksa koneksi lalu coba lagi.');
             }
-            savedAnswers[String(questions[current].id)] = answer.value.trim();
 
-            if (current >= questions.length - 1) {
-                const finishResponse = await send(form.dataset.completeUrl, {
-                    session_id: Number(form.dataset.sessionId)
-                });
-                if (!finishResponse.ok) {
-                    const errData = await finishResponse.json().catch(() => ({}));
-                    throw new Error(errData.message || 'Tantangan belum dapat diselesaikan. Coba lagi.');
-                }
-                const finishData = await finishResponse.json();
-                form.querySelector('[data-answer-area]').hidden = true;
-                form.querySelector('.question-actions').hidden = true;
-                form.querySelector('.question-body').hidden = true;
-                form.querySelector('.question-topline').hidden = true;
-                form.querySelector('.question-progress').hidden = true;
-                const completeEl = form.querySelector('[data-complete]');
-                completeEl.hidden = false;
-                completeEl.querySelector('h2').textContent = finishData.xp_awarded ? `Tantangan selesai! (+${finishData.xp_awarded} XP)` : 'Tantangan selesai!';
-                completeEl.querySelector('p').textContent = 'Jawabanmu telah tersimpan permanen dan terkunci untuk penilaian guru.';
-                return;
-            }
+            const data = await saveResponse.json();
+            savedAnswers[qId] = answer.value.trim();
+            savedEvaluations[qId] = data.evaluation;
+
+            renderEvaluation(data.evaluation);
+            answer.readOnly = true;
+            answer.classList.add('!bg-slate-50');
+            if (editButton) editButton.hidden = false;
+
+            actionButton.disabled = false;
+            actionLabel.textContent = current === questions.length - 1 ? 'Selesaikan Tantangan' : 'Pertanyaan Berikutnya';
         } catch (error) {
-            const errorMessage = form.querySelector('[data-answer-error]');
-            errorMessage.textContent = error.message;
-            errorMessage.hidden = false;
-            nextButton.disabled = false;
-            nextButton.querySelector('[data-next-label]').textContent = current === questions.length - 1 ? 'Selesaikan' : 'Lanjutkan';
-            return;
+            errorEl.textContent = error.message;
+            errorEl.hidden = false;
+            actionButton.disabled = false;
+            actionLabel.textContent = 'Periksa Jawaban';
         }
-
-        updateQuestionView(current + 1);
-        answer.focus();
     });
+
+    // Initial render
+    updateQuestionView(0);
 })();
 </script>
 @endpush

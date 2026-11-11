@@ -116,11 +116,11 @@
                 <p class="text-xs text-slate-500 mt-1">Daya saing tertinggi berdasarkan ketuntasan materi, latihan kuis, dan penyelesaian tantangan guru.</p>
             </div>
 
-            <div class="flex flex-col sm:flex-row items-end justify-center gap-4 sm:gap-6 pt-6 max-w-2xl mx-auto">
+            <div class="flex flex-col sm:flex-row items-center sm:items-end justify-center gap-4 sm:gap-6 pt-6 max-w-2xl mx-auto">
                 <!-- Juara 2 (Perak) -->
                 @if ($topThree->count() >= 2)
                     @php($second = $topThree->get(1))
-                    <div class="w-full sm:w-1/3 flex flex-col items-center order-2 sm:order-1">
+                    <div class="w-full max-w-xs sm:max-w-none sm:w-1/3 flex flex-col items-center order-2 sm:order-1">
                         <div class="relative mb-3 flex flex-col items-center">
                             <span class="text-2xl mb-1 filter drop-shadow">🥈</span>
                             <div class="w-16 h-16 rounded-2xl ring-4 ring-slate-300 bg-slate-100 grid place-items-center overflow-hidden shadow-md">
@@ -148,7 +148,7 @@
                 <!-- Juara 1 (Emas) - Paling Tinggi di Tengah -->
                 @if ($topThree->count() >= 1)
                     @php($first = $topThree->get(0))
-                    <div class="w-full sm:w-1/3 flex flex-col items-center order-1 sm:order-2">
+                    <div class="w-full max-w-xs sm:max-w-none sm:w-1/3 flex flex-col items-center order-1 sm:order-2">
                         <div class="relative mb-3 flex flex-col items-center">
                             <span class="text-3xl mb-1 filter drop-shadow animate-bounce">👑</span>
                             <div class="w-20 h-20 rounded-2xl ring-4 ring-amber-400 bg-amber-50 grid place-items-center overflow-hidden shadow-lg">
@@ -177,7 +177,7 @@
                 <!-- Juara 3 (Perunggu) -->
                 @if ($topThree->count() >= 3)
                     @php($third = $topThree->get(2))
-                    <div class="w-full sm:w-1/3 flex flex-col items-center order-3">
+                    <div class="w-full max-w-xs sm:max-w-none sm:w-1/3 flex flex-col items-center order-3">
                         <div class="relative mb-3 flex flex-col items-center">
                             <span class="text-2xl mb-1 filter drop-shadow">🥉</span>
                             <div class="w-16 h-16 rounded-2xl ring-4 ring-amber-700/40 bg-amber-50/50 grid place-items-center overflow-hidden shadow-md">

@@ -6,6 +6,7 @@
     <meta name="theme-color" content="#102f50">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Dashboard SocratesRead</title>
+    <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
@@ -22,15 +23,14 @@
             <nav class="nav-list" aria-label="Menu utama">
                 <a class="nav-link is-active" href="{{ route('dashboard') }}" aria-current="page"><x-icon name="layout-dashboard" /><span>Dashboard</span></a>
                 <a class="nav-link" href="{{ route('reading') }}"><x-icon name="book-open-text" /><span>Reading Room</span></a>
-                <a class="nav-link" href="{{ route('quiz.index') }}"><x-icon name="trophy" /><span>Socratic Challenge</span></a>
-                <a class="nav-link" href="{{ route('progress') }}"><x-icon name="chart-no-axes-combined" /><span>Progress</span></a>
-                <a class="nav-link {{ request()->routeIs('classrooms.*') ? 'is-active' : '' }}" href="{{ route('classrooms.index') }}"><x-icon name="users" /><span>Kelas saya</span></a>
+                <a class="nav-link {{ request()->routeIs('classrooms.*') ? 'is-active' : '' }}" href="{{ route('classrooms.index') }}"><x-icon name="users" /><span>My Class</span></a>
                 <a class="nav-link {{ request()->routeIs('settings.profile', 'profile') ? 'is-active' : '' }}" href="{{ route('profile') }}"><x-icon name="user" /><span>Profil</span></a>
             </nav>
 
             <div class="nav-label nav-label-spaced">BELAJAR</div>
             <nav class="nav-list" aria-label="Materi belajar">
-                <a class="nav-link" href="{{ route('reading') }}"><x-icon name="library" /><span>Koleksi Bacaan</span></a>
+                <a class="nav-link" href="{{ route('quiz.index') }}"><x-icon name="gamepad-2" /><span>Challenge Socrates</span></a>
+                <a class="nav-link" href="{{ route('progress') }}"><x-icon name="chart-no-axes-combined" /><span>Progress</span></a>
                 <a class="nav-link" href="{{ route('achievements') }}"><x-icon name="award" /><span>Pencapaian</span></a>
             </nav>
 
@@ -200,7 +200,7 @@
                                 <div class="challenge-question"><span class="question-label">TINGKAT SEBELUM PENDAFTARAN</span><p>Tantangan Socratic Anda aktif mulai Kelas {{ $user->entry_grade ?? 10 }}.</p></div><div class="challenge-footer"><span class="challenge-reward"><strong>Halaman Kosong</strong></span><a class="challenge-button" href="{{ route('dashboard', ['grade' => $user->currentGrade() ?? ($user->entry_grade ?? 10)]) }}">Beralih ke Kelas {{ $user->currentGrade() ?? ($user->entry_grade ?? 10) }} <x-icon name="arrow-right" /></a></div>
                             @elseif ($challengeQuestion && $activeSession)
                                 <div class="challenge-question"><span class="question-label">{{ $activeSession->document->title }}</span><p>{{ $challengeQuestion->prompt }}</p></div>
-                                <div class="grid grid-cols-2 gap-2 mt-3 pt-2.5 border-t border-slate-100">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3 pt-2.5 border-t border-slate-100">
                                     <a class="flex items-center justify-center gap-1.5 p-2 rounded-lg bg-blue-50 text-blue-700 font-bold text-[11px] hover:bg-blue-100 transition" href="{{ route('quiz.timed', ['document' => $activeSession->document_id]) }}">
                                         <x-icon name="timer" class="w-3.5 h-3.5" /> <span>Kuis Timer (PG)</span>
                                     </a>
