@@ -3,102 +3,69 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#ffffff">
+    <meta name="theme-color" content="#f7f8fa">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Masuk — SocratesRead</title>
     <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <link rel="stylesheet" href="{{ asset('css/login.css') }}">
 </head>
-<body class="min-h-screen bg-[#f7f8fa] font-sans text-[#172033] antialiased">
-    <main class="grid min-h-screen content-center justify-items-center gap-[22px] px-[18px] py-[38px] max-[520px]:gap-[18px] max-[520px]:px-[14px] max-[520px]:py-[22px]">
-        <a class="inline-flex items-center gap-2.5 font-display text-[20px] font-bold leading-none tracking-[-.5px] text-[#172033]" href="{{ route('login') }}">
-            <span class="flex items-center justify-center w-8 h-8 rounded-lg bg-white shadow-xs p-1 border border-slate-200">
-                <img src="{{ asset('images/logo.png') }}" alt="Logo SocratesRead" class="w-full h-full object-contain">
-            </span>
-            <span>socrates<strong class="text-blue-600">read</strong></span>
+<body class="login-scene">
+    <main class="login-page">
+        <a class="brand" href="{{ route('login') }}" aria-label="SocratesRead">
+            socrates<strong>read</strong>
         </a>
 
-        <section class="w-full max-w-[450px] rounded-xl border border-[#e9edf4] bg-white p-[34px] max-[520px]:px-5 max-[520px]:py-[25px]" aria-labelledby="auth-title">
-            <p class="mb-[6px] text-[10px] font-bold tracking-[1px] text-[#667085] uppercase">RUANG BELAJAR PRIBADIMU</p>
-            <h1 id="auth-title" class="mb-1 text-[24px] font-bold leading-[1.25] tracking-[-.7px] text-[#172033] font-display">
-                Selamat Datang Kembali
-            </h1>
-            <p class="mb-5 text-[13px] leading-[1.5] text-[#667085]">
-                Masuk untuk melanjutkan bacaan dan latihan berpikir kritis Anda.
-            </p>
+        <section class="login-card" aria-labelledby="auth-title">
+            <p class="eyebrow">RUANG BELAJAR PRIBADIMU</p>
+            <h1 id="auth-title">Selamat Datang Kembali</h1>
+            <p class="subtitle">Masuk untuk melanjutkan bacaan dan latihan berpikir kritis Anda.</p>
 
             @if (session('status'))
-                <div class="mb-4 rounded-lg border border-green-200 bg-green-50 p-3 text-xs leading-5 text-green-800" role="status">
-                    {{ session('status') }}
-                </div>
+                <div class="notice notice-success" role="status">{{ session('status') }}</div>
             @endif
 
             @if (session('notice'))
-                <div class="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs leading-5 text-blue-800" role="status">
-                    {{ session('notice') }}
-                </div>
+                <div class="notice notice-info" role="status">{{ session('notice') }}</div>
             @endif
 
-            <form class="grid gap-3" method="POST" action="{{ route('login') }}" id="loginForm">
+            <form class="login-form" method="POST" action="{{ route('login') }}" id="loginForm">
                 @csrf
-                <div>
-                    <label class="block text-xs font-semibold text-[#344054] mb-1" for="email">Alamat Email</label>
-                    <input
-                        class="min-h-[42px] w-full rounded-lg border border-[#d0d5dd] bg-white px-3 text-[13px] text-[#172033] outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-600/10 @error('email') border-red-500 @enderror"
-                        id="email"
-                        name="email"
-                        type="email"
-                        value="{{ old('email') }}"
-                        autocomplete="email"
-                        placeholder="nama@email.com"
-                        required
-                        autofocus
-                    >
-                    @error('email') <span class="text-[11px] text-red-600 mt-1 block">{{ $message }}</span> @enderror
+                <div class="field">
+                    <label for="email">Alamat Email</label>
+                    <input class="login-input @error('email') is-invalid @enderror" id="email" type="email" name="email" value="{{ old('email') }}" autocomplete="email" placeholder="nama@email.com" required autofocus>
+                    @error('email') <span class="field-error">{{ $message }}</span> @enderror
                 </div>
 
-                <div>
-                    <div class="flex items-center justify-between mb-1">
-                        <label class="text-xs font-semibold text-[#344054]" for="password">Kata Sandi</label>
-                    </div>
-                    <div class="relative">
-                        <input
-                            class="min-h-[42px] w-full rounded-lg border border-[#d0d5dd] bg-white px-3 pr-10 text-[13px] text-[#172033] outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-600/10 @error('password') border-red-500 @enderror"
-                            id="password"
-                            name="password"
-                            type="password"
-                            autocomplete="current-password"
-                            placeholder="Masukkan kata sandi"
-                            required
-                        >
-                        <button type="button" id="togglePasswordBtn" class="absolute right-3 top-1/2 -translate-y-1/2 text-[#667085] hover:text-[#172033]" aria-label="Tampilkan kata sandi">
-                            <x-icon name="eye" class="h-4 w-4 eye-open" />
-                            <x-icon name="eye-off" class="h-4 w-4 eye-closed hidden" />
+                <div class="field">
+                    <label for="password">Kata Sandi</label>
+                    <div class="password-wrap">
+                        <input class="login-input password-input @error('password') is-invalid @enderror" id="password" type="password" name="password" autocomplete="current-password" placeholder="Masukkan kata sandi" required>
+                        <button type="button" id="togglePasswordBtn" class="toggle-password" aria-label="Tampilkan kata sandi">
+                            <x-icon name="eye" class="eye-open" />
+                            <x-icon name="eye-off" class="eye-closed hidden" />
                         </button>
                     </div>
-                    @error('password') <span class="text-[11px] text-red-600 mt-1 block">{{ $message }}</span> @enderror
+                    @error('password') <span class="field-error">{{ $message }}</span> @enderror
                 </div>
 
-                <label class="my-1 flex items-center gap-2 text-xs text-[#667085]">
-                    <input class="size-4 accent-blue-600 rounded" type="checkbox" name="remember">
+                <label class="remember" for="remember">
+                    <input id="remember" type="checkbox" name="remember">
                     <span>Ingat saya di perangkat ini</span>
                 </label>
 
-                <button class="mt-1 flex min-h-11 items-center justify-center gap-2 rounded-lg border border-blue-600 bg-blue-600 text-[13px] font-bold text-white hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 transition-colors" type="submit">
+                <button type="submit" class="btn-primary">
                     <span>Masuk ke Ruang Belajar</span>
-                    <x-icon name="arrow-right" class="size-4" />
+                    <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                 </button>
             </form>
 
-            <p class="mt-5 text-center text-xs text-[#667085]">
-                Belum memiliki akun? <a class="font-bold text-blue-700 hover:underline" href="{{ route('register') }}">Daftar akun baru</a>
-            </p>
+            <p class="signup">Belum memiliki akun? <a href="{{ route('register') }}">Daftar akun baru</a></p>
         </section>
 
-        <p class="m-0 text-[11px] text-[#667085]">Terus bertanya, terus bertumbuh.</p>
+        <p class="page-footer">Terus bertanya, terus bertumbuh.</p>
     </main>
 
     <script>

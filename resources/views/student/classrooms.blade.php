@@ -1,97 +1,126 @@
 @extends('layouts.student')
 
-@section('title', 'My Class')
-@section('breadcrumb', 'My Class')
+@section('title', 'Kelas Saya')
+@section('breadcrumb', 'Kelas Saya')
+@section('head')
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+@endsection
 
 @section('content')
-    <section class="stage-heading" aria-labelledby="classrooms-title">
-        <div>
-            <p class="eyebrow">KOMUNITAS BELAJAR</p>
-            <h1 id="classrooms-title">My Class</h1>
-            <p class="welcome-subtitle">Kelola kelas belajar yang kamu ikuti bersama guru dan teman sekelas.</p>
-        </div>
-        <a class="back-link" href="{{ route('dashboard') }}"><x-icon name="arrow-left" /> <span>Kembali ke dashboard</span></a>
-    </section>
-
-    @if (session('notice'))
-        <div class="auth-notice" role="status">{{ session('notice') }}</div>
-    @endif
-
-    <section class="panel mb-6" aria-labelledby="join-class-heading">
-        <div class="section-heading">
+    <div class="my-class-page">
+        <section class="my-class-heading" aria-labelledby="classrooms-title">
             <div>
-                <p class="section-overline">GABUNG BERSAMA GURU</p>
-                <h2 id="join-class-heading">Gabung kelas baru</h2>
+                <p class="my-class-eyebrow">KOMUNITAS BELAJAR</p>
+                <h1 id="classrooms-title"><span>My Class</span></h1>
+                <p class="my-class-subtitle">Kelola kelas belajar yang kamu ikuti bersama guru dan teman sekelas.</p>
             </div>
-            <span class="session-icon"><x-icon name="users" /></span>
-        </div>
-        <form method="POST" action="{{ route('classrooms.join') }}" class="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
-            @csrf
-            <div class="grid gap-1.5">
-                <label for="join_code" class="text-xs font-semibold text-slate-700">Kode gabung kelas (8 karakter)</label>
-                <input id="join_code" name="join_code" value="{{ old('join_code', $joinCode) }}" maxlength="8" minlength="8" required autocomplete="off" autocapitalize="characters" class="min-h-11 rounded-xl border border-slate-300 px-4 font-mono text-base uppercase tracking-widest outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100" placeholder="Contoh: BACA2026">
-                @error('join_code')
-                    <span class="text-xs text-red-600 font-medium">{{ $message }}</span>
-                @enderror
-            </div>
-            <button type="submit" class="challenge-button h-11">
-                <span>Gabung kelas</span>
-                <x-icon name="arrow-right" />
-            </button>
-        </form>
-        <p class="mt-3 text-xs leading-5 text-slate-500">
-            Guru dapat melihat keterlibatan dan progres sesi pada bacaan yang mereka unggah, bukan isi jawaban pribadimu.
-        </p>
-    </section>
+            <a class="my-class-back" href="{{ route('dashboard') }}">
+                <x-icon name="arrow-left" />
+                <span>Kembali ke dashboard</span>
+            </a>
+        </section>
 
-    <section class="mt-6" aria-labelledby="enrolled-classes-heading">
-        <div class="section-heading mb-4">
-            <div>
-                <p class="section-overline">KELAS AKTIF</p>
-                <h2 id="enrolled-classes-heading">Kelas yang kamu ikuti</h2>
-            </div>
-            <span class="document-count">{{ $classrooms->count() }} kelas</span>
-        </div>
+        @if (session('notice'))
+            <div class="auth-notice my-class-notice" role="status">{{ session('notice') }}</div>
+        @endif
 
-        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            @forelse ($classrooms as $classroom)
-                <article class="panel grid content-start gap-4">
-                    <div class="flex items-start justify-between gap-3">
-                        <div>
-                            <div class="flex items-center gap-2">
-                                <span class="rounded bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
-                                    {{ $classroom->targetGradeLabel() }}
-                                </span>
-                            </div>
-                            <h3 class="mt-1 text-base font-bold text-slate-900">{{ $classroom->name }}</h3>
-                            <p class="text-xs text-slate-500 mt-0.5">{{ $classroom->teacher?->name ?? 'Guru SocratesRead' }}</p>
-                        </div>
-                        <span class="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 border border-emerald-200/60">
-                            Aktif
-                        </span>
-                    </div>
-
-                    <div class="border-t border-slate-100 pt-3 text-xs text-slate-500 flex items-center justify-between">
-                        <span>Anggota kelas</span>
-                        <strong class="text-slate-700">{{ $classroom->students_count }} siswa</strong>
-                    </div>
-
-                    <div class="border-t border-slate-100 pt-3 text-xs text-slate-500 flex items-center justify-between">
-                        <span>Bergabung sejak</span>
-                        <span class="font-medium text-slate-600">
-                            {{ $classroom->pivot->joined_at ? \Illuminate\Support\Carbon::parse($classroom->pivot->joined_at)->locale('id')->translatedFormat('d M Y') : '-' }}
-                        </span>
-                    </div>
-                </article>
-            @empty
-                <div class="panel md:col-span-2 xl:col-span-3">
-                    <div class="teacher-empty-state">
-                        <span class="session-icon"><x-icon name="users" /></span>
-                        <strong>Belum ada kelas yang diikuti</strong>
-                        <p>Masukkan kode kelas dari gurumu pada form di atas untuk mulai belajar bersama.</p>
-                    </div>
+        <section class="my-class-join" aria-labelledby="join-class-heading">
+            <span class="my-class-join-accent" aria-hidden="true"></span>
+            <div class="my-class-join-copy">
+                <div class="my-class-join-eyebrow">
+                    <svg aria-hidden="true" width="30" height="30" viewBox="0 0 30 30" fill="none" stroke="currentColor" stroke-width="2"><circle cx="15" cy="15" r="12"/><circle cx="15" cy="15" r="7"/><circle cx="15" cy="15" r="2.4" fill="currentColor" stroke="none"/></svg>
+                    <span>GABUNG BERSAMA GURU</span>
                 </div>
-            @endforelse
-        </div>
-    </section>
+                <h2 id="join-class-heading">Gabung kelas baru.<br><span>Belajar bersama guru.</span></h2>
+
+                <form method="POST" action="{{ route('classrooms.join') }}" class="my-class-join-form">
+                    @csrf
+                    <label for="join_code">Kode gabung kelas (8 karakter)</label>
+                    <div class="my-class-join-controls">
+                        <input id="join_code" name="join_code" value="{{ old('join_code', $joinCode) }}" maxlength="8" minlength="8" required autocomplete="off" autocapitalize="characters" placeholder="CONTOH: BACA2026" aria-describedby="join-code-help @error('join_code') join-code-error @enderror">
+                        <button type="submit" class="my-class-join-button">
+                            <span>Gabung kelas</span>
+                            <x-icon name="arrow-right" />
+                        </button>
+                    </div>
+                    @error('join_code')
+                        <span id="join-code-error" class="my-class-error" role="alert">{{ $message }}</span>
+                    @enderror
+                </form>
+                <p id="join-code-help" class="my-class-privacy">Guru dapat melihat keterlibatan dan progres sesi pada bacaan yang mereka unggah, bukan isi jawaban pribadimu.</p>
+            </div>
+            <div class="my-class-mascot-wrap" aria-hidden="true">
+                <span class="my-class-mascot-glow"></span>
+                <img class="my-class-mascot" src="{{ asset('images/burhan.png') }}" alt="Burung hantu SocratesRead dengan topi wisuda dan buku">
+            </div>
+        </section>
+
+        <section class="my-class-stats" aria-label="Ringkasan aktivitas kelas">
+            <article class="my-class-stat">
+                <div class="my-class-stat-top">
+                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20a6 6 0 0 1 12 0"/><circle cx="17" cy="9" r="2.4"/><path d="M16.5 14a5 5 0 0 1 4.5 5"/></svg>
+                    <span>Aktif</span>
+                </div>
+                <p>Kelas diikuti</p>
+                <div class="my-class-stat-value"><strong>{{ $classrooms->count() }}</strong><span>kelas</span></div>
+            </article>
+            <article class="my-class-stat">
+                <div class="my-class-stat-top">
+                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M2 5h7a3 3 0 0 1 3 3v12a2 2 0 0 0-2-2H2z"/><path d="M22 5h-7a3 3 0 0 0-3 3v12a2 2 0 0 1 2-2h8z"/></svg>
+                    <span>Dari guru</span>
+                </div>
+                <p>Bacaan ditugaskan</p>
+                <div class="my-class-stat-value"><strong>{{ $assignedReadingCount }}</strong><span>bacaan</span></div>
+            </article>
+            <article class="my-class-stat">
+                <div class="my-class-stat-top my-class-stat-gold">
+                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/><path d="M9 11h6M9 14.5h3.5"/></svg>
+                    <span>Minggu ini</span>
+                </div>
+                <p>Sesi diskusi</p>
+                <div class="my-class-stat-value"><strong>{{ $discussionSessionCount }}</strong><span>sesi</span></div>
+            </article>
+        </section>
+
+        <section class="my-class-list" aria-labelledby="enrolled-classes-heading">
+            <div class="my-class-list-heading">
+                <div>
+                    <p class="my-class-eyebrow">KELAS AKTIF</p>
+                    <h2 id="enrolled-classes-heading">Kelas yang kamu ikuti</h2>
+                </div>
+                <span>{{ $classrooms->count() }} kelas</span>
+            </div>
+
+            @if ($classrooms->isEmpty())
+                <div class="my-class-empty">
+                    <svg class="my-class-empty-stars" aria-hidden="true" width="260" height="120" viewBox="0 0 260 120" fill="none"><circle cx="205" cy="34" r="16" fill="#CFDCC8"/><circle cx="213" cy="30" r="14" fill="#F1F5EE"/><circle cx="40" cy="30" r="2" fill="#8CA9C8"/><circle cx="70" cy="62" r="1.6" fill="#8CA9C8"/><circle cx="150" cy="18" r="1.8" fill="#8CA9C8"/><circle cx="235" cy="78" r="1.6" fill="#8CA9C8"/></svg>
+                    <svg class="my-class-sleeping-owl" role="img" aria-label="Burung hantu tidur di atas dahan" width="150" height="130" viewBox="0 0 150 130" fill="none">
+                        <path d="M10 108h130" stroke="#6B5A45" stroke-width="7" stroke-linecap="round"/><path d="M112 108c10-2 16-8 20-16" stroke="#6B5A45" stroke-width="4" stroke-linecap="round"/><path d="m45 40 8-14 10 12m42 2-8-14-10 12" stroke="#2C4BA6" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M75 34c-22 0-36 16-36 40 0 24 14 36 36 36s36-12 36-36c0-24-14-40-36-40Z" fill="#2C4BA6"/><path d="M75 62c-14 0-22 10-22 26 0 14 8 22 22 22s22-8 22-22c0-16-8-26-22-26Z" fill="#F6EEDA"/><path d="M60 52c3 3 7 3 10 0m10 0c3 3 7 3 10 0" stroke="#F6EEDA" stroke-width="3" stroke-linecap="round"/><path d="m75 58-4 6h8z" fill="#E9B44C"/><path d="M62 82c4 3 8 4 13 4s9-1 13-4M64 94c4 3 7 4 11 4s7-1 11-4" stroke="#D9CBA5" stroke-width="2" stroke-linecap="round"/><path d="M40 72c-8 6-8 22 0 30m70-30c8 6 8 22 0 30" stroke="#4D7BDB" stroke-width="4" stroke-linecap="round"/><path d="M64 110v-4m22 4v-4" stroke="#E9B44C" stroke-width="3" stroke-linecap="round"/>
+                    </svg>
+                    <h3>Belum ada kelas yang diikuti</h3>
+                    <p>Masukkan kode kelas dari gurumu pada form di atas untuk mulai belajar bersama.</p>
+                </div>
+            @else
+                <div class="my-class-grid">
+                    @foreach ($classrooms as $classroom)
+                        <article class="my-class-room-card">
+                            <div class="my-class-room-heading">
+                                <span class="my-class-room-icon icon-blue"><x-icon name="book-open-text" /></span>
+                                <span class="my-class-grade">{{ $classroom->targetGradeLabel() }}</span>
+                            </div>
+                            <h3>{{ $classroom->name }}</h3>
+                            <p class="my-class-teacher">{{ $classroom->teacher?->name ?? 'Guru SocratesRead' }}</p>
+                            <span class="my-class-code">Kode kelas · {{ $classroom->join_code }}</span>
+                            <div class="my-class-room-footer">
+                                <span>{{ $classroom->assigned_readings_count }} bacaan · {{ $classroom->students_count }} siswa</span>
+                            </div>
+                            <a class="my-class-room-action" href="{{ route('reading', ['teacher' => $classroom->teacher_id, 'category' => $classroom->name]) }}"><span>Buka kelas</span><x-icon name="arrow-right" /></a>
+                        </article>
+                    @endforeach
+                </div>
+            @endif
+        </section>
+    </div>
 @endsection
