@@ -18,6 +18,7 @@ class SocraticCoachTest extends TestCase
     {
         Config::set('services.openrouter.api_key', 'test-api-key');
         Http::fake([
+            'https://openrouter.ai/api/v1/chat/completions' => Http::response(['error' => 'not found'], 404),
             'https://openrouter.ai/api/v1/responses' => Http::response([
                 'output' => [[
                     'type' => 'message',
@@ -46,6 +47,19 @@ class SocraticCoachTest extends TestCase
 
         Http::assertSent(fn ($request) => $request->url() === 'https://openrouter.ai/api/v1/responses'
             && $request->hasHeader('Authorization', 'Bearer test-api-key'));
+
+        $this->assertDatabaseHas('reading_coach_messages', [
+            'reading_session_id' => $session->id,
+            'user_id' => $student->id,
+            'document_id' => $document->id,
+            'role' => 'user',
+            'is_meaningful' => true,
+        ]);
+        $this->assertDatabaseHas('reading_coach_messages', [
+            'reading_session_id' => $session->id,
+            'role' => 'assistant',
+            'content' => 'Kalimat mana yang menjadi bukti?',
+        ]);
     }
 
     public function test_student_cannot_send_another_students_reading_session_to_the_ai(): void

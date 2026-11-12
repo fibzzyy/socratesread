@@ -39,6 +39,7 @@ class EvaluationResult
             'missing_concepts' => $this->missingConcepts,
             'hint' => $this->hint,
             'feedback' => $this->feedback,
+            'matched_spans' => $this->layerDetails['matched_spans'] ?? [],
             'layer_details' => $this->layerDetails,
         ];
     }

@@ -10,7 +10,15 @@ if (panel) {
     const count = panel.querySelector('[data-coach-count]');
     const prompts = [...panel.querySelectorAll('[data-coach-prompt]')];
     const maxLength = Number(panel.dataset.maxLength);
-    const history = [];
+    let history = [];
+    try {
+        const initial = JSON.parse(panel.dataset.initialHistory || '[]');
+        if (Array.isArray(initial)) {
+            history = initial
+                .filter((m) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
+                .slice(-6);
+        }
+    } catch (_) {}
 
     const addMessage = (role, content, extraClass = '') => {
         const message = document.createElement('p');

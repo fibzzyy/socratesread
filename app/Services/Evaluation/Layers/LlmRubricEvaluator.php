@@ -5,6 +5,7 @@ namespace App\Services\Evaluation\Layers;
 use App\Models\Document;
 use App\Models\SocraticQuestion;
 use App\Services\AI\Contracts\LanguageModel;
+use App\Services\Evaluation\AnswerHighlightService;
 use App\Services\Evaluation\EvaluationResult;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -12,7 +13,8 @@ use Throwable;
 class LlmRubricEvaluator
 {
     public function __construct(
-        protected LanguageModel $languageModel
+        protected LanguageModel $languageModel,
+        protected AnswerHighlightService $highlightService
     ) {}
 
     /**
@@ -63,31 +65,31 @@ class LlmRubricEvaluator
         $materialExcerpt = mb_substr(trim((string) $document->body), 0, 4500);
 
         $instructions = <<<INSTRUCTIONS
-Kamu adalah Penilai Utama Pembelajaran SocratesRead AI untuk siswa SMP/SMA.
-Tugasmu adalah menilai jawaban esai siswa berdasarkan isi materi bacaan dengan prinsip: MENGHARGAI PARAFRASE & PEMAHAMAN MANDIRI SISWA.
+Kamu adalah Penilai Utama Pembelajaran SocratesRead AI.
+Tugasmu adalah membandingkan jawaban esai (parafrase) siswa terhadap **KUNCI JAWABAN MODEL** dan **ISI MATERI BACAAN**, lalu menentukan skor akurasi 0–100 secara adil dan proporsional.
 
-Lakukan pemeriksaan terhadap 3 aspek:
-1. Pemahaman Konsep & Argumen:
-   - Nilai apakah siswa memahami esensi yang ditanyakan dan menjawab sesuai materi.
-   - PENTING: Siswa TIDAK diwajibkan menyalin kalimat teks bacaan atau menulis formalitas seperti "berdasarkan teks". Jika siswa memparafrasekan konsep materi dengan kata-katanya sendiri secara tepat, ini bukti siswa benar-benar paham dan BUKAN sekadar copy-paste. Berikan nilai tinggi (80 - 100)!
-   - Jika siswa terindikasi hanya menyalin/copy-paste kalimat mentah tanpa penjelasan sendiri, batas nilai maksimal adalah 55.
-2. Kebenaran Faktual:
-   - Jika jawaban BENAR dan sesuai fakta materi: beri score (75 - 100), set "understanding_level": "Tepat & Sesuai (Baik)" atau "Sangat Tepat (Mahir)".
-   - Jika jawaban HAMPIR BENAR (sebagian benar, namun konsep inti belum lengkap): beri score (40 - 69), set "understanding_level": "Hampir Benar (Sebagian Benar)".
-   - Jika jawaban SALAH atau melenceng: beri score rendah (0 - 39), set "understanding_level": "Salah / Belum Tepat".
-3. Gaya Penulisan Feedback (Persis Seperti Google NotebookLM):
-   - Uraikan analisis secara mengalir yang mengapresiasi kata/poin kunci yang berhasil dipahami siswa.
-   - Contoh gaya benar: "Jawaban Anda sudah sangat tepat. Anda berhasil memahami bahwa [poin pemahaman siswa] merupakan esensi penting dari materi ini."
-   - Jangan menuntut siswa menambahkan kutipan teks buku jika pemahamannya sudah tepat.
+ATURAN PENILAIAN:
+1. Bandingkan Akurasi Parafrase terhadap Kunci Jawaban Model:
+   - Siswa TIDAK wajib menyalin kata persis dari kunci jawaban atau teks bacaan. Jika siswa menjelaskan konsep yang sama dengan kata-katanya sendiri (parafrase) dan maknanya sesuai dengan Kunci Jawaban Model, berikan nilai tinggi sesuai kelengkapan poinnya!
+   - 85 – 100 ("Sangat Tepat (Mahir)"): Jawaban siswa akurat dan mencakup seluruh inti konsep pada Kunci Jawaban Model dengan bahasanya sendiri.
+   - 70 – 84 ("Tepat & Sesuai (Baik)"): Inti jawaban benar dan sesuai Kunci Jawaban, hanya ada sedikit detail pendukung yang bisa diperkaya.
+   - 40 – 69 ("Hampir Benar (Sebagian Benar)"): Jawaban hanya mencakup sebagian poin Kunci Jawaban atau kurang mendalam.
+   - 0 – 39 ("Salah / Belum Tepat"): Jawaban melenceng, salah konsep, atau bertentangan dengan Kunci Jawaban dan materi.
+   - Jika jawaban terindikasi hanya menyalin kalimat bacaan secara mentah (copy-paste > 70%) tanpa parafrase, batas nilai maksimal 55.
+2. Gaya Feedback (Persis Seperti Google NotebookLM):
+   - Tulis feedback secara analitis, hangat, dan jelas dengan memparafrasekan esensi apa yang berhasil ditangkap oleh siswa (serta kekurangan spesifik bila skor < 85).
+3. Sorotan Bukti Jawaban Siswa ("evidence_spans"):
+   - Jika skor >= 40, ekstrak 1–2 frasa/klausa PERSIS seperti tertulis di "JAWABAN PARAFRASE SISWA" yang paling jelas menunjukkan inti kebenaran jawaban tersebut (bukan kata basa-basi pembuka). Jika skor < 40, kembalikan array kosong [].
 
 FORMAT OUTPUT WAJIB HANYA BERUPA JSON VALID TANPA MARKDOWN DAN TANPA TEKS LAIN:
 {
-  "score": 85,
+  "score": 88,
   "understanding_level": "Sangat Tepat (Mahir)",
   "text_alignment": "supported",
   "missing_concepts": [],
   "hint": "",
-  "feedback": "Jawaban Anda sudah sangat tepat. Anda berhasil memahami konsep utama dengan menggunakan bahasa dan pemikiran Anda sendiri."
+  "evidence_spans": ["frasa kunci persis dari jawaban siswa yang menunjukkan pemahaman benar"],
+  "feedback": "Penjelasan Anda sangat baik. Anda berhasil menangkap esensi materi mengenai [inti konsep yang dipahami siswa] dengan parafrase yang selaras dan tepat."
 }
 INSTRUCTIONS;
 
@@ -95,18 +97,19 @@ INSTRUCTIONS;
             . "Judul: {$document->title}\n"
             . "Kategori/Mata Pelajaran: {$document->category}\n"
             . "Teks Bacaan:\n{$materialExcerpt}\n\n"
-            . "=== PERTANYAAN SOKRATIK ===\n"
+            . "=== SOAL ===\n"
             . "Keterampilan Berpikir: {$question->skill}\n"
             . "Pertanyaan: {$question->prompt}\n"
-            . "Konteks: {$question->context}\n"
-            . "Petunjuk Awal: {$question->hint}\n\n"
+            . "Konteks: {$question->context}\n\n"
+            . "=== KUNCI JAWABAN MODEL (ACUAN PENILAIAN UTAMA) ===\n"
+            . "{$question->hint}\n\n"
             . "=== DATA PEMERIKSAAN AWAL (Lapis 1 & 2) ===\n"
-            . "- Bukti/Kutipan Terdeteksi: " . ($layer1['has_evidence'] ? 'Ya' : 'Belum spesifik') . "\n"
+            . "- Kecocokan Konsep Kunci Awal: " . round(($layer2['answer_key_coverage'] ?? 0) * 100) . "%\n"
             . "- Deteksi Copy-Paste Mentah: " . ($layer2['is_copied'] ? 'Terindikasi (' . round($layer2['copy_ratio'] * 100) . '% menyalin)' : 'Orisinal / parafrase') . "\n"
-            . "- Skor Relevansi Awal: {$layer2['relevance_score']}\n\n"
-            . "=== JAWABAN SISWA ===\n"
+            . "- Skor Relevansi Materi: {$layer2['relevance_score']}\n\n"
+            . "=== JAWABAN PARAFRASE SISWA ===\n"
             . "{$answerText}\n\n"
-            . "Berikan penilaian Anda sekarang dalam format JSON sesuai instruksi di atas:";
+            . "Bandingkan akurasi jawaban siswa terhadap Kunci Jawaban Model di atas dan berikan hasil penilaian JSON:";
 
         $messages = [
             ['role' => 'user', 'content' => $userPrompt],
@@ -116,6 +119,7 @@ INSTRUCTIONS;
         $rawOutput = $this->languageModel->respond($messages, $instructions, [
             'temperature' => 0.0,
             'max_output_tokens' => 800,
+            'timeout' => 25,
         ]);
 
         $cleanJson = preg_replace('/^```(?:json)?\s*/i', '', trim($rawOutput));
@@ -133,6 +137,15 @@ INSTRUCTIONS;
         $missingConcepts = is_array($parsed['missing_concepts'] ?? null) ? $parsed['missing_concepts'] : [];
         $hint = ! empty($parsed['hint']) ? (string) $parsed['hint'] : null;
         $feedback = (string) ($parsed['feedback'] ?? 'Jawaban Anda telah dievaluasi.');
+        $llmSpans = is_array($parsed['evidence_spans'] ?? null) ? $parsed['evidence_spans'] : [];
+        $matchedSpans = ($score >= 40)
+            ? $this->highlightService->extractMatchedSpans(
+                $answerText,
+                (string) ($question->hint ?: $question->context),
+                $document,
+                $llmSpans
+            )
+            : [];
 
         return new EvaluationResult(
             passed: $score >= 60,
@@ -150,6 +163,7 @@ INSTRUCTIONS;
             layerDetails: [
                 'layer_1_rule_based' => $layer1,
                 'layer_2_similarity' => $layer2,
+                'matched_spans' => $matchedSpans,
                 'layer_3_llm' => [
                     'model' => config('services.openrouter.model'),
                     'temperature' => 0,
@@ -173,42 +187,91 @@ INSTRUCTIONS;
         array $layer2
     ): EvaluationResult {
         $relevance = (float) ($layer2['relevance_score'] ?? 0.0);
+        $keyCoverage = (float) ($layer2['answer_key_coverage'] ?? 0.0);
         $wordCount = (int) ($layer1['word_count'] ?? 0);
         $isCopied = (bool) ($layer2['is_copied'] ?? false);
         $hasEvidence = (bool) ($layer1['has_evidence'] ?? false);
+        $matchedConcepts = is_array($layer2['matched_key_concepts'] ?? null) ? $layer2['matched_key_concepts'] : [];
+        $missingKeyTokens = is_array($layer2['missing_key_concepts'] ?? null) ? $layer2['missing_key_concepts'] : [];
 
-        // 1. Jika relevansi sangat rendah (jawaban melenceng / salah konsep / tidak menjawab pertanyaan)
-        if ($relevance < 0.20) {
+        // Gabungkan akurasi terhadap kunci jawaban & relevansi konteks materi secara proporsional
+        $combinedAccuracy = max($relevance, ($keyCoverage * 0.65) + ($relevance * 0.45));
+
+        $matchedSpans = [];
+
+        // 1. Salah / Melenceng dari kunci jawaban dan materi
+        if ($combinedAccuracy < 0.20 && $keyCoverage < 0.15) {
             $score = 0;
             $level = 'Salah / Belum Tepat';
-            $feedback = 'Jawaban belum tepat atau tidak sesuai dengan fakta konsep yang ditanyakan dalam materi bacaan. Pelajari kunci jawaban yang benar di bawah ini.';
-        } elseif ($relevance < 0.45) {
-            // 2. Hampir Benar: Menjawab sebagian konsep, namun belum lengkap atau bukti kurang
-            $score = 45;
-            if ($wordCount >= 15) $score += 15;
-            if ($hasEvidence) $score += 10;
-            if ($isCopied) $score = min(45, $score - 15);
-            $score = min(68, max(40, $score));
+            $feedback = 'Jawaban belum tepat atau belum menyentuh konsep kunci pada materi bacaan. Pelajari kunci jawaban dan rujukan teks yang benar di bawah ini.';
+        } elseif ($combinedAccuracy < 0.40 && $keyCoverage < 0.30) {
+            // 2. Hampir Benar: Menjawab sebagian konsep kunci secara proporsional (40 - 68)
+            $base = 40 + (int) round(($combinedAccuracy / 0.40) * 18);
+            if ($wordCount >= 15) {
+                $base += 5;
+            }
+            if ($hasEvidence) {
+                $base += 5;
+            }
+            if ($isCopied) {
+                $base = min(45, $base - 15);
+            }
+            $score = min(68, max(40, $base));
             $level = 'Hampir Benar (Sebagian Benar)';
-            $feedback = 'Jawaban hampir benar dan telah menyentuh sebagian konsep materi, namun uraiannya belum lengkap atau masih memerlukan penjelasan yang lebih tuntas.';
+            $matchedSpans = $this->highlightService->extractMatchedSpans(
+                $answerText,
+                (string) ($question->hint ?: $question->context),
+                $document
+            );
+            $conceptSummary = ! empty($matchedConcepts)
+                ? ' terkait ' . implode(', ', array_slice($matchedConcepts, 0, 4))
+                : '';
+            $feedback = 'Jawaban Anda hampir benar dan sudah menyentuh sebagian gagasan materi' . $conceptSummary . ', namun uraiannya masih perlu dilengkapi agar mencakup keseluruhan poin kunci jawaban.';
         } else {
-            // 3. Benar: Menjawab inti konsep materi dengan relevansi kuat
-            // Menghargai pemahaman dan parafrase mandiri siswa (tanda paham, bukan copas)
-            $score = 80;
-            if ($wordCount >= 10) $score += 10;
-            if ($wordCount >= 20) $score += 10;
-            if ($isCopied) $score = min(55, $score - 25);
-            $score = min(100, max(75, $score));
+            // 3. Benar / Tepat: Menghitung skor proporsional berdasarkan akurasi parafrase terhadap kunci jawaban (74 - 100)
+            $accuracyRatio = min(1.0, max($keyCoverage, $combinedAccuracy));
+            $base = 72 + (int) round($accuracyRatio * 20);
+            if ($wordCount >= 15) {
+                $base += 5;
+            }
+            if ($wordCount >= 25 || $hasEvidence) {
+                $base += 3;
+            }
+            if ($isCopied) {
+                $base = min(55, $base - 30);
+            }
+            $score = min(100, max(72, $base));
             $level = $this->determineLevel($score);
-            $feedback = 'Jawaban Anda sudah sangat tepat. Anda berhasil memahami esensi materi dengan baik menggunakan pemikiran dan bahasa Anda sendiri.';
+            $matchedSpans = $this->highlightService->extractMatchedSpans(
+                $answerText,
+                (string) ($question->hint ?: $question->context),
+                $document
+            );
+
+            $focusHighlight = ! empty($matchedSpans)
+                ? \Illuminate\Support\Str::limit(trim(preg_replace('/\s+/u', ' ', $matchedSpans[0]) ?? ''), 110, '...')
+                : implode(', ', array_slice($matchedConcepts, 0, 5));
+
+            if ($score >= 85) {
+                $feedback = 'Penjelasan Anda sangat baik. Anda berhasil menangkap esensi pembahasan materi'
+                    . ($focusHighlight !== '' ? ' ("' . $focusHighlight . '")' : '')
+                    . ' melalui parafrase dengan bahasa Anda sendiri secara tepat dan selaras.';
+            } else {
+                $feedback = 'Penjelasan Anda sudah tepat dan selaras dengan pembahasan materi'
+                    . (! empty($matchedConcepts) ? ' mengenai ' . implode(', ', array_slice($matchedConcepts, 0, 4)) : '')
+                    . ', meskipun detail pendukungnya masih dapat diperkuat.';
+            }
         }
 
         $missingConcepts = [];
+        if ($score < 85 && ! empty($missingKeyTokens)) {
+            $missingConcepts[] = 'Pertajam penjelasan konsep terkait: ' . implode(', ', array_slice($missingKeyTokens, 0, 4));
+        }
         if ($score < 70 && $wordCount < 15) {
-            $missingConcepts[] = 'Pengembangan penjelasan konsep lebih mendalam';
+            $missingConcepts[] = 'Uraikan alasan atau hubungan konsep lebih lengkap agar sesuai kunci jawaban';
         }
         if ($isCopied) {
-            $missingConcepts[] = 'Gunakan penjelasan dengan kata-kata sendiri alih-alih menyalin mentah teks';
+            $missingConcepts[] = 'Gunakan parafrase dengan kata-kata sendiri alih-alih menyalin mentah teks';
         }
 
         return new EvaluationResult(
@@ -227,6 +290,7 @@ INSTRUCTIONS;
             layerDetails: [
                 'layer_1_rule_based' => $layer1,
                 'layer_2_similarity' => $layer2,
+                'matched_spans' => $matchedSpans,
                 'layer_3_heuristic' => ['mode' => 'fallback_rubric'],
             ]
         );

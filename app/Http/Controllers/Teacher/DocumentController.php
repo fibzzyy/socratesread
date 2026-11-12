@@ -9,6 +9,8 @@ use App\Models\Document;
 use App\Models\TeacherClass;
 use App\Services\AI\DocumentAiProcessor;
 use App\Services\PdfTextExtractor;
+use App\Services\ReadingMaterialFormatter;
+use App\Services\TeacherChallengeScoringService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -37,6 +39,17 @@ class DocumentController extends Controller
             ->withCount(['questions', 'quizQuestions', 'teacherChallenges'])
             ->limit(50)
             ->get(['id', 'title', 'category', 'target_grade', 'excerpt', 'body', 'quiz_duration_minutes', 'quiz_question_count', 'is_published', 'created_at']);
+
+        $formatter = app(ReadingMaterialFormatter::class);
+        $scoring = app(TeacherChallengeScoringService::class);
+        $documents->each(function (Document $doc) use ($formatter, $scoring): void {
+            $doc->setAttribute('formatted_body_html', $formatter->toHtml((string) $doc->body));
+            $pointsMap = $scoring->distributePoints($doc->teacherChallenges);
+            $doc->setAttribute('challenge_max_xp', $scoring->calculateMaxRewardXp($doc->teacherChallenges));
+            $doc->teacherChallenges->each(function ($tc) use ($pointsMap): void {
+                $tc->setAttribute('points_max', $pointsMap[$tc->id] ?? 0);
+            });
+        });
 
         $gradeCounts = [
             'all' => Document::query()->where('uploaded_by', $teacherId)->count(),
@@ -82,6 +95,7 @@ class DocumentController extends Controller
         }
 
         try {
+            @set_time_limit(180);
             $title = trim($request->string('title')->toString());
             $category = trim($request->string('category')->toString());
 
@@ -117,12 +131,16 @@ class DocumentController extends Controller
                         'hint' => $q['hint'],
                     ]);
 
-                    // Seed starting teacher essay challenge
+                    $difficulty = $q['difficulty'] ?? 'medium';
                     $document->teacherChallenges()->create([
                         'sequence' => $q['sequence'],
                         'type' => 'essay',
-                        'question' => $q['prompt'] . (! empty($q['context']) ? " (Konteks: {$q['context']})" : ''),
+                        'question' => $q['prompt'],
+                        'context' => $q['context'] ?? null,
                         'rubric' => ! empty($q['hint']) ? $q['hint'] : 'Analisis pemahaman mendalam, bukti dari teks, dan penalaran logis.',
+                        'reference_excerpt' => ! empty($q['reference_excerpt']) ? $q['reference_excerpt'] : null,
+                        'difficulty' => $difficulty,
+                        'difficulty_weight' => \App\Models\TeacherChallenge::weightForDifficulty($difficulty),
                     ]);
                 }
 
