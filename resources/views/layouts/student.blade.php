@@ -16,6 +16,7 @@
 <body>
     @php($userInitials = collect(explode(' ', auth()->user()->name))->filter()->take(2)->map(fn ($part) => mb_substr($part, 0, 1))->implode(''))
     @php($isReadingIndex = request()->routeIs('reading') && ! request()->route('document'))
+    @php($isProgressOverview = request()->routeIs('progress') && ! request()->query('classroom'))
     <div class="app-shell">
         <button class="scrim" type="button" aria-label="Tutup navigasi" data-menu-close></button>
         <aside class="sidebar sidebar-theme" id="primary-navigation" aria-label="Navigasi utama">
@@ -57,13 +58,18 @@
         </aside>
         <main class="main-content {{ $isReadingIndex ? 'reading-room-shell' : '' }}">
             @unless($isReadingIndex)
-                <header class="topbar {{ request()->routeIs('quiz.index') ? 'quiz-topbar' : '' }}">
+                <header class="topbar {{ request()->routeIs('quiz.index') ? 'quiz-topbar' : '' }} {{ $isProgressOverview ? 'progress-topbar' : '' }}">
                     <button class="icon-button menu-toggle" type="button" aria-label="Buka navigasi" aria-controls="primary-navigation" aria-expanded="false" data-menu-toggle><x-icon name="menu" /></button>
                     <div class="breadcrumb">
+                        @if($isProgressOverview)
+                            <strong>Dashboard Siswa</strong>
+                        @else
                         @if(request()->routeIs('quiz.index'))
                             <a href="{{ route('dashboard') }}" class="quiz-home-link" aria-label="Beranda"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7M5 9v12h14V9M9 21v-7h6v7" /></svg></a>
                         @endif
-                        <a href="{{ route('dashboard') }}">Ruang belajar</a><span>/</span><strong>@yield('breadcrumb', 'Halaman')</strong></div>
+                        <a href="{{ route('dashboard') }}">Ruang belajar</a><span>/</span><strong>@yield('breadcrumb', 'Halaman')</strong>
+                        @endif
+                    </div>
                     <div class="topbar-actions">
                         <span class="today-label">@if(request()->routeIs('quiz.index'))<x-icon name="calendar-days" />@endif{{ now()->locale('id')->translatedFormat('l, d F Y') }}</span>
                         <button class="icon-button notification-button" type="button" aria-label="Notifikasi"><x-icon name="bell" /><i></i></button>

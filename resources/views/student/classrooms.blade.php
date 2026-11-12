@@ -13,8 +13,7 @@
     <div class="my-class-page">
         <section class="my-class-heading" aria-labelledby="classrooms-title">
             <div>
-                <p class="my-class-eyebrow">KOMUNITAS BELAJAR</p>
-                <h1 id="classrooms-title"><span>Kelas saya</span></h1>
+                <h1 id="classrooms-title">Kelas <span>saya</span></h1>
                 <p class="my-class-subtitle">Kelola kelas belajar yang kamu ikuti bersama guru dan teman sekelas.</p>
             </div>
             <a class="my-class-back" href="{{ route('dashboard') }}">
@@ -31,7 +30,7 @@
             <span class="my-class-join-accent" aria-hidden="true"></span>
             <div class="my-class-join-copy">
                 <div class="my-class-join-eyebrow">
-                    <svg aria-hidden="true" width="30" height="30" viewBox="0 0 30 30" fill="none" stroke="currentColor" stroke-width="2"><circle cx="15" cy="15" r="12"/><circle cx="15" cy="15" r="7"/><circle cx="15" cy="15" r="2.4" fill="currentColor" stroke="none"/></svg>
+                    <x-icon name="users-round" />
                     <span>GABUNG BERSAMA GURU</span>
                 </div>
                 <h2 id="join-class-heading">Gabung kelas baru. Belajar bersama guru.</h2>
@@ -41,7 +40,7 @@
                     <label for="join_code">Kode gabung kelas (8 karakter)</label>
                     <div class="my-class-join-controls">
                         <div class="my-class-code-field">
-                            <input id="join_code" name="join_code" value="{{ old('join_code', $joinCode) }}" maxlength="8" minlength="8" required autocomplete="off" autocapitalize="characters" placeholder="CONTOH: BACA2026" aria-describedby="join-code-help join-code-count @error('join_code') join-code-error @enderror">
+                            <input id="join_code" name="join_code" value="{{ old('join_code', $joinCode) }}" maxlength="8" minlength="8" required autocomplete="off" autocapitalize="characters" placeholder="CONTOH: BACA2026" aria-describedby="join-code-count @error('join_code') join-code-error @enderror">
                             <span id="join-code-count" class="my-class-code-count" aria-live="polite">{{ mb_strlen(old('join_code', $joinCode ?? '')) }}/8</span>
                         </div>
                         <button type="submit" class="my-class-join-button">
@@ -53,38 +52,32 @@
                         <span id="join-code-error" class="my-class-error" role="alert">{{ $message }}</span>
                     @enderror
                 </form>
-                <p id="join-code-help" class="my-class-privacy">Guru dapat melihat keterlibatan dan progres sesi pada bacaan yang mereka unggah, bukan isi jawaban pribadimu.</p>
             </div>
-            <div class="my-class-mascot-wrap" aria-hidden="true">
-                <span class="my-class-mascot-glow"></span>
-                <img class="my-class-mascot" src="{{ asset('images/burhan.png') }}" alt="Burung hantu SocratesRead dengan topi wisuda dan buku">
+            <div class="my-class-mascot-wrap" role="img" aria-label="Ilustrasi tumpukan buku dan dedaunan">
+                <div class="my-class-books" aria-hidden="true">
+                    <span class="my-class-book my-class-book-one"></span>
+                    <span class="my-class-book my-class-book-two"></span>
+                    <span class="my-class-book my-class-book-three"></span>
+                </div>
             </div>
         </section>
 
-        <section class="my-class-stats" aria-label="Ringkasan aktivitas kelas">
+        <section class="my-class-stats" aria-label="Ringkasan progress">
             <article class="my-class-stat">
-                <div class="my-class-stat-top">
-                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20a6 6 0 0 1 12 0"/><circle cx="17" cy="9" r="2.4"/><path d="M16.5 14a5 5 0 0 1 4.5 5"/></svg>
-                    <span>Aktif</span>
-                </div>
-                <div class="my-class-stat-value"><strong>{{ $classrooms->count() }}</strong><span>kelas</span></div>
-                <p>Kelas diikuti</p>
+                <span class="my-class-stat-icon my-class-stat-blue"><x-icon name="book-open-text" /></span>
+                <div><p>Total materi selesai</p><div class="my-class-stat-value"><strong>{{ $completedReadings }}</strong></div><small>{{ $weeklyReadingCount }} dalam 7 hari terakhir</small></div>
             </article>
             <article class="my-class-stat">
-                <div class="my-class-stat-top">
-                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M2 5h7a3 3 0 0 1 3 3v12a2 2 0 0 0-2-2H2z"/><path d="M22 5h-7a3 3 0 0 0-3 3v12a2 2 0 0 1 2-2h8z"/></svg>
-                    <span>Dari guru</span>
-                </div>
-                <div class="my-class-stat-value"><strong>{{ $assignedReadingCount }}</strong><span>bacaan</span></div>
-                <p>Bacaan ditugaskan</p>
+                <span class="my-class-stat-icon my-class-stat-sage"><x-icon name="zap" /></span>
+                <div><p>Total XP terkumpul</p><div class="my-class-stat-value"><strong>{{ number_format($summary['xp']) }} <small>XP</small></strong></div><small>Level {{ $summary['level'] }} · {{ $summary['xp_to_next_level'] }} XP menuju level berikutnya</small></div>
             </article>
             <article class="my-class-stat">
-                <div class="my-class-stat-top my-class-stat-gold">
-                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/><path d="M9 11h6M9 14.5h3.5"/></svg>
-                    <span>Minggu ini</span>
-                </div>
-                <div class="my-class-stat-value"><strong>{{ $discussionSessionCount }}</strong><span>sesi</span></div>
-                <p>Sesi diskusi</p>
+                <span class="my-class-stat-icon my-class-stat-cream"><x-icon name="flame" /></span>
+                <div><p>Streak terpanjang</p><div class="my-class-stat-value"><strong>{{ $summary['longest_streak'] }} <small>hari</small></strong></div><small>Streak aktif: {{ $summary['current_streak'] }} hari</small></div>
+            </article>
+            <article class="my-class-stat">
+                <span class="my-class-stat-icon my-class-stat-blue"><x-icon name="award" /></span>
+                <div><p>Total tantangan selesai</p><div class="my-class-stat-value"><strong>{{ $completedChallenges }}</strong></div><small>Challenge Socrates & Tantangan Guru selesai</small></div>
             </article>
         </section>
 
@@ -92,7 +85,7 @@
             <div class="my-class-list-heading">
                 <div>
                     <p class="my-class-eyebrow">KELAS AKTIF</p>
-                    <h2 id="enrolled-classes-heading">Kelas yang kamu ikuti</h2>
+                    <h2 id="enrolled-classes-heading">Kelas yang Kamu Ikuti</h2>
                 </div>
                 <span>{{ $classrooms->count() }} kelas</span>
             </div>
