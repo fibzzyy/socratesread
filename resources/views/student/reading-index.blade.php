@@ -25,13 +25,7 @@
                     <x-icon name="bell" />
                     <span class="dot" aria-hidden="true"></span>
                 </button>
-                <a href="{{ route('profile') }}" class="rh-avatar" aria-label="Profil {{ $readingUserName }}" title="{{ $readingUserName }}">
-                    @if (auth()->user()->avatarUrl())
-                        <img src="{{ auth()->user()->avatarUrl() }}" alt="">
-                    @else
-                        {{ $readingInitials }}
-                    @endif
-                </a>
+                <x-profile-dropdown />
             </div>
         </div>
         <div class="rh-body">

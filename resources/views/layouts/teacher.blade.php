@@ -12,7 +12,6 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body>
-    @php($userInitials = collect(explode(' ', auth()->user()->name))->filter()->take(2)->map(fn ($part) => mb_substr($part, 0, 1))->implode(''))
     <div class="app-shell">
         <button class="scrim" type="button" aria-label="Tutup navigasi" data-menu-close></button>
         <aside class="sidebar" id="teacher-navigation" aria-label="Area guru">
@@ -27,29 +26,8 @@
                 <a class="nav-link {{ request()->routeIs('teacher.dashboard') ? 'is-active' : '' }}" href="{{ route('teacher.dashboard') }}" @if(request()->routeIs('teacher.dashboard')) aria-current="page" @endif><x-icon name="layout-dashboard"/><span>Ringkasan</span></a>
                 <a class="nav-link {{ request()->routeIs('teacher.classrooms*') ? 'is-active' : '' }}" href="{{ route('teacher.classrooms') }}" @if(request()->routeIs('teacher.classrooms*')) aria-current="page" @endif><x-icon name="users"/><span>Kelas saya</span></a>
                 <a class="nav-link {{ request()->routeIs('teacher.documents*') ? 'is-active' : '' }}" href="{{ route('teacher.documents') }}" @if(request()->routeIs('teacher.documents*')) aria-current="page" @endif><x-icon name="book-open-text"/><span>Kelola bacaan</span></a>
-                <a class="nav-link {{ request()->routeIs('profile', 'settings.profile') ? 'is-active' : '' }}" href="{{ route('profile') }}" @if(request()->routeIs('profile', 'settings.profile')) aria-current="page" @endif><x-icon name="user"/><span>Profil</span></a>
             </nav>
             <div class="sidebar-spacer"></div>
-            <div class="profile-button">
-                <a href="{{ route('profile') }}" class="avatar avatar-sidebar avatar-link" title="Profil">
-                    @if (auth()->user()->avatarUrl())
-                        <img src="{{ auth()->user()->avatarUrl() }}" alt="{{ auth()->user()->name }}" class="avatar-image">
-                    @else
-                        {{ mb_strtoupper($userInitials) }}
-                    @endif
-                </a>
-                <span class="profile-copy">
-                    <strong>{{ auth()->user()->name }}</strong>
-                    <small>Guru SocratesRead</small>
-                </span>
-                <form method="POST" action="{{ route('logout') }}" class="ml-auto">
-                    @csrf
-                    <button class="logout-button" type="submit" title="Keluar / Logout">
-                        <x-icon name="log-out" class="w-3.5 h-3.5" />
-                        <span>Keluar</span>
-                    </button>
-                </form>
-            </div>
         </aside>
         <main class="main-content">
             <header class="topbar">
@@ -58,13 +36,7 @@
                 <div class="topbar-actions">
                     <span class="today-label">{{ now()->locale('id')->translatedFormat('l, d F Y') }}</span>
                     <button class="icon-button notification-button" type="button" aria-label="Notifikasi"><x-icon name="bell" /><i></i></button>
-                    <a href="{{ route('profile') }}" class="avatar avatar-top avatar-link" aria-label="Profil {{ auth()->user()->name }}" title="Profil">
-                        @if (auth()->user()->avatarUrl())
-                            <img src="{{ auth()->user()->avatarUrl() }}" alt="{{ auth()->user()->name }}" class="avatar-image">
-                        @else
-                            {{ mb_strtoupper($userInitials) }}
-                        @endif
-                    </a>
+                    <x-profile-dropdown />
                 </div>
             </header>
             <div class="page-content stage-two-content">@yield('content')<footer class="page-footer"><span>Materi bermakna dimulai dari bacaan yang baik.</span><span>© 2026 SocratesRead</span></footer></div>
