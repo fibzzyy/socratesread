@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -9,13 +10,15 @@
     <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap"
+        rel="stylesheet">
     @yield('head')
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
+
 <body>
-    @php($userInitials = collect(explode(' ', auth()->user()->name))->filter()->take(2)->map(fn ($part) => mb_substr($part, 0, 1))->implode(''))
-    @php($isReadingIndex = request()->routeIs('reading') && ! request()->route('document'))
+    @php($isReadingIndex = request()->routeIs('reading') && !request()->route('document'))
     <div class="app-shell">
         <button class="scrim" type="button" aria-label="Tutup navigasi" data-menu-close></button>
         <aside class="sidebar sidebar-theme" id="primary-navigation" aria-label="Navigasi utama">
@@ -58,24 +61,22 @@
         <main class="main-content {{ $isReadingIndex ? 'reading-room-shell' : '' }}">
             @unless($isReadingIndex)
                 <header class="topbar">
-                    <button class="icon-button menu-toggle" type="button" aria-label="Buka navigasi" aria-controls="primary-navigation" aria-expanded="false" data-menu-toggle><x-icon name="menu" /></button>
+                    <button class="icon-button menu-toggle" type="button" aria-label="Buka navigasi"
+                        aria-controls="primary-navigation" aria-expanded="false" data-menu-toggle><x-icon
+                            name="menu" /></button>
                     <div class="breadcrumb"><a href="{{ route('dashboard') }}">Ruang belajar</a><span>/</span><strong>@yield('breadcrumb', 'Halaman')</strong></div>
                     <div class="topbar-actions">
                         <span class="today-label">{{ now()->locale('id')->translatedFormat('l, d F Y') }}</span>
-                        <button class="icon-button notification-button" type="button" aria-label="Notifikasi"><x-icon name="bell" /><i></i></button>
-                        <a href="{{ route('profile') }}" class="avatar avatar-top avatar-link" aria-label="Profil {{ auth()->user()->name }}" title="Profil">
-                            @if (auth()->user()->avatarUrl())
-                                <img src="{{ auth()->user()->avatarUrl() }}" alt="{{ auth()->user()->name }}" class="avatar-image">
-                            @else
-                                {{ mb_strtoupper($userInitials) }}
-                            @endif
-                        </a>
+                        <button class="icon-button notification-button" type="button" aria-label="Notifikasi"><x-icon
+                                name="bell" /><i></i></button>
+                        <x-profile-dropdown />
                     </div>
                 </header>
             @endunless
             <div class="page-content stage-two-content {{ $isReadingIndex ? 'reading-page-content' : '' }}">
                 @yield('content')
-                <footer class="page-footer"><span>Terus bertanya, terus bertumbuh.</span><span>© 2026 SocratesRead</span></footer>
+                <footer class="page-footer"><span>Terus bertanya, terus bertumbuh.</span><span>© 2026
+                        SocratesRead</span></footer>
             </div>
         </main>
     </div>
@@ -92,4 +93,5 @@
     </script>
     @stack('scripts')
 </body>
+
 </html>

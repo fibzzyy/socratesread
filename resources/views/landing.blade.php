@@ -462,7 +462,7 @@
                         <!-- Action Buttons -->
                         <div class="pt-2 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
                             <div class="relative w-full sm:w-auto inline-block rounded-xl overflow-hidden p-[1.5px] group">
-                                <div id="react-hero-cta-beam" class="absolute inset-0 pointer-events-none z-20"></div>
+                                <div id="react-hero-cta-beam" class="absolute inset-0 pointer-events-none z-0"></div>
                                 <a href="#demo-sokratik"
                                     class="relative z-10 w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-md hover:shadow-lg transition-all focus-visible:ring-2 focus-visible:ring-blue-600">
                                     <span>Coba Dialog Sokratik</span>
