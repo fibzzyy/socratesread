@@ -455,11 +455,11 @@
             </p>
 
             <!-- Buttons -->
-            <div class="flex items-center justify-center gap-3">
-                <button type="button" id="btnModalCheckAgain" class="outline-button w-1/2 justify-center py-2.5 text-xs font-semibold">
+            <div class="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-center gap-3">
+                <button type="button" id="btnModalCheckAgain" class="outline-button w-full sm:w-1/2 justify-center py-2.5 text-xs font-semibold">
                     Periksa Kembali
                 </button>
-                <button type="button" id="btnModalConfirmSubmit" class="challenge-button !bg-emerald-600 hover:!bg-emerald-700 !border-emerald-600 w-1/2 justify-center py-2.5 text-xs font-bold">
+                <button type="button" id="btnModalConfirmSubmit" class="challenge-button !bg-emerald-600 hover:!bg-emerald-700 !border-emerald-600 w-full sm:w-1/2 justify-center py-2.5 text-xs font-bold">
                     Kumpulkan Sekarang
                 </button>
             </div>

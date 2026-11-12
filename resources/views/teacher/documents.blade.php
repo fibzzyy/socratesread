@@ -201,7 +201,7 @@
     <!-- Drawer Pratinjau Dokumen & Soal Sokratik -->
     <div id="docPreviewModal" class="hidden fixed inset-0 z-50 overflow-hidden" role="dialog" aria-modal="true" aria-labelledby="modalDocTitle">
         <div id="docModalBackdrop" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs transition-opacity"></div>
-        <div class="fixed inset-y-0 right-0 max-w-full flex pl-10">
+        <div class="fixed inset-y-0 right-0 max-w-full flex pl-0 sm:pl-10">
             <div id="docModalPanel" class="w-screen max-w-lg md:max-w-xl bg-white shadow-2xl flex flex-col transform transition ease-in-out duration-300">
                 <!-- Header Drawer -->
                 <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4 bg-slate-50/80">
