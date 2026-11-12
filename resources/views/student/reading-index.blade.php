@@ -2,6 +2,9 @@
 
 @section('title', $selectedGroup['category'] ?? 'Reading Room')
 @section('breadcrumb', $selectedGroup ? 'Reading Room / '.$selectedGroup['category'] : 'Reading Room')
+@section('head')
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet">
+@endsection
 
 @php
     $readingUserName = auth()->user()->name ?? 'Pengguna';
@@ -9,25 +12,21 @@
 @endphp
 
 @section('content')
-    <section class="reading-hero" aria-labelledby="reading-library-title">
-        <div class="rh-top">
-            <div class="rh-crumb-group">
-                <button class="icon-button menu-toggle rh-menu-toggle" type="button" aria-label="Buka navigasi" aria-controls="primary-navigation" aria-expanded="false" data-menu-toggle><x-icon name="menu" /></button>
-                <nav class="rh-crumb" aria-label="Breadcrumb">
-                    <a href="{{ route('dashboard') }}">Ruang belajar</a>
-                    <span class="sep">/</span>
-                    <strong>Reading Room</strong>
-                </nav>
-            </div>
-            <div class="rh-right">
-                <span class="rh-date">{{ now()->locale('id')->translatedFormat('l, j F Y') }}</span>
-                <button class="rh-bell" type="button" aria-label="Notifikasi">
-                    <x-icon name="bell" />
-                    <span class="dot" aria-hidden="true"></span>
-                </button>
-                <x-profile-dropdown />
-            </div>
+    <header class="reading-topbar">
+        <button class="icon-button menu-toggle reading-menu-toggle" type="button" aria-label="Buka navigasi" aria-controls="primary-navigation" aria-expanded="false" data-menu-toggle><x-icon name="menu" /></button>
+        <span class="reading-topbar-date">{{ now()->locale('id')->translatedFormat('l, j F Y') }}</span>
+        <div class="reading-topbar-actions">
+            <span class="reading-stat-chip"><x-icon name="star" /> 0 XP</span>
+            <span class="reading-stat-chip"><x-icon name="flame" /> Rutinitas 0 hari</span>
+            <button class="reading-notification" type="button" aria-label="Notifikasi"><x-icon name="bell" /><i aria-hidden="true"></i></button>
+            <a href="{{ route('profile') }}" class="reading-user" aria-label="Profil {{ $readingUserName }}" title="{{ $readingUserName }}">
+                <span class="reading-user-avatar">@if (auth()->user()->avatarUrl())<img src="{{ auth()->user()->avatarUrl() }}" alt="">@else{{ $readingInitials }}@endif</span>
+                <x-icon name="chevron-down" />
+            </a>
         </div>
+    </header>
+    <div class="reading-layout-container">
+    <section class="reading-hero" aria-labelledby="reading-library-title">
         <div class="rh-body">
             <h1 id="reading-library-title">Reading Room</h1>
             <p>Temukan pengetahuan baru, jelajahi berbagai materi, dan tingkatkan wawasanmu di sini.</p>
@@ -35,7 +34,7 @@
                 <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                     <circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" />
                 </svg>
-                <input type="search" id="reading-material-search" aria-label="Cari materi" autocomplete="off" placeholder="Cari materi, topik, atau kategori...">
+                <input type="search" id="reading-material-search" aria-label="Cari materi" autocomplete="off" placeholder="Cari materi atau topik">
                 <button type="submit" aria-label="Cari bacaan">
                     <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
                 </button>
@@ -82,6 +81,15 @@
         </div>
     </section>
 
+    @if (! $selectedGroup)
+        <div class="reading-filters" role="group" aria-label="Filter status kelas">
+            <button class="reading-filter is-active" type="button" data-reading-filter="semua" aria-pressed="true">Semua</button>
+            <button class="reading-filter" type="button" data-reading-filter="belum-dibaca" aria-pressed="false">Belum dibaca</button>
+            <button class="reading-filter" type="button" data-reading-filter="sedang-dibaca" aria-pressed="false">Sedang dibaca</button>
+            <button class="reading-filter" type="button" data-reading-filter="selesai" aria-pressed="false">Selesai</button>
+        </div>
+    @endif
+
     <div data-reading-default-content>
     @if (! $selectedGroup)
         <section class="panel reading-panel" aria-labelledby="reading-groups-title">
@@ -90,35 +98,41 @@
                     <p class="section-overline">MATERI UNTUKMU</p>
                     <h2 id="reading-groups-title">Kelas dan materi</h2>
                 </div>
-                <span class="document-count">{{ $groups->count() }} kelas</span>
+                <span class="document-count" id="reading-class-count">{{ $groups->count() }} kelas</span>
             </div>
 
             @if ($groups->isNotEmpty())
-                <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                <div class="reading-class-grid">
                     @foreach ($groups as $group)
-                        <article class="panel grid content-start gap-4" data-search-item>
-                            <div class="flex items-start justify-between gap-3">
-                                <span class="book-icon icon-blue"><x-icon name="book-open-text" /></span>
-                                <span class="category-tag">Progres {{ $group['progress'] }}%</span>
+                        @php
+                            $classProgress = (int) $group['progress'];
+                            $classStatus = $classProgress === 0 ? 'belum-dibaca' : ($classProgress >= 100 ? 'selesai' : 'sedang-dibaca');
+                        @endphp
+                        <a class="reading-class-card" href="{{ route('reading', ['teacher' => $group['teacher_id'], 'category' => $group['category']]) }}" data-search-item data-status="{{ $classStatus }}">
+                            <div class="reading-class-top">
+                                <span class="reading-class-icon"><x-icon name="book-open-text" /></span>
+                                <span class="reading-class-progress">{{ $classProgress }}%</span>
                             </div>
-                            <div>
-                                <h3 class="text-base font-bold text-slate-900">{{ $group['category'] }}</h3>
-                                <p class="mt-1 text-xs text-slate-500">{{ $group['teacher_name'] }}</p>
+                            <div class="reading-class-title">
+                                <h3>{{ $group['category'] }}</h3>
+                                <p>Pengajar: {{ mb_convert_case($group['teacher_name'], MB_CASE_TITLE, 'UTF-8') }}</p>
                             </div>
-                            <div class="flex items-center justify-between text-xs text-slate-500">
-                                <span>{{ $group['materials_count'] }} materi</span>
-                                <span>{{ $group['completed_count'] }} selesai</span>
+                            <div class="reading-class-track" role="progressbar" aria-label="Progres {{ $group['category'] }}" aria-valuenow="{{ $classProgress }}" aria-valuemin="0" aria-valuemax="100">
+                                <span style="width:{{ max(2, $classProgress) }}%"></span>
                             </div>
-                            <div class="progress-track" role="progressbar" aria-label="Progres {{ $group['category'] }}" aria-valuenow="{{ $group['progress'] }}" aria-valuemin="0" aria-valuemax="100"><span style="width:{{ $group['progress'] }}%"></span></div>
-                            <a class="challenge-button justify-center" href="{{ route('reading', ['teacher' => $group['teacher_id'], 'category' => $group['category']]) }}"><span>Buka kelas</span><x-icon name="arrow-right" /></a>
-                        </article>
+                            <div class="reading-class-footer">
+                                <span>{{ $group['completed_count'] }} dari {{ $group['materials_count'] }} materi selesai</span>
+                                <span class="reading-class-action">Buka kelas</span>
+                            </div>
+                        </a>
                     @endforeach
                 </div>
+                <p class="reading-filter-empty" id="reading-filter-empty" hidden>Belum ada kelas dengan status ini.</p>
             @else
-                <div class="teacher-empty-state">
-                    <span class="session-icon"><x-icon name="book-open-text" /></span>
-                    <strong>Belum ada materi tersedia</strong>
-                    <p>Materi untuk Kelas {{ $grade }} akan muncul di sini setelah guru menerbitkannya.</p>
+                <div class="reading-empty-state">
+                    <strong>Kamu belum bergabung ke kelas mana pun</strong>
+                    <p>Gabung kelas lewat menu Kelas saya untuk mulai membaca.</p>
+                    <a href="{{ route('classrooms.index') }}">Buka Kelas saya</a>
                 </div>
             @endif
         </section>
@@ -214,6 +228,33 @@
                     event.preventDefault();
                     updateResults();
                     search.focus();
+                });
+
+                const filterButtons = [...document.querySelectorAll('[data-reading-filter]')];
+                const classCards = [...document.querySelectorAll('.reading-class-card[data-status]')];
+                const classCount = document.getElementById('reading-class-count');
+                const filterEmpty = document.getElementById('reading-filter-empty');
+                filterButtons.forEach((button) => {
+                    button.addEventListener('click', () => {
+                        const status = button.dataset.readingFilter;
+                        let visibleCount = 0;
+
+                        filterButtons.forEach((filterButton) => {
+                            const isActive = filterButton === button;
+                            filterButton.classList.toggle('is-active', isActive);
+                            filterButton.setAttribute('aria-pressed', String(isActive));
+                        });
+
+                        classCards.forEach((card) => {
+                            const isVisible = status === 'semua' || card.dataset.status === status;
+                            card.hidden = !isVisible;
+                            if (isVisible) visibleCount += 1;
+                        });
+
+                        if (classCount) classCount.textContent = `${visibleCount} kelas`;
+                        if (filterEmpty) filterEmpty.hidden = visibleCount !== 0;
+                        if (filterEmpty) filterEmpty.setAttribute('aria-live', 'polite');
+                    });
                 });
             })();
         </script>
