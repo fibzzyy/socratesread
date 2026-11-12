@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\OtpVerificationController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Student\AchievementController;
 use App\Http\Controllers\Student\ChallengeController;
 use App\Http\Controllers\Student\ClassroomEnrollmentController;
@@ -56,6 +57,8 @@ Route::get('/avatar/{user}', function (\App\Models\User $user) {
 Route::get('/', \App\Http\Controllers\LandingPageController::class)->name('home');
 
 Route::middleware('auth')->group(function () {
+    Route::get('/notifications/{notification}/open', [NotificationController::class, 'open'])->name('notifications.open');
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read-all');
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile');
     Route::get('/settings/profile', [ProfileController::class, 'edit'])->name('settings.profile');

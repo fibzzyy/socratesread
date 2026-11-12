@@ -55,14 +55,6 @@ class StudentDetailController extends Controller
             ? 'Kelas ' . min(12, $student->entry_grade + max(0, $currentYear - ($student->enrollment_year ?? $currentYear)))
             : null;
 
-        $userInitials = mb_strtoupper(
-            collect(explode(' ', $student->name))
-                ->filter()
-                ->take(2)
-                ->map(fn ($p) => mb_substr($p, 0, 1))
-                ->implode('')
-        );
-
         return response()->json([
             'student' => [
                 'id' => $student->id,
@@ -71,7 +63,6 @@ class StudentDetailController extends Controller
                 'school_origin' => $student->school_origin ?: '-',
                 'grade' => $grade,
                 'avatar_url' => $student->avatarUrl(),
-                'initials' => $userInitials,
                 'classes' => $classes,
                 'session_count' => $sessions->count(),
                 'completed_count' => $sessions->filter(fn ($s) => $s->status === 'completed' || $s->progress_percent >= 100)->count(),

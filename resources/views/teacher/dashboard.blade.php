@@ -6,7 +6,7 @@
 @section('content')
     @php($maxDailyActivity = max(1, $weeklyActivity->max('activity_count')))
     <section class="stage-heading" aria-labelledby="teacher-dashboard-title">
-        <div><p class="eyebrow">PANTAU KEBIASAAN MEMBACA</p><h1 id="teacher-dashboard-title">Ringkasan belajar siswa</h1><p class="welcome-subtitle">Ikhtisar aktivitas anggota kelas pada bacaan yang Anda unggah.</p></div>
+        <div><h1 id="teacher-dashboard-title">Ringkasan belajar siswa</h1><p class="welcome-subtitle">Ikhtisar aktivitas anggota kelas pada bacaan yang Anda unggah.</p></div>
         <div class="flex items-center gap-2 flex-wrap">
             <a href="{{ route('teacher.export.progress') }}" class="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition shadow-xs" title="Unduh data progres siswa (.CSV kompatibel Excel)">
                 <x-icon name="download" class="w-3.5 h-3.5 text-slate-500" />
@@ -25,7 +25,7 @@
 
     <div class="teacher-analytics-grid">
         <section class="panel activity-detail-panel" aria-labelledby="teacher-weekly-title">
-            <div class="section-heading"><div><p class="section-overline">AKTIVITAS TERKINI</p><h2 id="teacher-weekly-title">Jejak belajar 7 hari</h2></div><div class="chart-key"><i></i> Aktivitas</div></div>
+            <div class="section-heading"><div><h2 id="teacher-weekly-title">Jejak belajar 7 hari</h2></div><div class="chart-key"><i></i> Aktivitas</div></div>
             <div class="weekly-chart" role="img" aria-label="Grafik aktivitas membaca siswa tujuh hari terakhir">
                 <div class="weekly-grid"><span>maks</span><span>75%</span><span>50%</span><span>0</span></div>
                 <div class="weekly-bars">
@@ -34,11 +34,11 @@
                     @endforeach
                 </div>
             </div>
-            <div class="weekly-chart-caption"><span><i class="caption-dot"></i> XP yang diperoleh</span><strong>{{ $weeklyActivity->sum('xp_total') }} XP</strong></div>
+            <div class="weekly-chart-caption"><span><i class="caption-dot"></i> Total aktivitas</span><strong>{{ $weeklyActivity->sum('activity_count') }}</strong></div>
         </section>
 
         <section class="panel reflection-panel teacher-recent-panel" aria-labelledby="teacher-recent-title">
-            <span class="reflection-mark" aria-hidden="true"><x-icon name="clock" /></span><p class="section-overline">AKTIVITAS TERBARU</p><h2 id="teacher-recent-title">Siswa mulai berkembang</h2>
+            <span class="reflection-mark" aria-hidden="true"><x-icon name="clock" /></span><h2 id="teacher-recent-title">Siswa mulai berkembang</h2>
             <div class="recent-activity-list">
                 @forelse ($recentActivities as $activity)
                     <article class="recent-activity-row"><span class="recent-activity-icon"><x-icon name="{{ $activity->event_type === 'reading_completed' ? 'book-open-text' : 'award' }}" /></span><div><strong>{{ $activity->student_name }} · {{ $activity->summary }}</strong><small>{{ $activity->document_title }} · {{ \Illuminate\Support\Carbon::parse($activity->created_at)->locale('id')->diffForHumans() }}</small></div><span class="recent-activity-xp">{{ $activity->xp_awarded ? '+'.$activity->xp_awarded.' XP' : 'Tercatat' }}</span></article>
@@ -52,7 +52,6 @@
         <section class="panel socratic-skills-panel" style="grid-column: 1 / -1;" aria-labelledby="teacher-skill-title">
             <div class="section-heading">
                 <div>
-                    <p class="section-overline">KOMPETENSI LITERASI KRITIS</p>
                     <h2 id="teacher-skill-title">Ikhtisar Keterampilan Socratic Siswa</h2>
                 </div>
                 <span class="info-mark" title="Frekuensi latihan cara berpikir kritis yang dikerjakan siswa pada bacaan Anda"><x-icon name="lightbulb" /></span>
@@ -93,7 +92,6 @@
         <section class="panel teacher-students-panel" aria-labelledby="teacher-students-title">
             <div class="section-heading">
                 <div>
-                    <p class="section-overline">PROGRES PER SISWA</p>
                     <h2 id="teacher-students-title">Pembaca bacaan Anda</h2>
                 </div>
                 <div class="flex items-center gap-2">
@@ -109,7 +107,7 @@
                 @forelse ($students as $student)
                     @php($currentYear = (int) now()->year)
                     @php($studentGrade = $student->entry_grade ? min(12, $student->entry_grade + max(0, $currentYear - ($student->enrollment_year ?? $currentYear))) : null)
-                    <tr><td><button type="button" class="teacher-student-name hover:text-blue-600 transition text-left cursor-pointer group" data-student-btn data-detail-url="{{ route('teacher.students.show', $student->id) }}" title="Lihat detail belajar {{ $student->name }}"><span class="avatar group-hover:ring-2 group-hover:ring-blue-400 transition">{{ mb_strtoupper(mb_substr($student->name, 0, 1)) }}</span><div><strong class="group-hover:underline text-slate-800 group-hover:text-blue-600">{{ $student->name }}</strong>@if ($studentGrade) <span class="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700">Kelas {{ $studentGrade }}</span>@endif</div></button></td><td>{{ $student->session_count }}</td><td>{{ $student->completed_count }}</td><td><span class="teacher-progress-cell"><span class="skill-track"><span style="width:{{ min(100, (int) $student->average_progress) }}%"></span></span><small>{{ (int) $student->average_progress }}%</small></span></td><td>{{ (int) $student->earned_xp }}</td><td>{{ $student->last_activity_at ? \Illuminate\Support\Carbon::parse($student->last_activity_at)->locale('id')->diffForHumans() : '—' }}</td></tr>
+                    <tr><td><button type="button" class="teacher-student-name hover:text-blue-600 transition text-left cursor-pointer group" data-student-btn data-detail-url="{{ route('teacher.students.show', $student->id) }}" title="Lihat detail belajar {{ $student->name }}"><span class="avatar avatar-empty group-hover:ring-2 group-hover:ring-blue-400 transition"><x-icon name="user" class="avatar-placeholder-icon" /></span><div><strong class="group-hover:underline text-slate-800 group-hover:text-blue-600">{{ $student->name }}</strong>@if ($studentGrade) <span class="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700">Kelas {{ $studentGrade }}</span>@endif</div></button></td><td>{{ $student->session_count }}</td><td>{{ $student->completed_count }}</td><td><span class="teacher-progress-cell"><span class="skill-track"><span style="width:{{ min(100, (int) $student->average_progress) }}%"></span></span><small>{{ (int) $student->average_progress }}%</small></span></td><td>{{ (int) $student->earned_xp }}</td><td>{{ $student->last_activity_at ? \Illuminate\Support\Carbon::parse($student->last_activity_at)->locale('id')->diffForHumans() : '—' }}</td></tr>
                 @empty
                     <tr><td colspan="6"><div class="teacher-empty-state"><span class="session-icon"><x-icon name="lightbulb" /></span><strong>Belum ada anggota kelas yang membaca</strong><p>Setelah siswa bergabung ke kelas dan membaca dokumen Anda, ringkasan progresnya akan muncul di sini.</p></div></td></tr>
                 @endforelse
@@ -154,8 +152,8 @@
                     <div id="studentModalContent" class="hidden space-y-6">
                         <!-- Profile Card -->
                         <div class="flex items-start gap-4 p-4 rounded-2xl bg-blue-50/50 border border-blue-100/60">
-                            <div id="modalAvatarBox" class="size-13 rounded-2xl bg-blue-600 text-white font-bold text-lg flex items-center justify-center shrink-0 shadow-xs overflow-hidden">
-                                <span id="modalInitials"></span>
+                            <div id="modalAvatarBox" class="size-13 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center shrink-0 overflow-hidden">
+                                <span class="avatar-placeholder" aria-hidden="true"></span>
                             </div>
                             <div class="min-w-0 flex-1">
                                 <div class="flex items-center gap-2 flex-wrap">
@@ -284,9 +282,11 @@
 
                 const avatarBox = document.getElementById('modalAvatarBox');
                 if (s.avatar_url) {
+                    avatarBox.classList.remove('avatar-empty');
                     avatarBox.innerHTML = `<img src="${s.avatar_url}" alt="${s.name}" class="size-full object-cover">`;
                 } else {
-                    avatarBox.innerHTML = `<span>${s.initials}</span>`;
+                    avatarBox.classList.add('avatar-empty');
+                    avatarBox.innerHTML = '<span class="avatar-placeholder" aria-hidden="true"></span>';
                 }
 
                 const classesList = document.getElementById('modalClassesList');

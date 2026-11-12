@@ -29,10 +29,6 @@
         <section class="my-class-join" aria-labelledby="join-class-heading">
             <span class="my-class-join-accent" aria-hidden="true"></span>
             <div class="my-class-join-copy">
-                <div class="my-class-join-eyebrow">
-                    <svg aria-hidden="true" width="30" height="30" viewBox="0 0 30 30" fill="none" stroke="currentColor" stroke-width="2"><circle cx="15" cy="15" r="12"/><circle cx="15" cy="15" r="7"/><circle cx="15" cy="15" r="2.4" fill="currentColor" stroke="none"/></svg>
-                    <span>GABUNG BERSAMA GURU</span>
-                </div>
                 <h2 id="join-class-heading">Gabung kelas baru.<br><span>Belajar bersama guru.</span></h2>
 
                 <form method="POST" action="{{ route('classrooms.join') }}" class="my-class-join-form">

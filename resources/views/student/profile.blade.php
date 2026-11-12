@@ -40,11 +40,11 @@
                     <div class="flex flex-col sm:flex-row sm:items-end gap-5">
                         {{-- Only the avatar has negative top margin to overlap the banner cleanly --}}
                         <div class="-mt-14 sm:-mt-16 relative shrink-0">
-                            <div class="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl overflow-hidden ring-4 ring-white shadow-lg bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center font-bold text-2xl sm:text-3xl">
+                            <div class="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl overflow-hidden ring-4 ring-white shadow-lg bg-slate-100 text-slate-400 flex items-center justify-center">
                                 @if ($user->avatarUrl())
                                     <img src="{{ $user->avatarUrl() }}" alt="Foto profil {{ $user->name }}" class="w-full h-full object-cover">
                                 @else
-                                    <span>{{ mb_strtoupper(collect(explode(' ', $user->name))->filter()->take(2)->map(fn ($part) => mb_substr($part, 0, 1))->implode('')) }}</span>
+                                    <x-icon name="user" class="h-10 w-10" />
                                 @endif
                             </div>
                         </div>

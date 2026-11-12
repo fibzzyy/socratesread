@@ -45,11 +45,11 @@
             <!-- Bagian Foto Profil & Fitur Crop Sederhana -->
             <div class="p-5 rounded-2xl bg-slate-50/70 border border-slate-100 flex flex-col sm:flex-row items-center sm:items-start gap-6">
                 <div class="avatar-preview-box shrink-0">
-                    <div class="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl overflow-hidden ring-4 ring-white shadow-md bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center font-bold text-2xl" id="formAvatarPreview">
+                    <div class="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl overflow-hidden ring-4 ring-white shadow-md bg-slate-100 text-slate-400 flex items-center justify-center" id="formAvatarPreview">
                         @if ($user->avatarUrl())
                             <img src="{{ $user->avatarUrl() }}" alt="Foto profil" class="w-full h-full object-cover">
                         @else
-                            <span>{{ mb_strtoupper(collect(explode(' ', $user->name))->filter()->take(2)->map(fn ($part) => mb_substr($part, 0, 1))->implode('')) }}</span>
+                            <x-icon name="user" class="h-10 w-10" />
                         @endif
                     </div>
                 </div>

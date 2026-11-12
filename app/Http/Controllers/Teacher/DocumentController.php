@@ -7,6 +7,8 @@ use App\Exceptions\PdfDocumentRejected;
 use App\Http\Requests\StoreDocumentRequest;
 use App\Models\Document;
 use App\Models\TeacherClass;
+use App\Models\User;
+use App\Notifications\InAppNotification;
 use App\Services\AI\DocumentAiProcessor;
 use App\Services\PdfTextExtractor;
 use App\Services\ReadingMaterialFormatter;
@@ -101,7 +103,7 @@ class DocumentController extends Controller
 
             $processed = $aiProcessor->process($extracted['text'], $title, $category);
 
-            DB::transaction(function () use ($request, $title, $category, $processed, $filePath): void {
+            $document = DB::transaction(function () use ($request, $title, $category, $processed, $filePath): Document {
                 preg_match_all('/[\p{L}\p{N}]+/u', $processed['cleaned_body'], $words);
                 $wordCount = count($words[0]);
                 $estimatedMinutes = min(60, max(1, (int) ceil($wordCount / 200)));
@@ -155,6 +157,8 @@ class DocumentController extends Controller
                         ]);
                     }
                 }
+
+                return $document;
             });
         } catch (Throwable $exception) {
             Storage::disk('local')->delete($filePath);
@@ -164,6 +168,34 @@ class DocumentController extends Controller
             ]);
 
             return back()->withErrors(['file' => 'Dokumen belum berhasil disimpan. Silakan coba lagi.'])->withInput();
+        }
+
+        try {
+            $studentIds = DB::table('classroom_memberships')
+                ->join('teacher_classes', 'teacher_classes.id', '=', 'classroom_memberships.classroom_id')
+                ->join('users', 'users.id', '=', 'classroom_memberships.student_id')
+                ->where('teacher_classes.teacher_id', $request->user()->id)
+                ->where('teacher_classes.is_active', true)
+                ->where('users.role', 'student')
+                ->when($document->target_grade !== 'all', fn ($query) => $query->where(function ($gradeQuery) use ($document) {
+                    $gradeQuery->whereNull('teacher_classes.target_grade')
+                        ->orWhere('teacher_classes.target_grade', $document->target_grade);
+                }))
+                ->distinct()
+                ->pluck('classroom_memberships.student_id');
+
+            User::query()->whereIn('id', $studentIds)->get()->each(function (User $student) use ($document): void {
+                $student->notify(new InAppNotification(
+                    'Bacaan baru',
+                    'Guru mengunggah bacaan "'.$document->title.'".',
+                    route('reading', ['document' => $document->id], false),
+                ));
+            });
+        } catch (Throwable $exception) {
+            Log::warning('Document notifications could not be created.', [
+                'exception' => class_basename($exception),
+                'document_id' => $document->id,
+            ]);
         }
 
         return redirect()->route('teacher.documents')->with('status', 'PDF berhasil diproses dengan AI: teks telah dirapikan, 10 soal Pilihan Ganda (Kuis Timer & Latihan) serta 5 pertanyaan Esai Sokratik telah dibuat otomatis.');

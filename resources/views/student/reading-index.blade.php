@@ -8,7 +8,6 @@
 
 @php
     $readingUserName = auth()->user()->name ?? 'Pengguna';
-    $readingInitials = mb_strtoupper(collect(preg_split('/\s+/', trim($readingUserName)))->map(fn ($part) => mb_substr($part, 0, 1))->take(2)->implode(''));
 @endphp
 
 @section('content')
@@ -18,9 +17,9 @@
         <div class="reading-topbar-actions">
             <span class="reading-stat-chip"><x-icon name="star" /> 0 XP</span>
             <span class="reading-stat-chip"><x-icon name="flame" /> Rutinitas 0 hari</span>
-            <button class="reading-notification" type="button" aria-label="Notifikasi"><x-icon name="bell" /><i aria-hidden="true"></i></button>
+            <x-notification-center />
             <a href="{{ route('profile') }}" class="reading-user" aria-label="Profil {{ $readingUserName }}" title="{{ $readingUserName }}">
-                <span class="reading-user-avatar">@if (auth()->user()->avatarUrl())<img src="{{ auth()->user()->avatarUrl() }}" alt="">@else{{ $readingInitials }}@endif</span>
+                <span class="reading-user-avatar {{ auth()->user()->avatarUrl() ? '' : 'is-empty' }}">@if (auth()->user()->avatarUrl())<img src="{{ auth()->user()->avatarUrl() }}" alt="">@else<x-icon name="user" class="avatar-placeholder-icon" />@endif</span>
                 <x-icon name="chevron-down" />
             </a>
         </div>

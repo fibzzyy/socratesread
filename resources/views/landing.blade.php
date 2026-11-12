@@ -167,11 +167,8 @@
 
                         <!-- Center Medallion with User's Uploaded Logo -->
                         <div class="flex flex-col items-center text-center my-auto px-2">
-                            <div
-                                class="w-20 h-20 sm:w-28 sm:h-28 rounded-full bg-white p-2 sm:p-2.5 shadow-2xl border-2 border-amber-400/80 flex items-center justify-center mb-3 sm:mb-4 relative ring-4 ring-amber-400/20">
-                                <img src="{{ asset('images/logo.png') }}" alt="Logo SocratesRead"
-                                    class="w-full h-full object-contain">
-                            </div>
+                            <img src="{{ asset('images/logo.png') }}" alt="Logo SocratesRead"
+                                class="w-20 h-20 sm:w-28 sm:h-28 object-contain mb-3 sm:mb-4">
 
                             <h1 class="font-serif-reading text-xl sm:text-3xl font-bold text-amber-100 tracking-wide">
                                 SocratesRead
@@ -832,9 +829,7 @@
                     <div id="sandbox-feedback-box"
                         class="hidden p-6 rounded-xl bg-blue-900 text-white space-y-3 shadow-lg border border-blue-700">
                         <div class="flex items-center gap-2">
-                            <div class="w-8 h-8 rounded-lg bg-white p-1 flex items-center justify-center shadow-xs">
-                                <img src="{{ asset('images/logo.png') }}" alt="Socrates Logo" class="w-full h-full object-contain">
-                            </div>
+                            <img src="{{ asset('images/logo.png') }}" alt="Socrates Logo" class="w-8 h-8 object-contain">
                             <h4 id="sandbox-feedback-title" class="font-serif-reading text-lg font-bold text-amber-300">
                                 Evaluasi Kritis Athena
                             </h4>
@@ -963,10 +958,7 @@
             </div>
 
             <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6 relative z-10">
-                <div
-                    class="w-16 h-16 rounded-2xl bg-white p-2.5 mx-auto shadow-2xl flex items-center justify-center">
-                    <img src="{{ asset('images/logo.png') }}" alt="Socrates Logo" class="w-full h-full object-contain">
-                </div>
+                <img src="{{ asset('images/logo.png') }}" alt="Socrates Logo" class="w-16 h-16 object-contain mx-auto">
 
                 <h2 class="font-serif-reading text-3xl sm:text-5xl font-bold tracking-tight">
                     Mulailah Petualangan Membaca yang Sebenarnya
@@ -1004,10 +996,7 @@
                 <!-- Col 1: Brand Info -->
                 <div class="md:col-span-2 space-y-4">
                     <div class="flex items-center gap-3">
-                        <div
-                            class="w-9 h-9 rounded-xl bg-white p-1.5 shadow-sm flex items-center justify-center">
-                            <img src="{{ asset('images/logo.png') }}" alt="Socrates Logo" class="w-full h-full object-contain">
-                        </div>
+                        <img src="{{ asset('images/logo.png') }}" alt="Socrates Logo" class="w-9 h-9 object-contain">
                         <span class="text-xl font-bold text-white tracking-tight">
                             socrates<span class="text-blue-500">read</span>
                         </span>

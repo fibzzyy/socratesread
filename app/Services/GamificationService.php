@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\ReadingSession;
 use App\Models\User;
+use App\Notifications\InAppNotification;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Collection;
@@ -35,6 +36,10 @@ class GamificationService
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
+
+            if ($inserted === 1 && in_array($eventType, ['reading_completed', 'challenge_completed', 'teacher_challenge', 'quiz_timed_quiz', 'quiz_practice'], true)) {
+                $this->notifyTeacherOfActivity($session->user_id, $session->document_id, $summary);
+            }
 
             return $inserted === 1 ? $xpToAward : 0;
         });
@@ -108,8 +113,40 @@ class GamificationService
                 'updated_at' => now(),
             ]);
 
+            $this->notifyTeacherOfActivity($attempt->user_id, $attempt->document_id, $summary);
+
             return $earnedXp;
         });
+    }
+
+    private function notifyTeacherOfActivity(int $studentId, int $documentId, string $summary): void
+    {
+        $document = DB::table('documents')->where('id', $documentId)->first(['title', 'uploaded_by']);
+        if (! $document) {
+            return;
+        }
+
+        $isEnrolled = DB::table('classroom_memberships')
+            ->join('teacher_classes', 'teacher_classes.id', '=', 'classroom_memberships.classroom_id')
+            ->where('teacher_classes.teacher_id', $document->uploaded_by)
+            ->where('classroom_memberships.student_id', $studentId)
+            ->exists();
+
+        if (! $isEnrolled) {
+            return;
+        }
+
+        $student = User::query()->find($studentId);
+        $teacher = User::query()->find($document->uploaded_by);
+        if (! $student || ! $teacher) {
+            return;
+        }
+
+        $teacher->notify(new InAppNotification(
+            'Aktivitas siswa',
+            $student->name.' — '.$summary.' pada '.$document->title,
+            route('teacher.students.show', $student->id, false),
+        ));
     }
 
     /** @return array{xp: int, level: int, xp_into_level: int, xp_to_next_level: int, level_progress: int, current_streak: int, longest_streak: int} */
