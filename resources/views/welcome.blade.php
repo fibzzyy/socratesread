@@ -21,27 +21,21 @@
 
             <div class="nav-label">MENU UTAMA</div>
             <nav class="nav-list" aria-label="Menu utama">
-                <a class="nav-link is-active" href="{{ route('dashboard') }}" aria-current="page"><x-icon name="layout-dashboard" /><span>Dashboard</span></a>
+                <a class="nav-link is-active" href="{{ route('dashboard') }}" aria-current="page"><x-icon name="layout-dashboard" /><span>Beranda</span></a>
                 <a class="nav-link" href="{{ route('reading') }}"><x-icon name="book-open-text" /><span>Reading Room</span></a>
-                <a class="nav-link {{ request()->routeIs('classrooms.*') ? 'is-active' : '' }}" href="{{ route('classrooms.index') }}"><x-icon name="users" /><span>My Class</span></a>
+                <a class="nav-link {{ request()->routeIs('classrooms.*') ? 'is-active' : '' }}" href="{{ route('classrooms.index') }}"><x-icon name="users" /><span>Kelas saya</span></a>
                 <a class="nav-link {{ request()->routeIs('settings.profile', 'profile') ? 'is-active' : '' }}" href="{{ route('profile') }}"><x-icon name="user" /><span>Profil</span></a>
             </nav>
 
             <div class="nav-label nav-label-spaced">BELAJAR</div>
             <nav class="nav-list" aria-label="Materi belajar">
                 <a class="nav-link" href="{{ route('quiz.index') }}"><x-icon name="gamepad-2" /><span>Challenge Socrates</span></a>
-                <a class="nav-link" href="{{ route('progress') }}"><x-icon name="chart-no-axes-combined" /><span>Progress</span></a>
+                <a class="nav-link" href="{{ route('progress') }}"><x-icon name="chart-no-axes-combined" /><span>Kemajuan</span></a>
                 <a class="nav-link" href="{{ route('achievements') }}"><x-icon name="award" /><span>Pencapaian</span></a>
             </nav>
 
             <div class="sidebar-spacer"></div>
-            <div class="sidebar-tip">
-                <span class="tip-icon" aria-hidden="true"><x-icon name="lightbulb" /></span>
-                <strong>Berpikir lebih dalam</strong>
-                <p>Setiap pertanyaan adalah langkah menuju pemahaman baru.</p>
-                <a href="{{ $activeSession ? route('challenge') : route('reading') }}">{{ $activeSession ? 'Mulai tantangan' : 'Pilih bacaan' }} <x-icon name="arrow-right" /></a>
-            </div>
-            <div class="profile-button"><a href="{{ route('profile') }}" class="avatar avatar-sidebar avatar-link" title="Profil">@if (auth()->user()->avatarUrl())<img src="{{ auth()->user()->avatarUrl() }}" alt="{{ auth()->user()->name }}" class="avatar-image">@else{{ mb_strtoupper($userInitials) }}@endif</a><span class="profile-copy"><strong>{{ auth()->user()->name }}</strong><small>Siswa SocratesRead</small></span><form method="POST" action="{{ route('logout') }}">@csrf<button class="logout-button" type="submit">Keluar</button></form></div>
+            <details class="profile-menu"><summary class="profile-button"><span class="avatar avatar-sidebar">@if (auth()->user()->avatarUrl())<img src="{{ auth()->user()->avatarUrl() }}" alt="">@else{{ mb_strtoupper($userInitials) }}@endif</span><span class="profile-copy"><strong>{{ auth()->user()->name }}</strong><small>Siswa SocratesRead</small></span><x-icon name="chevron-down" class="profile-chevron" /></summary><div class="profile-dropdown"><a href="{{ route('profile') }}">Profil</a><form method="POST" action="{{ route('logout') }}">@csrf<button type="submit">Keluar</button></form></div></details>
         </aside>
 
         <main class="main-content" id="dashboard">
