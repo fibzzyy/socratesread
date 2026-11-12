@@ -94,11 +94,11 @@
     @if (! $selectedGroup)
         <section class="panel reading-panel" aria-labelledby="reading-groups-title">
             <div class="section-heading">
-                <div>
+                <div class="reading-class-heading">
                     <p class="section-overline">MATERI UNTUKMU</p>
                     <h2 id="reading-groups-title">Kelas dan materi</h2>
+                    <span class="document-count" id="reading-class-count">{{ $groups->count() }} kelas</span>
                 </div>
-                <span class="document-count" id="reading-class-count">{{ $groups->count() }} kelas</span>
             </div>
 
             @if ($groups->isNotEmpty())
