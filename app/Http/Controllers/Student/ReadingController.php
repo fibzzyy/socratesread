@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
 use App\Models\Document;
+use App\Models\ReadingCoachMessage;
 use App\Models\ReadingSession;
 use App\Models\StudentQuizAttempt;
 use App\Services\GamificationService;
+use App\Services\ReadingMaterialFormatter;
 use App\Services\AI\Contracts\LanguageModel;
 use Illuminate\Cache\RateLimiter;
 use Illuminate\Http\Client\ConnectionException;
@@ -50,7 +52,13 @@ class ReadingController extends Controller
             ]);
         }
 
-        return view('student.reading', compact('document', 'session'));
+        $formatter = app(ReadingMaterialFormatter::class);
+        $formattedBody = $formatter->format((string) $document->body, (string) $document->title);
+        $formattedBodyHtml = $formatter->toHtml($formattedBody);
+        $bookPagesHtml = $formatter->splitIntoPages($formattedBody);
+        $coachHistory = $session->coachMessages()->get(['role', 'content']);
+
+        return view('student.reading', compact('document', 'session', 'formattedBodyHtml', 'bookPagesHtml', 'coachHistory'));
     }
 
     public function index(Request $request): View
@@ -151,7 +159,7 @@ class ReadingController extends Controller
             ['started_at' => now()],
         );
 
-        return redirect()->route('challenge', ['session' => $session->id]);
+        return redirect()->route('reading', ['document' => $document->id]);
     }
 
     private function selectedGrade(Request $request): string
@@ -181,22 +189,31 @@ class ReadingController extends Controller
                 'progress' => 100,
                 'xp_awarded' => 0,
                 'is_locked' => true,
+                'completed_at' => ($session->completed_at ?? now())->format('H:i'),
             ]);
         }
 
         if ($data['progress'] === 100) {
+            $completedAt = $session->completed_at ?? now();
             $session->update([
                 'progress_percent' => 100,
                 'status' => 'completed',
-                'completed_at' => $session->completed_at ?? now(),
+                'completed_at' => $completedAt,
             ]);
             $xpAwarded = $gamification->awardOnce($session, 'reading_completed', 10, 'Menyelesaikan bacaan');
+
+            return response()->json([
+                'progress' => 100,
+                'xp_awarded' => $xpAwarded,
+                'is_locked' => true,
+                'completed_at' => $completedAt->format('H:i'),
+            ]);
         } else {
             $session->update(['progress_percent' => max($session->progress_percent, $data['progress'])]);
             $xpAwarded = 0;
         }
 
-        return response()->json(['progress' => $session->progress_percent, 'xp_awarded' => $xpAwarded]);
+        return response()->json(['progress' => $session->progress_percent, 'xp_awarded' => $xpAwarded, 'is_locked' => false]);
     }
 
     public function coach(Request $request, LanguageModel $model, RateLimiter $limiter): JsonResponse
@@ -258,7 +275,31 @@ class ReadingController extends Controller
         ]);
 
         try {
-            return response()->json(['reply' => $model->respond($messages, $instructions)]);
+            $reply = $model->respond($messages, $instructions);
+            $trimmedUserMsg = trim($data['message']);
+            $words = preg_split('/\s+/u', mb_strtolower($trimmedUserMsg), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+            $trivialWords = ['tes', 'test', 'halo', 'hai', 'hei', 'oke', 'ok', 'ya', 'tidak', 'p'];
+            $isMeaningful = count($words) >= 3 && ! in_array(mb_strtolower($trimmedUserMsg), $trivialWords, true);
+
+            ReadingCoachMessage::query()->create([
+                'reading_session_id' => $session->id,
+                'user_id' => $request->user()->id,
+                'document_id' => $session->document_id,
+                'role' => 'user',
+                'content' => $trimmedUserMsg,
+                'is_meaningful' => $isMeaningful,
+            ]);
+
+            ReadingCoachMessage::query()->create([
+                'reading_session_id' => $session->id,
+                'user_id' => $request->user()->id,
+                'document_id' => $session->document_id,
+                'role' => 'assistant',
+                'content' => $reply,
+                'is_meaningful' => true,
+            ]);
+
+            return response()->json(['reply' => $reply]);
         } catch (ConnectionException|RequestException $exception) {
             $status = $exception instanceof RequestException ? $exception->response?->status() : null;
             Log::warning('Socratic coach provider request failed.', [

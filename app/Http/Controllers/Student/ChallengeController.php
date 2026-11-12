@@ -72,13 +72,23 @@ class ChallengeController extends Controller
             return redirect()->route('reading')->with('notice', 'Pertanyaan untuk bacaan ini belum tersedia.');
         }
 
+        $highlightService = app(\App\Services\Evaluation\AnswerHighlightService::class);
+        $questionMap = $questions->keyBy('id');
         $challengeQuestions = $questions->map(fn ($question) => $question->only(['id', 'skill', 'prompt', 'context', 'hint']))->values();
         $savedAnswers = $session->answers()->pluck('answer_text', 'socratic_question_id');
-        $savedEvaluations = $session->answers()->get()->keyBy('socratic_question_id')->map(function ($ans) {
+        $savedEvaluations = $session->answers()->get()->keyBy('socratic_question_id')->map(function ($ans) use ($highlightService, $questionMap, $session) {
+            $evalArr = is_array($ans->evaluation) ? $ans->evaluation : [];
+            $score = (int) ($ans->score ?? 0);
+            if ($score >= 40 && empty($evalArr['matched_spans'])) {
+                $qObj = $questionMap->get($ans->socratic_question_id);
+                $modelRef = (string) ($qObj?->hint ?: ($qObj?->context ?: ''));
+                $evalArr['matched_spans'] = $highlightService->extractMatchedSpans((string) $ans->answer_text, $modelRef, $session->document);
+            }
+
             return [
-                'score' => (int) ($ans->score ?? 0),
+                'score' => $score,
                 'understanding_level' => (string) ($ans->understanding_level ?? ''),
-                'evaluation' => $ans->evaluation ?? [],
+                'evaluation' => $evalArr,
             ];
         });
         $isLocked = $session->isCompleted();

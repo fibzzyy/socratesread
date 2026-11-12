@@ -5,6 +5,7 @@ namespace App\Services\AI;
 use App\Services\AI\Contracts\LanguageModel;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
 use Throwable;
 
@@ -27,7 +28,6 @@ class OpenRouterResponsesProvider implements LanguageModel
         $apiKey = (string) config('services.openrouter.api_key');
         $model = $options['model'] ?? config('services.openrouter.model');
 
-        // 1. Format payload untuk endpoint standard /chat/completions
         $chatMessages = [];
         if (trim($instructions) !== '') {
             $chatMessages[] = [
@@ -54,43 +54,79 @@ class OpenRouterResponsesProvider implements LanguageModel
             $chatPayload['max_tokens'] = (int) $options['max_output_tokens'];
         }
 
-        // Coba endpoint standar /chat/completions terlebih dahulu
-        try {
-            $chatResponse = Http::acceptJson()
-                ->asJson()
-                ->withToken($apiKey)
-                ->connectTimeout(3)
-                ->timeout($timeout)
-                ->post($baseUrl . '/chat/completions', $chatPayload);
+        $maxAttempts = 2;
+        $lastException = null;
 
-            if ($chatResponse->successful()) {
-                $content = $chatResponse->json('choices.0.message.content');
-                if (is_string($content) && trim($content) !== '') {
-                    return trim($content);
+        for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+            try {
+                $http = Http::acceptJson()
+                    ->asJson()
+                    ->withToken($apiKey)
+                    ->connectTimeout(10)
+                    ->timeout($timeout);
+
+                if (defined('CURLOPT_IPRESOLVE') && defined('CURL_IPRESOLVE_V4')) {
+                    $http = $http->withOptions(['curl' => [CURLOPT_IPRESOLVE => CURL_IPRESOLVE_V4]]);
                 }
-                file_put_contents(base_path('chat_error.txt'), "Chat 200 but content empty: " . json_encode($chatResponse->json()));
-                throw new RuntimeException('OpenRouter returned an empty completion.');
-            }
 
-            file_put_contents(base_path('chat_error.txt'), "Chat failed {$chatResponse->status()}: " . $chatResponse->body());
-            \Illuminate\Support\Facades\Log::warning('OpenRouter chat/completions unsuccesful: ' . $chatResponse->status(), [
-                'body' => $chatResponse->body(),
-            ]);
+                $chatResponse = $http->post($baseUrl . '/chat/completions', $chatPayload);
 
-            if (! in_array($chatResponse->status(), [404, 405], true)) {
+                if ($chatResponse->successful()) {
+                    $content = $chatResponse->json('choices.0.message.content');
+                    if (is_string($content) && trim($content) !== '') {
+                        return trim($content);
+                    }
+
+                    Log::warning('OpenRouter chat/completions returned empty content.', [
+                        'attempt' => $attempt,
+                        'model' => $model,
+                    ]);
+
+                    if ($attempt < $maxAttempts) {
+                        continue;
+                    }
+
+                    throw new RuntimeException('OpenRouter returned an empty completion.');
+                }
+
+                Log::warning('OpenRouter chat/completions unsuccessful: ' . $chatResponse->status(), [
+                    'attempt' => $attempt,
+                    'body' => mb_substr($chatResponse->body(), 0, 500),
+                ]);
+
+                if (in_array($chatResponse->status(), [404, 405], true)) {
+                    break; // Fallback ke /responses
+                }
+
+                if (in_array($chatResponse->status(), [429, 500, 502, 503, 504], true) && $attempt < $maxAttempts) {
+                    usleep(400000);
+                    continue;
+                }
+
                 $chatResponse->throw();
+            } catch (ConnectionException $e) {
+                $lastException = $e;
+                Log::warning('OpenRouter chat/completions connection error: ' . $e->getMessage(), [
+                    'attempt' => $attempt,
+                ]);
+                if ($attempt < $maxAttempts) {
+                    usleep(300000);
+                    continue;
+                }
+                throw $e;
+            } catch (Throwable $e) {
+                $lastException = $e;
+                if ($attempt >= $maxAttempts) {
+                    throw $e;
+                }
             }
-        } catch (ConnectionException $e) {
-            file_put_contents(base_path('chat_error.txt'), "Chat connection error: " . $e->getMessage());
-            \Illuminate\Support\Facades\Log::warning('OpenRouter chat/completions connection error: ' . $e->getMessage());
-            throw $e;
-        } catch (Throwable $e) {
-            file_put_contents(base_path('chat_error.txt'), "Chat exception: " . $e->getMessage());
-            \Illuminate\Support\Facades\Log::warning('OpenRouter chat/completions exception: ' . $e->getMessage());
-            throw $e;
         }
 
-        // 2. Fallback ke endpoint legacy /responses hanya jika /chat/completions mengembalikan 404/405
+        if ($lastException instanceof Throwable && ! (isset($chatResponse) && in_array($chatResponse->status(), [404, 405], true))) {
+            throw $lastException;
+        }
+
+        // Fallback ke endpoint legacy /responses hanya jika /chat/completions mengembalikan 404/405
         $responsesPayload = [
             'model' => $model,
             'instructions' => $instructions,
@@ -105,7 +141,7 @@ class OpenRouterResponsesProvider implements LanguageModel
         $response = Http::acceptJson()
             ->asJson()
             ->withToken($apiKey)
-            ->connectTimeout(3)
+            ->connectTimeout(10)
             ->timeout($timeout)
             ->post($baseUrl . '/responses', $responsesPayload);
 

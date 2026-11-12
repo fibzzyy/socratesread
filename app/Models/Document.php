@@ -75,4 +75,9 @@ class Document extends Model
     {
         return $this->hasMany(StudentTeacherChallengeSubmission::class);
     }
+
+    public function coachMessages(): HasMany
+    {
+        return $this->hasMany(ReadingCoachMessage::class);
+    }
 }

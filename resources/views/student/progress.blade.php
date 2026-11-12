@@ -98,7 +98,7 @@
                 <div>
                     <p>Tantangan selesai</p>
                     <strong>{{ $completedChallenges }}</strong>
-                    <small>Latihan Sokratik tersimpan</small>
+                    <small>Challenge Socrates & Tantangan Guru selesai</small>
                 </div>
             </article>
         </section>
@@ -154,7 +154,7 @@
                             <span class="skill-symbol skill-symbol-blue"><x-icon name="search-check" /></span>
                             <div>
                                 <strong>{{ $skill->skill }}</strong>
-                                <small>{{ $skill->practiced_count }} dari {{ $skill->target_count }} materi dilatih</small>
+                                <small>{{ $skill->practiced_count }} dari {{ $skill->target_count }} materi · {{ $skill->description ?? 'Capaian gabungan membaca, kuis, tantangan & Tanya Socrates' }}</small>
                             </div>
                             <b>{{ $skill->percent }}%</b>
                         </div>
@@ -166,7 +166,7 @@
 
                 <div class="skill-note">
                     <x-icon name="lightbulb" />
-                    Setiap bacaan yang kamu selesaikan tantangannya akan meningkatkan capaian kompetensi di atas secara bertahap.
+                    Persentase dihitung dari ketuntasan baca, akurasi Kuis PG, kekritisan jawaban Tantangan Guru, serta keaktifan bertanya di Tanya Socrates.
                 </div>
             </section>
 
@@ -200,11 +200,12 @@
                 <h2 id="activity-history-title">Aktivitas terbaru di kelas ini</h2>
                 <div class="recent-activity-list progress-activity-list">
                     @forelse ($recentActivities as $activity)
+                        @php($actDoc = $activity->document ?? $activity->readingSession?->document)
                         <article class="recent-activity-row">
                             <span class="recent-activity-icon"><x-icon name="{{ $activity->event_type === 'reading_completed' ? 'book-open-text' : 'award' }}" /></span>
                             <div>
                                 <strong>{{ $activity->summary }}</strong>
-                                <small>{{ $activity->readingSession?->document?->title ?? 'Sesi materi' }} · {{ $activity->created_at->locale('id')->diffForHumans() }}</small>
+                                <small>{{ $actDoc?->category ? $actDoc->category . ' · ' : '' }}{{ $actDoc?->title ?? 'Sesi materi' }} · {{ $activity->created_at->locale('id')->diffForHumans() }}</small>
                             </div>
                             <span class="recent-activity-xp">{{ $activity->xp_awarded ? '+'.$activity->xp_awarded.' XP' : 'Tercatat' }}</span>
                         </article>
@@ -263,7 +264,7 @@
                 <div>
                     <p>Total tantangan selesai</p>
                     <strong>{{ $completedChallenges }}</strong>
-                    <small>Latihan Sokratik tersimpan</small>
+                    <small>Challenge Socrates & Tantangan Guru selesai</small>
                 </div>
             </article>
         </section>
@@ -351,11 +352,12 @@
             <h2 id="global-activity-title">Aktivitas belajar terbaru</h2>
             <div class="recent-activity-list progress-activity-list">
                 @forelse ($recentActivities as $activity)
+                    @php($actDoc = $activity->document ?? $activity->readingSession?->document)
                     <article class="recent-activity-row">
                         <span class="recent-activity-icon"><x-icon name="{{ $activity->event_type === 'reading_completed' ? 'book-open-text' : 'award' }}" /></span>
                         <div>
                             <strong>{{ $activity->summary }}</strong>
-                            <small>{{ $activity->readingSession?->document?->title ?? 'Sesi membaca' }} · {{ $activity->created_at->locale('id')->diffForHumans() }}</small>
+                            <small>{{ $actDoc?->category ? $actDoc->category . ' · ' : '' }}{{ $actDoc?->title ?? 'Sesi membaca' }} · {{ $activity->created_at->locale('id')->diffForHumans() }}</small>
                         </div>
                         <span class="recent-activity-xp">{{ $activity->xp_awarded ? '+'.$activity->xp_awarded.' XP' : 'Tercatat' }}</span>
                     </article>
