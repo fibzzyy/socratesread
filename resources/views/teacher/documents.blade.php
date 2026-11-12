@@ -109,17 +109,17 @@
                             <x-icon name="gamepad-2" class="w-3 h-3 text-indigo-600"/>
                             <span data-quiz-badge-text>Kuis Socrates: {{ $document->quiz_question_count ?? 10 }} Soal (⏱️ {{ $document->quiz_duration_minutes ?? 15 }}m)</span>
                         </span>
-                        <span class="rounded bg-purple-50 px-2 py-0.5 text-[10px] font-bold text-purple-700 border border-purple-200/60 inline-flex items-center gap-1">
+                        <span data-doc-challenge-pill="{{ $document->id }}" class="rounded bg-purple-50 px-2 py-0.5 text-[10px] font-bold text-purple-700 border border-purple-200/60 inline-flex items-center gap-1">
                             <x-icon name="award" class="w-3 h-3 text-purple-600"/>
-                            {{ $document->teacher_challenges_count }} Tantangan Guru
+                            <span data-doc-challenge-pill-text>{{ $document->teacher_challenges_count }} Tantangan Guru</span>
                         </span>
                     </div>
                     <span>{{ $document->category }} · <span class="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700">{{ $document->targetGradeLabel() }}</span> · {{ number_format(mb_strlen($document->body)) }} karakter · {{ $document->created_at->locale('id')->translatedFormat('d M Y') }}</span>
                 </div>
                 <div class="flex items-center gap-2 flex-wrap">
-                    <button type="button" class="inline-flex items-center gap-1.5 rounded-lg border border-purple-300 bg-purple-50 px-2.5 py-1.5 text-xs font-bold text-purple-900 hover:bg-purple-100 transition shadow-2xs" data-challenge-btn data-doc-id="{{ $document->id }}" data-doc-title="{{ $document->title }}" data-get-url="{{ route('teacher.documents.challenges.index', $document) }}" data-store-url="{{ route('teacher.documents.challenges.store', $document) }}" data-suggestions-url="{{ route('teacher.documents.challenges.suggestions', $document) }}" title="Kelola Tantangan Guru (Esai & PG)">
+                    <button type="button" class="inline-flex items-center gap-1.5 rounded-lg border border-purple-300 bg-purple-50 px-2.5 py-1.5 text-xs font-bold text-purple-900 hover:bg-purple-100 transition shadow-2xs" data-challenge-btn data-doc-id="{{ $document->id }}" data-doc-title="{{ $document->title }}" data-get-url="{{ route('teacher.documents.challenges.index', $document) }}" data-store-url="{{ route('teacher.documents.challenges.store', $document) }}" data-suggestions-url="{{ route('teacher.documents.challenges.suggestions', $document) }}" data-analyze-url="{{ route('teacher.documents.challenges.analyze', $document) }}" data-recommend-answer-url="{{ route('teacher.documents.challenges.recommend_answer', $document) }}" title="Kelola Tantangan Guru (Esai & PG)">
                         <x-icon name="award" class="w-3.5 h-3.5 text-purple-600"/>
-                        <span>Tantangan Guru ({{ $document->teacher_challenges_count }})</span>
+                        <span data-challenge-btn-label>Tantangan Guru ({{ $document->teacher_challenges_count }})</span>
                     </button>
                     <form method="POST" action="{{ route('teacher.documents.quiz_duration', $document) }}" data-quiz-settings-form data-doc-id="{{ $document->id }}" class="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg p-1 relative" title="Pengaturan Kuis Socrates untuk Siswa">
                         @csrf @method('PATCH')
@@ -159,16 +159,23 @@
                             'grade' => $document->targetGradeLabel(),
                             'excerpt' => $document->excerpt,
                             'body' => $document->body,
+                            'formattedBodyHtml' => $document->formatted_body_html ?? '',
                             'quizCount' => $document->quiz_question_count ?? 10,
                             'quiz' => $document->quizQuestions->values(),
                             'teacherChallenges' => $document->teacherChallenges->values(),
+                            'challengeMaxXp' => $document->challenge_max_xp ?? 0,
                         ], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) !!}
                     </script>
                     <button type="button" class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition" data-preview-btn data-doc-id="{{ $document->id }}" title="Pratinjau Materi & Soal">
                         <x-icon name="eye" class="w-3.5 h-3.5 text-slate-500"/>
                         <span class="hidden sm:inline">Pratinjau & Soal</span>
                     </button>
-                    <form method="POST" action="{{ route('teacher.documents.destroy', $document) }}" onsubmit="return confirm('Hapus bacaan ini secara permanen? Sesi baca, jawaban siswa, dan XP terkait juga akan dihapus. Tindakan ini tidak dapat dibatalkan.')">
+                    <form method="POST" action="{{ route('teacher.documents.destroy', $document) }}"
+                          data-confirm-title="Hapus Bacaan Secara Permanen?"
+                          data-confirm-subject="{{ $document->title }}"
+                          data-confirm-message="Sesi baca, seluruh jawaban siswa, tantangan terkait, dan XP siswa akan ikut dihapus. Tindakan ini tidak dapat dibatalkan."
+                          data-confirm-ok="Ya, Hapus Permanen"
+                          data-confirm-variant="danger">
                         @csrf @method('DELETE')
                         <button type="submit" class="teacher-document-delete" aria-label="Hapus bacaan {{ $document->title }}">
                             <x-icon name="trash-2"/>
@@ -234,7 +241,7 @@
 
                         <div>
                             <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">ISI TEKS PEMBELAJARAN SISWA</p>
-                            <div id="modalDocBody" class="prose prose-sm max-w-none text-xs text-slate-700 leading-relaxed space-y-3 font-normal text-justify [text-justify:inter-word]"></div>
+                            <div id="modalDocBody" class="passage-markdown prose prose-sm max-w-none text-xs text-slate-700 leading-relaxed space-y-3 font-normal"></div>
                         </div>
                     </div>
 
@@ -288,13 +295,13 @@
 
             <!-- Content Area (Scrollable) -->
             <div class="flex-grow overflow-y-auto p-6 space-y-6">
-                <!-- Info Alert Skoring 100 Poin -->
+                <!-- Info Alert Skoring 100 Poin & Bobot Kesulitan -->
                 <div class="rounded-xl border border-purple-200 bg-purple-50/80 p-4 text-xs text-purple-950 flex items-start gap-3">
                     <x-icon name="sparkles" class="w-5 h-5 text-purple-600 shrink-0 mt-0.5" />
                     <div class="leading-relaxed">
-                        <strong class="font-bold block text-purple-900 mb-1">💡 Penilaian Otomatis (Total 100 Poin):</strong>
-                        Berapa pun jumlah soal esai yang Anda buat, skor maksimal jika seluruhnya benar adalah <strong>100 Poin</strong> (bobot terdistribusi rata: 100 / N).
-                        Jawaban esai murid dinilai mendalam oleh AI berdasarkan kesesuaian materi & kata kunci rubrik yang Anda tentukan (menghasilkan nilai proporsional seperti 30.45, 45, dsb).
+                        <strong class="font-bold block text-purple-900 mb-1">💡 Penilaian Otomatis Proporsional (Total 100 Poin) & Reward Socrates:</strong>
+                        Skor maksimal tetap <strong>100 Poin</strong> dan didistribusikan otomatis sesuai tingkat kesulitan tiap soal (<strong>Easy = bobot 1</strong>, <strong>Medium = bobot 2</strong>, <strong>Hard = bobot 3</strong>).
+                        Setiap soal yang Anda buat sendiri juga dianalisis kesulitannya oleh Socrates beserta estimasi <strong>Reward XP</strong> siswa.
                     </div>
                 </div>
 
@@ -303,8 +310,8 @@
                     <div class="flex items-start gap-2">
                         <span class="text-amber-600 text-base leading-none mt-0.5">💡</span>
                         <div>
-                            <span class="font-bold text-amber-950 block">Butuh bantuan menentukan soal esai?</span>
-                            <span class="text-slate-600 text-[11px]">Sistem dapat memuat rekomendasi draf soal analisis beserta kunci konsep langsung dari materi bacaan ini.</span>
+                            <span class="font-bold text-amber-950 block">Butuh rekomendasi soal kritis dari Socrates AI?</span>
+                            <span class="text-slate-600 text-[11px]">Socrates menganalisis keseluruhan materi untuk menyusun soal kritis (Easy–Hard) beserta kunci jawaban langsung yang akurat.</span>
                         </div>
                     </div>
                     <button type="button" id="btnLoadSuggestions" class="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs shadow-2xs transition">
@@ -314,9 +321,15 @@
 
                 <!-- List of Existing Questions -->
                 <div>
-                    <div class="flex items-center justify-between mb-3">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
                         <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500">Daftar Soal Tantangan (<span id="challengeCountDisplay">0 Soal</span>)</h4>
-                        <span id="pointsPerQDisplay" class="rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold text-slate-700">0 Poin / Soal</span>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span id="challengeMaxXpDisplay" class="rounded-full bg-blue-50 border border-blue-200 px-2.5 py-0.5 text-[10px] font-bold text-blue-700">Reward: +0 XP</span>
+                            <span id="pointsPerQDisplay" class="rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold text-slate-700">Total 100 Poin</span>
+                            <button type="button" id="btnClearAllChallenges" class="hidden text-rose-600 hover:text-rose-800 text-xs font-bold transition px-1.5 py-0.5 rounded hover:bg-rose-50">
+                                Hapus Semua
+                            </button>
+                        </div>
                     </div>
                     <div id="challengeListContainer" class="space-y-3">
                         <!-- Rendered dynamically -->
@@ -328,27 +341,51 @@
                     <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-3">Tambah Soal Baru</h4>
 
                     <!-- Type Radio Selector -->
-                    <div class="flex items-center gap-4 mb-4">
-                        <label class="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-700">
-                            <input type="radio" name="new_q_type" value="essay" checked class="text-purple-600 focus:ring-purple-500" id="typeEssayRadio">
-                            <span>📝 Soal Esai (Analisis Pemahaman)</span>
-                        </label>
-                        <label class="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-700">
-                            <input type="radio" name="new_q_type" value="multiple_choice" class="text-purple-600 focus:ring-purple-500" id="typePGRadio">
-                            <span>🔘 Pilihan Ganda (A/B/C/D)</span>
-                        </label>
+                    <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+                        <div class="flex items-center gap-4">
+                            <label class="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-700">
+                                <input type="radio" name="new_q_type" value="essay" checked class="text-purple-600 focus:ring-purple-500" id="typeEssayRadio">
+                                <span>📝 Soal Esai (Analisis Pemahaman)</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-700">
+                                <input type="radio" name="new_q_type" value="multiple_choice" class="text-purple-600 focus:ring-purple-500" id="typePGRadio">
+                                <span>🔘 Pilihan Ganda (A/B/C/D)</span>
+                            </label>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <label for="newQDifficulty" class="text-[11px] font-bold text-slate-500">Kesulitan:</label>
+                            <select id="newQDifficulty" class="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-700">
+                                <option value="auto" selected>✨ Otomatis (Analisis Socrates)</option>
+                                <option value="easy">Easy (Bobot 1)</option>
+                                <option value="medium">Medium (Bobot 2)</option>
+                                <option value="hard">Hard (Bobot 3)</option>
+                            </select>
+                        </div>
                     </div>
 
                     <!-- Pertanyaan Input -->
                     <div class="space-y-1 mb-3">
-                        <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Pertanyaan:</label>
-                        <textarea id="newQText" rows="3" class="w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-800 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 outline-none" placeholder="Tuliskan pertanyaan tantangan esai..."></textarea>
+                        <label for="newQText" class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Pertanyaan:</label>
+                        <textarea id="newQText" rows="3" class="w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-800 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 outline-none" placeholder="Tuliskan pertanyaan tantangan secara langsung... (Kunci jawaban akan otomatis direkomendasikan dari materi)"></textarea>
                     </div>
 
-                    <!-- Esai Fields (Rubrik Konsep) -->
-                    <div id="essayFields" class="space-y-1 mb-3">
-                        <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Kunci Konsep / Panduan Penilaian Esai (untuk AI):</label>
-                        <textarea id="newQRubric" rows="2" class="w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-800 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 outline-none" placeholder="Kata kunci, argumen utama, atau bukti yang diharapkan muncul dalam jawaban murid..."></textarea>
+                    <!-- Esai Fields (Kunci Jawaban Langsung) -->
+                    <div id="essayFields" class="space-y-1.5 mb-3">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <label for="newQRubric" class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Kunci Jawaban:</label>
+                                <span id="rubricAutoStatus" class="hidden text-[10px] font-semibold text-purple-700 bg-purple-50 border border-purple-200/80 rounded-full px-2 py-0.5"></span>
+                            </div>
+                            <div class="flex items-center gap-2.5">
+                                <button type="button" id="btnRecommendRubric" class="text-[11px] font-bold text-purple-600 hover:text-purple-800 transition">
+                                    ✨ Rekomendasikan dari Materi
+                                </button>
+                                <button type="button" id="btnClearRubric" data-clear-rubric class="text-rose-600 hover:text-rose-800 text-xs font-bold transition">
+                                    Hapus
+                                </button>
+                            </div>
+                        </div>
+                        <textarea id="newQRubric" rows="3" class="w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-800 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 outline-none" placeholder="Kunci jawaban akan terisi otomatis dari materi saat Anda menuliskan pertanyaan di atas, atau tulis/ubah sendiri kunci jawaban di sini..."></textarea>
                     </div>
 
                     <!-- PG Fields (Opsi A/B/C/D & Kunci) -->
@@ -474,19 +511,22 @@
 
                 document.getElementById('modalDocExcerpt').innerHTML = formatInlineMarkdown(excerpt);
 
-                // Render paragraphs in Body
+                // Render structured body in Preview Drawer
                 const bodyEl = document.getElementById('modalDocBody');
                 bodyEl.innerHTML = '';
-                const paragraphs = body.split(/\r?\n\r?\n/).filter(p => p.trim() !== '');
-                if (paragraphs.length === 0) {
-                    bodyEl.innerHTML = `<p class="text-justify [text-justify:inter-word]">${formatInlineMarkdown(body)}</p>`;
+                if (data.formattedBodyHtml) {
+                    bodyEl.innerHTML = data.formattedBodyHtml;
                 } else {
-                    paragraphs.forEach(p => {
-                        const pEl = document.createElement('p');
-                        pEl.innerHTML = formatInlineMarkdown(p.trim());
-                        pEl.className = 'text-justify [text-justify:inter-word]';
-                        bodyEl.appendChild(pEl);
-                    });
+                    const paragraphs = body.split(/\r?\n\r?\n/).filter(p => p.trim() !== '');
+                    if (paragraphs.length === 0) {
+                        bodyEl.innerHTML = `<p>${formatInlineMarkdown(body)}</p>`;
+                    } else {
+                        paragraphs.forEach(p => {
+                            const pEl = document.createElement('p');
+                            pEl.innerHTML = formatInlineMarkdown(p.trim());
+                            bodyEl.appendChild(pEl);
+                        });
+                    }
                 }
 
                 // Render Kuis Socrates (Pilihan Ganda)
@@ -559,10 +599,17 @@
                         </div>
                     `;
                 } else {
-                    const pointsPerItem = (100 / teacherChallenges.length).toFixed(2);
+                    const diffBadgeMap = {
+                        easy: { label: 'Easy', cls: 'bg-emerald-100 text-emerald-800' },
+                        medium: { label: 'Medium', cls: 'bg-amber-100 text-amber-800' },
+                        hard: { label: 'Hard', cls: 'bg-rose-100 text-rose-800' },
+                    };
                     teacherChallenges.forEach((item, idx) => {
                         const seq = item.sequence || (idx + 1);
                         const isEssay = item.type === 'essay';
+                        const diffKey = String(item.difficulty || 'medium').toLowerCase();
+                        const diffBadge = diffBadgeMap[diffKey] || diffBadgeMap.medium;
+                        const pts = item.points_max !== undefined ? Number(item.points_max).toFixed(2) : (100 / teacherChallenges.length).toFixed(2);
                         const card = document.createElement('div');
                         card.className = 'rounded-xl border border-slate-200/80 bg-slate-50/70 p-4 space-y-2.5';
 
@@ -572,7 +619,7 @@
                                 <h4 class="text-xs font-bold text-slate-900 leading-snug">${item.question}</h4>
                                 ${item.rubric ? `
                                     <div class="rounded-lg bg-purple-50/70 border border-purple-200/60 p-2.5 text-[11px] text-purple-950 flex items-start gap-1.5 mt-2">
-                                        <span class="font-bold text-purple-700 shrink-0">🔑 Kunci Konsep / Rubrik AI:</span>
+                                        <span class="font-bold text-purple-700 shrink-0">🔑 Kunci Jawaban:</span>
                                         <span>${item.rubric}</span>
                                     </div>
                                 ` : ''}
@@ -603,14 +650,15 @@
                         }
 
                         card.innerHTML = `
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center gap-2">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <div class="flex items-center gap-1.5">
                                     <span class="rounded bg-slate-200/80 text-slate-800 text-[10px] font-bold px-2 py-0.5">#${seq}</span>
                                     <span class="rounded ${isEssay ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'} text-[10px] font-bold px-2 py-0.5 uppercase">
                                         ${isEssay ? 'Esai Analisis' : 'Pilihan Ganda'}
                                     </span>
+                                    <span class="rounded ${diffBadge.cls} text-[10px] font-bold px-2 py-0.5 uppercase">${diffBadge.label}</span>
                                 </div>
-                                <span class="text-[10px] text-slate-500 font-semibold">Bobot: ${pointsPerItem} Poin</span>
+                                <span class="text-[10px] text-slate-500 font-semibold">Bobot: ${pts} Poin</span>
                             </div>
                             ${contentHtml}
                         `;
@@ -723,6 +771,7 @@
             const challengeListContainer = document.getElementById('challengeListContainer');
             const challengeCountDisplay = document.getElementById('challengeCountDisplay');
             const pointsPerQDisplay = document.getElementById('pointsPerQDisplay');
+            const challengeMaxXpDisplay = document.getElementById('challengeMaxXpDisplay');
 
             const typeEssayRadio = document.getElementById('typeEssayRadio');
             const typePGRadio = document.getElementById('typePGRadio');
@@ -730,7 +779,12 @@
             const pgFields = document.getElementById('pgFields');
 
             const newQText = document.getElementById('newQText');
+            const newQDifficulty = document.getElementById('newQDifficulty');
             const newQRubric = document.getElementById('newQRubric');
+            const rubricAutoStatus = document.getElementById('rubricAutoStatus');
+            const btnRecommendRubric = document.getElementById('btnRecommendRubric');
+            const btnClearRubric = document.getElementById('btnClearRubric');
+            const btnClearAllChallenges = document.getElementById('btnClearAllChallenges');
             const optA = document.getElementById('optA');
             const optB = document.getElementById('optB');
             const optC = document.getElementById('optC');
@@ -743,7 +797,235 @@
             let currentDocId = null;
             let currentStoreUrl = null;
             let currentSuggestionsUrl = null;
+            let currentAnalyzeUrl = null;
+            let currentRecommendAnswerUrl = null;
             let activeChallenges = [];
+            let editingIndex = null;
+
+            const escapeHtml = (str) => String(str ?? '').replace(/[&<>"']/g, ch => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;',
+            }[ch]));
+
+            const notify = (message, type = 'info', duration = 3800) => {
+                if (window.SocratesUI?.toast) {
+                    window.SocratesUI.toast(message, type, duration);
+                }
+            };
+
+            const askConfirm = (options) => {
+                if (window.SocratesUI?.confirm) {
+                    return window.SocratesUI.confirm(options);
+                }
+                return Promise.resolve(false);
+            };
+
+            let recommendTimer = null;
+            let recommendAbortController = null;
+            let lastRecommendedQuestion = '';
+            let lastRecommendedExcerpt = '';
+            let rubricManuallyEdited = false;
+            let rubricDismissedForQuestion = false;
+
+            const setRubricStatus = (text, show = true) => {
+                if (!rubricAutoStatus) return;
+                if (!show || !text) {
+                    rubricAutoStatus.classList.add('hidden');
+                    rubricAutoStatus.textContent = '';
+                    return;
+                }
+                rubricAutoStatus.textContent = text;
+                rubricAutoStatus.classList.remove('hidden');
+            };
+
+            const resetNewQuestionFormState = () => {
+                if (recommendTimer) {
+                    clearTimeout(recommendTimer);
+                    recommendTimer = null;
+                }
+                if (recommendAbortController) {
+                    recommendAbortController.abort();
+                    recommendAbortController = null;
+                }
+                lastRecommendedQuestion = '';
+                lastRecommendedExcerpt = '';
+                rubricManuallyEdited = false;
+                rubricDismissedForQuestion = false;
+                setRubricStatus('', false);
+            };
+
+            const requestRecommendedAnswer = async (questionText, signal = undefined) => {
+                if (!currentRecommendAnswerUrl) return null;
+                const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                const res = await fetch(currentRecommendAnswerUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': token,
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({ question: questionText }),
+                    signal,
+                });
+                if (!res.ok) return null;
+                return await res.json();
+            };
+
+            const resolveDifficultyForItem = async (chosenDiff, itemPayload) => {
+                if (chosenDiff !== 'auto') {
+                    return { difficulty: chosenDiff, difficulty_weight: diffWeights[chosenDiff] || 2 };
+                }
+                if (!currentAnalyzeUrl) {
+                    return { difficulty: 'medium', difficulty_weight: 2 };
+                }
+                const controller = new AbortController();
+                const timer = setTimeout(() => controller.abort(), 4500);
+                try {
+                    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                    const res = await fetch(currentAnalyzeUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': token, 'Accept': 'application/json' },
+                        body: JSON.stringify(itemPayload),
+                        signal: controller.signal,
+                    });
+                    if (res.ok) {
+                        const analyzed = await res.json();
+                        return {
+                            difficulty: analyzed.difficulty || 'medium',
+                            difficulty_weight: analyzed.difficulty_weight || 2,
+                        };
+                    }
+                } catch (_) {
+                    // Fallback instan jika jaringan/AI lambat
+                } finally {
+                    clearTimeout(timer);
+                }
+                return { difficulty: 'medium', difficulty_weight: 2 };
+            };
+
+            const fetchRecommendedAnswer = async (force = false) => {
+                if (!currentRecommendAnswerUrl || !typeEssayRadio?.checked) return;
+                const qText = (newQText?.value || '').trim();
+                if (qText.length < 8) return;
+                if (!force && (rubricManuallyEdited || rubricDismissedForQuestion)) return;
+                if (!force && qText === lastRecommendedQuestion && newQRubric.value.trim() !== '') return;
+
+                if (recommendAbortController) {
+                    recommendAbortController.abort();
+                }
+                recommendAbortController = new AbortController();
+
+                setRubricStatus('⏳ Mencari jawaban dari materi...', true);
+                try {
+                    const json = await requestRecommendedAnswer(qText, recommendAbortController.signal);
+                    if (!json) {
+                        setRubricStatus('', false);
+                        return;
+                    }
+                    if ((newQText?.value || '').trim() !== qText) return;
+                    if (!force && rubricManuallyEdited) return;
+
+                    if (json.recommended_answer) {
+                        newQRubric.value = json.recommended_answer;
+                        lastRecommendedQuestion = qText;
+                        lastRecommendedExcerpt = json.reference_excerpt || '';
+                        rubricManuallyEdited = false;
+                        rubricDismissedForQuestion = false;
+                        setRubricStatus('✨ Rekomendasi otomatis dari materi — silakan ubah atau klik Hapus', true);
+                    } else {
+                        setRubricStatus('', false);
+                    }
+                } catch (err) {
+                    if (err?.name !== 'AbortError') {
+                        setRubricStatus('', false);
+                    }
+                }
+            };
+
+            newQText?.addEventListener('input', () => {
+                const qText = newQText.value.trim();
+                if (qText !== lastRecommendedQuestion) {
+                    rubricDismissedForQuestion = false;
+                }
+                if (recommendTimer) {
+                    clearTimeout(recommendTimer);
+                }
+                if (!typeEssayRadio?.checked || qText.length < 8 || rubricManuallyEdited) {
+                    return;
+                }
+                recommendTimer = setTimeout(() => fetchRecommendedAnswer(false), 650);
+            });
+
+            newQText?.addEventListener('blur', () => {
+                const qText = newQText.value.trim();
+                if (typeEssayRadio?.checked && qText.length >= 8 && !rubricManuallyEdited && !rubricDismissedForQuestion && newQRubric.value.trim() === '') {
+                    fetchRecommendedAnswer(false);
+                }
+            });
+
+            newQRubric?.addEventListener('input', () => {
+                const hasText = newQRubric.value.trim() !== '';
+                rubricManuallyEdited = hasText;
+                if (hasText) {
+                    setRubricStatus('✎ Diedit manual', true);
+                } else {
+                    setRubricStatus('', false);
+                }
+            });
+
+            btnClearRubric?.addEventListener('click', () => {
+                newQRubric.value = '';
+                lastRecommendedExcerpt = '';
+                rubricManuallyEdited = false;
+                rubricDismissedForQuestion = true;
+                setRubricStatus('', false);
+                newQRubric.focus();
+            });
+
+            btnRecommendRubric?.addEventListener('click', () => {
+                const qText = (newQText?.value || '').trim();
+                if (qText.length < 5) {
+                    notify('Tuliskan pertanyaan terlebih dahulu agar Socrates dapat merekomendasikan kunci jawabannya dari materi.', 'warning');
+                    newQText?.focus();
+                    return;
+                }
+                rubricManuallyEdited = false;
+                rubricDismissedForQuestion = false;
+                fetchRecommendedAnswer(true);
+            });
+
+            const diffWeights = { easy: 1, medium: 2, hard: 3 };
+            const diffBadgeStyles = {
+                easy: { label: 'Easy', cls: 'bg-emerald-100 text-emerald-800 border border-emerald-200' },
+                medium: { label: 'Medium', cls: 'bg-amber-100 text-amber-800 border border-amber-200' },
+                hard: { label: 'Hard', cls: 'bg-rose-100 text-rose-800 border border-rose-200' },
+            };
+
+            const computeChallengeMetrics = (list) => {
+                if (!list.length) return { points: [], maxXp: 0 };
+                let totalWeight = 0;
+                let xp = 15;
+                const weights = list.map(item => {
+                    const diff = String(item.difficulty || 'medium').toLowerCase();
+                    const w = Number(item.difficulty_weight || diffWeights[diff] || 2);
+                    totalWeight += w;
+                    xp += diff === 'easy' ? 3 : (diff === 'hard' ? 8 : 5);
+                    return w;
+                });
+                let running = 0;
+                const points = weights.map((w, idx) => {
+                    if (idx === weights.length - 1) {
+                        return Math.max(0, Number((100 - running).toFixed(2)));
+                    }
+                    const p = Number(((w / Math.max(1, totalWeight)) * 100).toFixed(2));
+                    running += p;
+                    return p;
+                });
+                return { points, maxXp: Math.min(75, Math.max(20, xp)) };
+            };
 
             const toggleQuestionTypeFields = () => {
                 if (typePGRadio.checked) {
@@ -758,17 +1040,262 @@
             typeEssayRadio?.addEventListener('change', toggleQuestionTypeFields);
             typePGRadio?.addEventListener('change', toggleQuestionTypeFields);
 
+            const buildEditCardDom = (card, item, index, metrics) => {
+                card.className = 'p-4 rounded-xl border-2 border-purple-300 bg-purple-50/30 shadow-sm space-y-3';
+                card.dataset.editingCard = '1';
+                const isEssay = item.type === 'essay';
+                const diffKey = String(item.difficulty || 'medium').toLowerCase();
+                const originalQuestion = String(item.question || '').trim();
+                const originalRubric = String(item.rubric || '').trim();
+                card._editPendingExcerpt = item.reference_excerpt || '';
+                card._editUsedCopilot = false;
+
+                const header = document.createElement('div');
+                header.className = 'flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-purple-200/70';
+                header.innerHTML = `
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <span class="rounded bg-slate-200 text-slate-800 font-bold text-xs px-2 py-0.5">#${index + 1}</span>
+                        <span class="rounded ${isEssay ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'} text-[10px] font-bold px-2 py-0.5 uppercase">
+                            ${isEssay ? 'Esai Analisis' : 'Pilihan Ganda'}
+                        </span>
+                        <span class="rounded bg-purple-600 text-white text-[10px] font-bold px-2 py-0.5 uppercase">Mode Edit</span>
+                    </div>
+                    <button type="button" data-edit-cancel class="text-slate-500 hover:text-slate-800 text-xs font-semibold px-2 py-1 rounded-lg hover:bg-slate-100 transition cursor-pointer">
+                        Batal
+                    </button>
+                `;
+
+                const diffWrap = document.createElement('div');
+                diffWrap.className = 'flex flex-wrap items-center gap-2';
+                diffWrap.innerHTML = `
+                    <label class="text-[11px] font-bold text-slate-600 uppercase">Kesulitan:</label>
+                    <select data-edit-difficulty class="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 focus:border-purple-400 focus:outline-hidden">
+                        <option value="easy">🟢 Easy (Bobot 1 - Dasar)</option>
+                        <option value="medium">🟡 Medium (Bobot 2 - Pemahaman/Analisis)</option>
+                        <option value="hard">🔴 Hard (Bobot 3 - Evaluasi/Kasus)</option>
+                        <option value="auto">✨ Otomatis (Analisis Ulang)</option>
+                    </select>
+                `;
+                diffWrap.querySelector('[data-edit-difficulty]').value = ['easy', 'medium', 'hard'].includes(diffKey) ? diffKey : 'medium';
+
+                const qWrap = document.createElement('div');
+                qWrap.className = 'space-y-1';
+                qWrap.innerHTML = `<label class="block text-[11px] font-bold text-slate-600 uppercase">Pertanyaan:</label>`;
+                const qInput = document.createElement('textarea');
+                qInput.rows = 2;
+                qInput.dataset.editQuestion = '1';
+                qInput.className = 'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 leading-relaxed focus:border-purple-400 focus:outline-hidden';
+                qInput.placeholder = 'Tuliskan teks pertanyaan...';
+                qInput.value = item.question || '';
+                qWrap.appendChild(qInput);
+
+                card.append(header, diffWrap, qWrap);
+
+                if (isEssay) {
+                    const rubricWrap = document.createElement('div');
+                    rubricWrap.className = 'space-y-1.5';
+                    rubricWrap.innerHTML = `
+                        <div class="flex items-center justify-between gap-2 flex-wrap">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <label class="text-[11px] font-bold text-purple-800 uppercase">🔑 Kunci Jawaban:</label>
+                                <span data-edit-rubric-status class="hidden text-[10px] font-semibold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full border border-purple-200"></span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button type="button" data-edit-recommend-rubric class="text-[11px] font-semibold text-purple-700 hover:text-purple-900 bg-purple-50 hover:bg-purple-100 border border-purple-200 px-2 py-0.5 rounded-md transition cursor-pointer">
+                                    ✨ Rekomendasikan dari Materi
+                                </button>
+                                <button type="button" data-edit-clear-rubric class="text-[11px] font-bold text-rose-600 hover:text-rose-800 hover:bg-rose-50 px-2 py-0.5 rounded-md transition cursor-pointer">
+                                    Hapus
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    const rubricInput = document.createElement('textarea');
+                    rubricInput.rows = 3;
+                    rubricInput.dataset.editRubric = '1';
+                    rubricInput.className = 'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 leading-relaxed focus:border-purple-400 focus:outline-hidden';
+                    rubricInput.placeholder = 'Tuliskan kunci jawaban dari materi atau klik Rekomendasikan dari Materi...';
+                    rubricInput.value = item.rubric || '';
+                    rubricWrap.appendChild(rubricInput);
+
+                    const statusBadge = rubricWrap.querySelector('[data-edit-rubric-status]');
+                    const btnRec = rubricWrap.querySelector('[data-edit-recommend-rubric]');
+                    const btnClear = rubricWrap.querySelector('[data-edit-clear-rubric]');
+
+                    btnClear.addEventListener('click', () => {
+                        rubricInput.value = '';
+                        card._editPendingExcerpt = '';
+                        card._editUsedCopilot = false;
+                        statusBadge.classList.add('hidden');
+                        rubricInput.focus();
+                    });
+
+                    btnRec.addEventListener('click', async () => {
+                        const qVal = qInput.value.trim();
+                        if (qVal.length < 5) {
+                            notify('Tuliskan pertanyaan minimal 5 karakter sebelum meminta rekomendasi kunci jawaban.', 'warning');
+                            qInput.focus();
+                            return;
+                        }
+                        const origLabel = btnRec.textContent;
+                        btnRec.disabled = true;
+                        btnRec.textContent = '⏳ Mencari...';
+                        try {
+                            const json = await requestRecommendedAnswer(qVal);
+                            if (json?.recommended_answer) {
+                                rubricInput.value = json.recommended_answer;
+                                card._editPendingExcerpt = json.reference_excerpt || '';
+                                card._editUsedCopilot = true;
+                                statusBadge.textContent = '✨ Rekomendasi materi dimuat';
+                                statusBadge.classList.remove('hidden');
+                            } else {
+                                notify('Belum ditemukan kecocokan langsung di teks untuk pertanyaan tersebut.', 'info');
+                            }
+                        } catch (_) {
+                            notify('Gagal memuat rekomendasi jawaban dari materi.', 'error');
+                        } finally {
+                            btnRec.disabled = false;
+                            btnRec.textContent = origLabel;
+                        }
+                    });
+
+                    card.appendChild(rubricWrap);
+                } else {
+                    const optsGrid = document.createElement('div');
+                    optsGrid.className = 'grid grid-cols-1 sm:grid-cols-2 gap-2';
+                    ['A', 'B', 'C', 'D'].forEach((letter) => {
+                        const optRow = document.createElement('div');
+                        optRow.className = 'flex items-center gap-1.5';
+                        const badge = document.createElement('span');
+                        badge.className = 'w-6 h-6 rounded-md bg-slate-200 text-slate-700 text-xs font-bold grid place-items-center shrink-0';
+                        badge.textContent = letter;
+                        const input = document.createElement('input');
+                        input.type = 'text';
+                        input.dataset.editOpt = letter;
+                        input.className = 'w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-800 focus:border-purple-400 focus:outline-hidden';
+                        input.placeholder = `Opsi ${letter}...`;
+                        input.value = item.options?.[letter] || '';
+                        optRow.append(badge, input);
+                        optsGrid.appendChild(optRow);
+                    });
+
+                    const correctWrap = document.createElement('div');
+                    correctWrap.className = 'flex items-center gap-2';
+                    correctWrap.innerHTML = `
+                        <label class="text-[11px] font-bold text-emerald-700 uppercase">Kunci Benar:</label>
+                        <select data-edit-correct class="rounded-lg border border-emerald-200 bg-white px-2.5 py-1 text-xs font-bold text-emerald-800 focus:border-emerald-400 focus:outline-hidden">
+                            <option value="A">Pilihan A</option>
+                            <option value="B">Pilihan B</option>
+                            <option value="C">Pilihan C</option>
+                            <option value="D">Pilihan D</option>
+                        </select>
+                    `;
+                    correctWrap.querySelector('[data-edit-correct]').value = String(item.correct_answer || 'A').toUpperCase();
+
+                    card.append(optsGrid, correctWrap);
+                }
+
+                const footer = document.createElement('div');
+                footer.className = 'flex items-center justify-between gap-2 pt-2 border-t border-purple-200/70 flex-wrap';
+                footer.innerHTML = `
+                    <span class="text-[11px] text-slate-500">Bobot saat ini: <strong>${(metrics.points[index] ?? 0).toFixed(2)} Poin</strong></span>
+                    <div class="flex items-center gap-2">
+                        <button type="button" data-edit-cancel class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 transition cursor-pointer">
+                            Batal
+                        </button>
+                        <button type="button" data-edit-apply class="rounded-lg bg-purple-600 hover:bg-purple-700 px-3.5 py-1.5 text-xs font-bold text-white shadow-2xs transition cursor-pointer">
+                            ✓ Terapkan Perubahan
+                        </button>
+                    </div>
+                `;
+                card.appendChild(footer);
+
+                card.querySelectorAll('[data-edit-cancel]').forEach((btn) => {
+                    btn.addEventListener('click', () => {
+                        editingIndex = null;
+                        renderChallengeList();
+                    });
+                });
+
+                card.querySelector('[data-edit-apply]').addEventListener('click', async () => {
+                    const applyBtn = card.querySelector('[data-edit-apply]');
+                    const prevText = applyBtn.textContent;
+                    applyBtn.disabled = true;
+                    applyBtn.textContent = 'Menerapkan...';
+                    const ok = await commitEditCard(card, index, originalQuestion, originalRubric);
+                    if (ok) {
+                        editingIndex = null;
+                        renderChallengeList();
+                        notify(`Perubahan soal #${index + 1} diterapkan ke daftar.`, 'success', 2600);
+                    } else {
+                        applyBtn.disabled = false;
+                        applyBtn.textContent = prevText;
+                    }
+                });
+            };
+
+            const commitEditCard = async (card, index, originalQuestion = '', originalRubric = '') => {
+                const item = activeChallenges[index];
+                if (!card || !item) return true;
+
+                const qInput = card.querySelector('[data-edit-question]');
+                const qText = (qInput?.value || '').trim();
+                if (!qText) {
+                    notify('Pertanyaan soal tidak boleh kosong.', 'warning');
+                    qInput?.focus();
+                    return false;
+                }
+
+                const chosenDiff = card.querySelector('[data-edit-difficulty]')?.value || 'medium';
+                const updated = {
+                    ...item,
+                    question: qText,
+                    context: null,
+                };
+
+                if (item.type === 'essay') {
+                    const rubricText = (card.querySelector('[data-edit-rubric]')?.value || '').trim();
+                    updated.rubric = rubricText;
+                    if (card._editUsedCopilot) {
+                        updated.reference_excerpt = card._editPendingExcerpt || null;
+                    } else if (qText !== originalQuestion || rubricText !== originalRubric) {
+                        updated.reference_excerpt = null;
+                    }
+                } else {
+                    const optAVal = (card.querySelector('[data-edit-opt="A"]')?.value || '').trim();
+                    const optBVal = (card.querySelector('[data-edit-opt="B"]')?.value || '').trim();
+                    const optCVal = (card.querySelector('[data-edit-opt="C"]')?.value || '').trim();
+                    const optDVal = (card.querySelector('[data-edit-opt="D"]')?.value || '').trim();
+                    if (!optAVal || !optBVal) {
+                        notify('Harap isi minimal Opsi A dan Opsi B.', 'warning');
+                        return false;
+                    }
+                    updated.options = { A: optAVal, B: optBVal, C: optCVal, D: optDVal };
+                    updated.correct_answer = card.querySelector('[data-edit-correct]')?.value || 'A';
+                }
+
+                const diffData = await resolveDifficultyForItem(chosenDiff, updated);
+                updated.difficulty = diffData.difficulty;
+                updated.difficulty_weight = diffData.difficulty_weight;
+                activeChallenges[index] = updated;
+                return true;
+            };
+
             const renderChallengeList = () => {
                 challengeListContainer.innerHTML = '';
                 const total = activeChallenges.length;
                 challengeCountDisplay.textContent = `${total} Soal`;
-                const points = total > 0 ? (100 / total).toFixed(2) : 0;
-                pointsPerQDisplay.textContent = `${points} Poin / Soal (Total 100 Poin)`;
+                btnClearAllChallenges?.classList.toggle('hidden', total === 0);
+                const metrics = computeChallengeMetrics(activeChallenges);
+                pointsPerQDisplay.textContent = total > 0 ? `Total 100 Poin (Proporsional)` : `0 Poin`;
+                if (challengeMaxXpDisplay) {
+                    challengeMaxXpDisplay.textContent = `Reward Maks: +${metrics.maxXp} XP`;
+                }
 
                 if (total === 0) {
                     challengeListContainer.innerHTML = `
                         <div class="p-4 text-center rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-400">
-                            Belum ada soal tantangan. Tambahkan soal pertama di bawah!
+                            Belum ada soal tantangan. Muat rekomendasi Socrates AI atau tambahkan soal di bawah!
                         </div>
                     `;
                     return;
@@ -776,41 +1303,68 @@
 
                 activeChallenges.forEach((item, index) => {
                     const card = document.createElement('div');
+                    if (editingIndex === index) {
+                        buildEditCardDom(card, item, index, metrics);
+                        challengeListContainer.appendChild(card);
+                        return;
+                    }
+
                     card.className = 'p-3.5 rounded-xl border border-slate-200 bg-white shadow-2xs space-y-2';
                     const isEssay = item.type === 'essay';
+                    const diffKey = String(item.difficulty || 'medium').toLowerCase();
+                    const diffInfo = diffBadgeStyles[diffKey] || diffBadgeStyles.medium;
+                    const itemPoints = (metrics.points[index] ?? 0).toFixed(2);
 
-                    let contentHtml = `<p class="text-xs text-slate-800 font-semibold">${item.question}</p>`;
+                    let contentHtml = `<p class="text-xs text-slate-800 font-semibold leading-snug">${escapeHtml(item.question)}</p>`;
                     if (isEssay && item.rubric) {
-                        contentHtml += `<p class="text-[11px] text-purple-700 bg-purple-50/70 p-2 rounded-lg border border-purple-100"><strong>Kunci Konsep:</strong> ${item.rubric}</p>`;
+                        contentHtml += `<p class="text-[11px] text-purple-800 bg-purple-50/70 p-2.5 rounded-lg border border-purple-100"><strong>🔑 Kunci Jawaban:</strong> ${escapeHtml(item.rubric)}</p>`;
                     } else if (!isEssay && item.options) {
                         contentHtml += `
                             <div class="grid grid-cols-2 gap-1.5 text-[11px] text-slate-600 mt-1">
-                                <span class="${item.correct_answer === 'A' ? 'font-bold text-emerald-700' : ''}">A: ${item.options.A || ''}</span>
-                                <span class="${item.correct_answer === 'B' ? 'font-bold text-emerald-700' : ''}">B: ${item.options.B || ''}</span>
-                                <span class="${item.correct_answer === 'C' ? 'font-bold text-emerald-700' : ''}">C: ${item.options.C || ''}</span>
-                                <span class="${item.correct_answer === 'D' ? 'font-bold text-emerald-700' : ''}">D: ${item.options.D || ''}</span>
+                                <span class="${item.correct_answer === 'A' ? 'font-bold text-emerald-700' : ''}">A: ${escapeHtml(item.options.A || '')}</span>
+                                <span class="${item.correct_answer === 'B' ? 'font-bold text-emerald-700' : ''}">B: ${escapeHtml(item.options.B || '')}</span>
+                                <span class="${item.correct_answer === 'C' ? 'font-bold text-emerald-700' : ''}">C: ${escapeHtml(item.options.C || '')}</span>
+                                <span class="${item.correct_answer === 'D' ? 'font-bold text-emerald-700' : ''}">D: ${escapeHtml(item.options.D || '')}</span>
                             </div>
                         `;
                     }
 
                     card.innerHTML = `
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-2">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <div class="flex items-center gap-1.5 flex-wrap">
                                 <span class="rounded bg-slate-100 text-slate-700 font-bold text-xs px-2 py-0.5">#${index + 1}</span>
                                 <span class="rounded ${isEssay ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'} text-[10px] font-bold px-2 py-0.5 uppercase">
                                     ${isEssay ? 'Esai Analisis' : 'Pilihan Ganda'}
                                 </span>
-                                <span class="text-[10px] text-slate-400 font-semibold">Bobot: ${points} Poin</span>
+                                <span class="rounded ${diffInfo.cls} text-[10px] font-bold px-2 py-0.5 uppercase">${diffInfo.label}</span>
+                                <span class="text-[10px] text-slate-500 font-semibold">Bobot: ${itemPoints} Poin</span>
                             </div>
-                            <button type="button" class="text-rose-600 hover:text-rose-800 text-xs font-bold transition p-1" data-del-idx="${index}">
-                                Hapus
-                            </button>
+                            <div class="flex items-center gap-1.5">
+                                <button type="button" class="inline-flex items-center gap-1 rounded-lg border border-indigo-200 bg-indigo-50/70 px-2.5 py-1 text-xs font-bold text-indigo-700 hover:bg-indigo-100 transition cursor-pointer" data-edit-idx="${index}">
+                                    Edit
+                                </button>
+                                <button type="button" class="rounded-lg px-2 py-1 text-rose-600 hover:bg-rose-50 hover:text-rose-800 text-xs font-bold transition cursor-pointer" data-del-idx="${index}">
+                                    Hapus
+                                </button>
+                            </div>
                         </div>
                         ${contentHtml}
                     `;
 
+                    card.querySelector('[data-edit-idx]').addEventListener('click', () => {
+                        editingIndex = index;
+                        renderChallengeList();
+                        const openQ = challengeListContainer.querySelector('[data-editing-card] [data-edit-question]');
+                        openQ?.focus();
+                    });
+
                     card.querySelector('[data-del-idx]').addEventListener('click', () => {
                         activeChallenges.splice(index, 1);
+                        if (editingIndex === index) {
+                            editingIndex = null;
+                        } else if (editingIndex !== null && editingIndex > index) {
+                            editingIndex--;
+                        }
                         renderChallengeList();
                     });
 
@@ -818,12 +1372,56 @@
                 });
             };
 
+            const syncDocumentChallengeSummary = (docId, totalChallenges, challenges = [], maxXp = 0) => {
+                if (!docId) return;
+                const pillText = document.querySelector(`[data-doc-challenge-pill="${docId}"] [data-doc-challenge-pill-text]`);
+                if (pillText) {
+                    pillText.textContent = `${totalChallenges} Tantangan Guru`;
+                }
+                const btnLabel = document.querySelector(`[data-challenge-btn][data-doc-id="${docId}"] [data-challenge-btn-label]`);
+                if (btnLabel) {
+                    btnLabel.textContent = `Tantangan Guru (${totalChallenges})`;
+                }
+                const scriptEl = document.getElementById('doc-preview-data-' + docId);
+                if (scriptEl) {
+                    try {
+                        const parsed = JSON.parse(scriptEl.textContent);
+                        parsed.teacherChallenges = challenges;
+                        parsed.challengeMaxXp = maxXp;
+                        scriptEl.textContent = JSON.stringify(parsed);
+                    } catch (_) {}
+                }
+            };
+
+            btnClearAllChallenges?.addEventListener('click', async () => {
+                if (!activeChallenges.length) return;
+                const confirmed = await askConfirm({
+                    eyebrow: 'HAPUS DAFTAR DRAFT',
+                    title: 'Kosongkan Semua Soal Tantangan?',
+                    subject: challengeDocTitle?.textContent?.replace(/^Materi:\s*/i, '') || '',
+                    message: 'Seluruh soal di daftar ini akan dihapus dari editor. Tekan "Simpan Seluruh Tantangan" di bawah jika ingin mengosongkannya secara permanen.',
+                    confirmText: 'Ya, Kosongkan Semua',
+                    variant: 'warning',
+                });
+                if (!confirmed) return;
+                activeChallenges = [];
+                editingIndex = null;
+                renderChallengeList();
+                notify('Daftar soal dikosongkan. Jangan lupa tekan Simpan untuk menerapkan.', 'info');
+            });
+
             const openChallengeModal = async (btn) => {
                 currentDocId = btn.dataset.docId;
                 currentStoreUrl = btn.dataset.storeUrl;
                 currentSuggestionsUrl = btn.dataset.suggestionsUrl;
+                currentAnalyzeUrl = btn.dataset.analyzeUrl;
+                currentRecommendAnswerUrl = btn.dataset.recommendAnswerUrl || '';
                 challengeDocTitle.textContent = `Materi: ${btn.dataset.docTitle}`;
                 activeChallenges = [];
+                editingIndex = null;
+                if (newQText) newQText.value = '';
+                if (newQRubric) newQRubric.value = '';
+                resetNewQuestionFormState();
                 renderChallengeList();
 
                 challengeModal.classList.remove('hidden');
@@ -834,10 +1432,12 @@
                     if (res.ok) {
                         const json = await res.json();
                         activeChallenges = json.challenges || [];
+                        editingIndex = null;
                         renderChallengeList();
                     }
                 } catch (err) {
                     console.error('Failed to load challenges:', err);
+                    notify('Gagal memuat daftar tantangan dari server.', 'error');
                 }
             };
 
@@ -845,20 +1445,24 @@
                 if (!currentSuggestionsUrl) return;
                 const oldHtml = btnLoadSuggestions.innerHTML;
                 btnLoadSuggestions.disabled = true;
-                btnLoadSuggestions.textContent = 'Memuat rekomendasi...';
+                btnLoadSuggestions.textContent = 'Menganalisis materi...';
                 try {
                     const res = await fetch(currentSuggestionsUrl, { credentials: 'same-origin' });
                     if (res.ok) {
                         const json = await res.json();
                         if (json.suggestions && json.suggestions.length > 0) {
                             activeChallenges = json.suggestions;
+                            editingIndex = null;
                             renderChallengeList();
+                            notify('Rekomendasi soal dimuat! Klik tombol "Edit" pada soal mana pun untuk mengubah isinya.', 'info', 4200);
                         } else {
-                            alert('Belum ada rekomendasi yang tersedia untuk materi ini.');
+                            notify('Belum ada rekomendasi yang tersedia untuk materi ini.', 'warning');
                         }
+                    } else {
+                        notify('Gagal memuat rekomendasi soal.', 'error');
                     }
                 } catch (err) {
-                    alert('Gagal memuat rekomendasi soal esai.');
+                    notify('Gagal memuat rekomendasi soal esai.', 'error');
                 } finally {
                     btnLoadSuggestions.disabled = false;
                     btnLoadSuggestions.innerHTML = oldHtml;
@@ -866,6 +1470,7 @@
             });
 
             const closeChallengeModal = () => {
+                editingIndex = null;
                 challengeModal.classList.add('hidden');
                 document.body.classList.remove('overflow-hidden');
             };
@@ -878,21 +1483,25 @@
                 btn.addEventListener('click', () => openChallengeModal(btn));
             });
 
-            btnAddQuestion?.addEventListener('click', () => {
+            btnAddQuestion?.addEventListener('click', async () => {
                 const qText = newQText.value.trim();
                 if (!qText) {
-                    alert('Harap isi teks pertanyaan.');
+                    notify('Harap isi teks pertanyaan terlebih dahulu.', 'warning');
+                    newQText?.focus();
                     return;
                 }
 
+                let itemPayload;
                 if (typePGRadio.checked) {
                     if (!optA.value.trim() || !optB.value.trim()) {
-                        alert('Harap isi minimal opsi A dan B.');
+                        notify('Harap isi minimal opsi A dan B.', 'warning');
+                        optA?.focus();
                         return;
                     }
-                    activeChallenges.push({
+                    itemPayload = {
                         type: 'multiple_choice',
                         question: qText,
+                        context: null,
                         options: {
                             A: optA.value.trim(),
                             B: optB.value.trim(),
@@ -900,27 +1509,77 @@
                             D: optD.value.trim(),
                         },
                         correct_answer: correctOpt.value,
-                    });
-                    optA.value = ''; optB.value = ''; optC.value = ''; optD.value = '';
+                    };
                 } else {
-                    activeChallenges.push({
+                    itemPayload = {
                         type: 'essay',
                         question: qText,
+                        context: null,
                         rubric: newQRubric.value.trim(),
-                    });
-                    newQRubric.value = '';
+                        reference_excerpt: lastRecommendedExcerpt || null,
+                    };
                 }
 
+                const chosenDiff = newQDifficulty ? newQDifficulty.value : 'auto';
+                const prevText = btnAddQuestion.innerHTML;
+                if (chosenDiff === 'auto') {
+                    btnAddQuestion.disabled = true;
+                    btnAddQuestion.textContent = 'Menganalisis kesulitan...';
+                }
+                try {
+                    const diffData = await resolveDifficultyForItem(chosenDiff, itemPayload);
+                    itemPayload.difficulty = diffData.difficulty;
+                    itemPayload.difficulty_weight = diffData.difficulty_weight;
+                } finally {
+                    if (chosenDiff === 'auto') {
+                        btnAddQuestion.disabled = false;
+                        btnAddQuestion.innerHTML = prevText;
+                    }
+                }
+
+                activeChallenges.push(itemPayload);
+                if (typePGRadio.checked) {
+                    optA.value = ''; optB.value = ''; optC.value = ''; optD.value = '';
+                } else {
+                    newQRubric.value = '';
+                }
                 newQText.value = '';
+                resetNewQuestionFormState();
                 renderChallengeList();
+                notify('Soal ditambahkan ke daftar.', 'success', 2400);
             });
 
             btnSaveAllChallenges?.addEventListener('click', async () => {
                 if (!currentStoreUrl) return;
-                if (activeChallenges.length === 0 && !confirm('Tidak ada soal tantangan. Apakah Anda yakin ingin mengosongkan/menghapus seluruh soal tantangan guru untuk materi ini?')) {
-                    return;
+
+                if (editingIndex !== null) {
+                    const openCard = challengeListContainer.querySelector('[data-editing-card]');
+                    if (openCard) {
+                        const committed = await commitEditCard(
+                            openCard,
+                            editingIndex,
+                            String(activeChallenges[editingIndex]?.question || '').trim(),
+                            String(activeChallenges[editingIndex]?.rubric || '').trim()
+                        );
+                        if (!committed) return;
+                        editingIndex = null;
+                        renderChallengeList();
+                    }
                 }
 
+                if (activeChallenges.length === 0) {
+                    const confirmed = await askConfirm({
+                        eyebrow: 'KONFIRMASI KOSONGKAN SOAL',
+                        title: 'Kosongkan Seluruh Tantangan Guru?',
+                        subject: challengeDocTitle?.textContent?.replace(/^Materi:\s*/i, '') || '',
+                        message: 'Tidak ada soal tantangan pada materi ini. Menyimpan akan menghapus seluruh soal tantangan guru yang sebelumnya ada.',
+                        confirmText: 'Ya, Kosongkan',
+                        variant: 'warning',
+                    });
+                    if (!confirmed) return;
+                }
+
+                const prevLabel = btnSaveAllChallenges.innerHTML;
                 btnSaveAllChallenges.disabled = true;
                 btnSaveAllChallenges.textContent = 'Menyimpan...';
 
@@ -938,16 +1597,22 @@
 
                     const json = await res.json();
                     if (res.ok) {
-                        alert(json.message || 'Tantangan guru berhasil disimpan!');
-                        window.location.reload();
+                        syncDocumentChallengeSummary(
+                            currentDocId,
+                            json.total_challenges ?? activeChallenges.length,
+                            json.challenges || [],
+                            json.max_xp ?? 0
+                        );
+                        closeChallengeModal();
+                        notify(json.message || 'Tantangan guru berhasil disimpan!', 'success', 4000);
                     } else {
-                        alert(json.message || 'Gagal menyimpan tantangan.');
+                        notify(json.message || 'Gagal menyimpan tantangan.', 'error');
                     }
                 } catch (err) {
-                    alert('Terjadi kesalahan saat menyimpan tantangan.');
+                    notify('Terjadi kesalahan saat menyimpan tantangan.', 'error');
                 } finally {
                     btnSaveAllChallenges.disabled = false;
-                    btnSaveAllChallenges.textContent = 'Simpan Seluruh Tantangan (Skor 100 Poin)';
+                    btnSaveAllChallenges.innerHTML = prevLabel;
                 }
             });
         })();

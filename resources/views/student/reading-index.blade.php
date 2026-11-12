@@ -104,10 +104,7 @@
                     @if ($document->is_completed)
                         <a class="challenge-button" href="{{ route('reading', ['document' => $document->id]) }}" aria-label="Buka ulang {{ $document->title }}"><span>Buka</span><x-icon name="arrow-right" /></a>
                     @else
-                        <form method="POST" action="{{ route('reading.start', ['document' => $document->id]) }}">
-                            @csrf
-                            <button class="challenge-button" type="submit"><span>{{ $session ? 'Lanjutkan' : 'Mulai' }}</span><x-icon name="arrow-right" /></button>
-                        </form>
+                        <a class="challenge-button" href="{{ route('reading', ['document' => $document->id]) }}" aria-label="{{ $session ? 'Lanjutkan membaca ' : 'Mulai membaca ' }}{{ $document->title }}"><span>{{ $session ? 'Lanjutkan' : 'Mulai' }}</span><x-icon name="arrow-right" /></a>
                     @endif
                 </article>
             @endforeach
