@@ -68,7 +68,7 @@
                 <div class="flex items-center justify-between border-y border-slate-100 py-3 text-sm"><span class="text-slate-600">Pembaca materi Anda</span><strong class="text-slate-900">{{ $classroom->active_readers_count }}</strong></div>
                 <div>
                     <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Kode gabung</p>
-                    <div class="flex flex-nowrap items-center justify-between gap-3 rounded-xl border border-blue-100 bg-blue-50/40 px-4 py-3">
+                    <div class="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2.5 rounded-xl border border-blue-100 bg-blue-50/40 px-3.5 py-3">
                         <strong class="min-w-0 truncate font-mono text-lg font-bold tracking-[.18em] {{ $classroom->is_active ? 'text-slate-900' : 'text-slate-400 line-through' }}">{{ $classroom->join_code }}</strong>
                         @if ($classroom->is_active)
                             <button type="button" class="outline-button inline-flex min-h-11 min-w-0 shrink-0 items-center justify-center gap-2 px-3" data-copy-join-link="{{ url('/classrooms?join_code='.$classroom->join_code) }}" aria-label="Salin tautan untuk bergabung ke kelas {{ $classroom->name }}">
@@ -87,20 +87,33 @@
                     </a>
                 </div>
                 <div class="border-t border-slate-100 pt-3 flex items-center justify-between">
-                    <form method="POST" action="{{ route('teacher.classrooms.toggle-status', $classroom) }}">
-                        @csrf
-                        @if ($classroom->is_active)
-                            <button type="submit" class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-amber-600 transition" onclick="return confirm('Arsipkan kelas ini? Siswa tidak akan bisa bergabung selama kelas diarsipkan, namun data riwayat belajar tetap tersimpan.')">
+                    @if ($classroom->is_active)
+                        <form method="POST" action="{{ route('teacher.classrooms.toggle-status', $classroom) }}"
+                              data-confirm-title="Arsipkan Kelas?"
+                              data-confirm-subject="{{ $classroom->name }}"
+                              data-confirm-message="Siswa tidak akan bisa bergabung selama kelas diarsipkan, namun seluruh data riwayat belajar tetap tersimpan aman."
+                              data-confirm-ok="Ya, Arsipkan"
+                              data-confirm-variant="warning">
+                            @csrf
+                            <button type="submit" class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-amber-600 transition cursor-pointer">
                                 <x-icon name="archive" class="w-3.5 h-3.5" />
                                 <span>Arsipkan kelas</span>
                             </button>
-                        @else
-                            <button type="submit" class="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 hover:text-emerald-700 transition" onclick="return confirm('Aktifkan kembali kelas ini? Siswa akan dapat bergabung kembali menggunakan kode kelas.')">
+                        </form>
+                    @else
+                        <form method="POST" action="{{ route('teacher.classrooms.toggle-status', $classroom) }}"
+                              data-confirm-title="Aktifkan Kembali Kelas?"
+                              data-confirm-subject="{{ $classroom->name }}"
+                              data-confirm-message="Siswa akan dapat bergabung kembali ke kelas ini menggunakan kode kelas."
+                              data-confirm-ok="Ya, Aktifkan"
+                              data-confirm-variant="success">
+                            @csrf
+                            <button type="submit" class="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 hover:text-emerald-700 transition cursor-pointer">
                                 <x-icon name="rotate-ccw" class="w-3.5 h-3.5" />
                                 <span>Aktifkan kembali</span>
                             </button>
-                        @endif
-                    </form>
+                        </form>
+                    @endif
                 </div>
             </article>
         @empty

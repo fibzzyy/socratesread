@@ -331,12 +331,16 @@
                         <!-- Populated dynamically via JS -->
                     </div>
 
-                    <!-- Explanation Box (Appears on review mode) -->
-                    <div class="quiz-explanation-box hidden rounded-xl p-3.5 text-xs border" data-explanation-box>
-                        <div class="flex items-center gap-1.5 font-bold mb-1 text-blue-800">
-                            <x-icon name="lightbulb" class="w-4 h-4 text-blue-600" />
-                            <span>Pembahasan Kunci Jawaban:</span>
+                    <!-- Explanation Box (Appears on review mode for both correct and incorrect answers) -->
+                    <div class="quiz-explanation-box hidden rounded-xl p-4 text-xs border space-y-2" data-explanation-box>
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <div class="flex items-center gap-1.5 font-bold text-blue-900">
+                                <x-icon name="lightbulb" class="w-4 h-4 text-blue-600" />
+                                <span>Pembahasan Kunci Jawaban:</span>
+                            </div>
+                            <span class="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full" data-explanation-status></span>
                         </div>
+                        <p class="font-bold text-slate-800" data-correct-answer-line></p>
                         <p class="text-slate-700 leading-relaxed" data-explanation-text></p>
                     </div>
                 </div>
@@ -451,11 +455,11 @@
             </p>
 
             <!-- Buttons -->
-            <div class="flex items-center justify-center gap-3">
-                <button type="button" id="btnModalCheckAgain" class="outline-button w-1/2 justify-center py-2.5 text-xs font-semibold">
+            <div class="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-center gap-3">
+                <button type="button" id="btnModalCheckAgain" class="outline-button w-full sm:w-1/2 justify-center py-2.5 text-xs font-semibold">
                     Periksa Kembali
                 </button>
-                <button type="button" id="btnModalConfirmSubmit" class="challenge-button !bg-emerald-600 hover:!bg-emerald-700 !border-emerald-600 w-1/2 justify-center py-2.5 text-xs font-bold">
+                <button type="button" id="btnModalConfirmSubmit" class="challenge-button !bg-emerald-600 hover:!bg-emerald-700 !border-emerald-600 w-full sm:w-1/2 justify-center py-2.5 text-xs font-bold">
                     Kumpulkan Sekarang
                 </button>
             </div>
@@ -488,6 +492,8 @@
     const qText = root.querySelector('[data-q-text]');
     const optionsList = root.querySelector('[data-options-list]');
     const explanationBox = root.querySelector('[data-explanation-box]');
+    const explanationStatus = root.querySelector('[data-explanation-status]');
+    const correctAnswerLine = root.querySelector('[data-correct-answer-line]');
     const explanationText = root.querySelector('[data-explanation-text]');
     const btnPrev = root.querySelector('[data-btn-prev]');
     const btnNext = root.querySelector('[data-btn-next]');
@@ -729,10 +735,25 @@
             optionsList.appendChild(btn);
         });
 
-        // Explanation Box (review mode)
-        if (isLocked && q.explanation) {
-            explanationBox.classList.remove('hidden');
-            explanationText.textContent = q.explanation;
+        // Explanation Box (review mode - tampil baik saat jawaban benar maupun salah)
+        if (isLocked) {
+            const correctKey = String(q.correct_answer || '').toUpperCase();
+            const chosenKey = String(currentAnswer || '').toUpperCase();
+            const isCorrect = Boolean(chosenKey && correctKey && chosenKey === correctKey);
+            const correctOpt = opts.find(o => String(o.key).toUpperCase() === correctKey);
+            const correctText = correctOpt ? correctOpt.text : '';
+
+            explanationBox.classList.remove('hidden', 'bg-emerald-50/70', 'border-emerald-200', 'bg-rose-50/70', 'border-rose-200');
+            explanationBox.classList.add(isCorrect ? 'bg-emerald-50/70' : 'bg-rose-50/70', isCorrect ? 'border-emerald-200' : 'border-rose-200');
+
+            if (explanationStatus) {
+                explanationStatus.textContent = isCorrect ? '✓ Jawaban Anda Benar' : (chosenKey ? `✗ Anda Memilih ${chosenKey}` : '✗ Tidak Dijawab');
+                explanationStatus.className = `text-[11px] font-extrabold px-2.5 py-0.5 rounded-full ${isCorrect ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`;
+            }
+            if (correctAnswerLine) {
+                correctAnswerLine.textContent = correctKey ? `Kunci Jawaban Benar: ${correctKey}${correctText ? ' — ' + correctText : ''}` : '';
+            }
+            explanationText.textContent = q.explanation || 'Pembahasan merujuk pada konsep utama dalam materi bacaan.';
         } else {
             explanationBox.classList.add('hidden');
         }

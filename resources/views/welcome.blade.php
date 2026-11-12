@@ -6,6 +6,7 @@
     <meta name="theme-color" content="#102f50">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Dashboard SocratesRead</title>
+    <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
@@ -199,7 +200,7 @@
                                 <div class="challenge-question"><span class="question-label">TINGKAT SEBELUM PENDAFTARAN</span><p>Tantangan Socratic Anda aktif mulai Kelas {{ $user->entry_grade ?? 10 }}.</p></div><div class="challenge-footer"><span class="challenge-reward"><strong>Halaman Kosong</strong></span><a class="challenge-button" href="{{ route('dashboard', ['grade' => $user->currentGrade() ?? ($user->entry_grade ?? 10)]) }}">Beralih ke Kelas {{ $user->currentGrade() ?? ($user->entry_grade ?? 10) }} <x-icon name="arrow-right" /></a></div>
                             @elseif ($challengeQuestion && $activeSession)
                                 <div class="challenge-question"><span class="question-label">{{ $activeSession->document->title }}</span><p>{{ $challengeQuestion->prompt }}</p></div>
-                                <div class="grid grid-cols-2 gap-2 mt-3 pt-2.5 border-t border-slate-100">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3 pt-2.5 border-t border-slate-100">
                                     <a class="flex items-center justify-center gap-1.5 p-2 rounded-lg bg-blue-50 text-blue-700 font-bold text-[11px] hover:bg-blue-100 transition" href="{{ route('quiz.timed', ['document' => $activeSession->document_id]) }}">
                                         <x-icon name="timer" class="w-3.5 h-3.5" /> <span>Kuis Timer (PG)</span>
                                     </a>
@@ -217,7 +218,7 @@
                             @endif
                         </section>
 
-                        <section class="panel activity-panel scroll-mt-6" id="progress" aria-labelledby="activity-heading"><div class="section-heading compact-heading"><div><p class="section-overline">JEJAK PERJALANANMU</p><h2 id="activity-heading">Aktivitas terbaru</h2></div><a class="more-button" href="{{ route('progress') }}" aria-label="Lihat semua aktivitas"><x-icon name="arrow-right" /></a></div><div class="recent-activity-list">@forelse ($recentActivities as $activity)<article class="recent-activity-row"><span class="recent-activity-icon"><x-icon name="{{ $activity->event_type === 'reading_completed' ? 'book-open-text' : 'award' }}" /></span><div><strong>{{ $activity->summary }}</strong><small>{{ $activity->readingSession?->document?->title ?? 'Sesi membaca' }} · {{ $activity->created_at->locale('id')->diffForHumans() }}</small></div><span class="recent-activity-xp">{{ $activity->xp_awarded ? '+'.$activity->xp_awarded.' XP' : 'Tercatat' }}</span></article>@empty<div class="activity-empty">Selesaikan bacaan atau tantangan untuk mulai mencatat perjalanan belajarmu.</div>@endforelse</div></section>
+                        <section class="panel activity-panel scroll-mt-6" id="progress" aria-labelledby="activity-heading"><div class="section-heading compact-heading"><div><p class="section-overline">JEJAK PERJALANANMU</p><h2 id="activity-heading">Aktivitas terbaru</h2></div><a class="more-button" href="{{ route('progress') }}" aria-label="Lihat semua aktivitas"><x-icon name="arrow-right" /></a></div><div class="recent-activity-list">@forelse ($recentActivities as $activity)@php($actDoc = $activity->document ?? $activity->readingSession?->document)<article class="recent-activity-row"><span class="recent-activity-icon"><x-icon name="{{ $activity->event_type === 'reading_completed' ? 'book-open-text' : 'award' }}" /></span><div><strong>{{ $activity->summary }}</strong><small>{{ $actDoc?->category ? $actDoc->category . ' · ' : '' }}{{ $actDoc?->title ?? 'Sesi membaca' }} · {{ $activity->created_at->locale('id')->diffForHumans() }}</small></div><span class="recent-activity-xp">{{ $activity->xp_awarded ? '+'.$activity->xp_awarded.' XP' : 'Tercatat' }}</span></article>@empty<div class="activity-empty">Selesaikan bacaan atau tantangan untuk mulai mencatat perjalanan belajarmu.</div>@endforelse</div></section>
                     </div>
                 </div>
                 <footer class="page-footer"><span>Terus bertanya, terus bertumbuh.</span><span>© 2026 SocratesRead</span></footer>

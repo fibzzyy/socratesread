@@ -1,10 +1,12 @@
 @import 'tailwindcss';
 @import './dashboard.css' layer(components);
+@import './landing.css';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 @source '../**/*.blade.php';
 @source '../**/*.js';
+@source '../**/*.jsx';
 
 @theme {
     --font-sans: 'DM Sans', ui-sans-serif, system-ui, sans-serif;

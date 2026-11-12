@@ -16,6 +16,10 @@
             <path d="M6 13h2" />
             <path d="M6 9h2" />
             @break
+        @case('book-minus')
+            <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
+            <path d="M9 10h6" />
+            @break
         @case('copy')
             <rect x="8" y="8" width="13" height="13" rx="2" />
             <path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3" />
@@ -212,6 +216,16 @@
         @case('rotate-ccw')
             <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
             <path d="M3 3v5h5" />
+            @break
+        @case('volume-2')
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+            @break
+        @case('volume-x')
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+            <line x1="22" x2="16" y1="9" y2="15" />
+            <line x1="16" x2="22" y1="9" y2="15" />
             @break
         @default
             <circle cx="12" cy="12" r="9" />

@@ -12,7 +12,7 @@
             <p class="eyebrow">TANTANGAN DARI GURU PENGAMPU</p>
             <h1 id="challenge-heading">Tantangan: {{ $document->title }}</h1>
             @if ($totalQuestions > 0)
-                <p class="welcome-subtitle">Tantangan khusus dari guru pengampu. Terdiri dari {{ $totalQuestions }} soal bernilai total 100 poin (masing-masing maks {{ $pointsPerQuestion }} poin).</p>
+                <p class="welcome-subtitle">Tantangan khusus dari guru pengampu. Terdiri dari {{ $totalQuestions }} soal bernilai total 100 poin proporsional berdasarkan tingkat kesulitan (Maksimal +{{ $maxRewardXp ?? 35 }} XP).</p>
             @else
                 <p class="welcome-subtitle">Informasi tantangan khusus dari guru pengampu untuk materi ini.</p>
             @endif
@@ -72,7 +72,7 @@
                     <x-icon name="award" class="w-6 h-6" />
                 </div>
                 <div>
-                    <div class="flex items-center gap-2">
+                    <div class="flex flex-wrap items-center gap-2">
                         <span class="text-xs font-bold uppercase tracking-wider text-emerald-900">Tantangan Guru Selesai</span>
                         <span class="rounded-full bg-emerald-600 text-white text-[10px] font-black px-2.5 py-0.5">Skor {{ $displayTotalScore }} / 100</span>
                         <span class="rounded-full bg-blue-600 text-white text-[10px] font-black px-2 py-0.5">+{{ $submission->xp_awarded }} XP</span>
@@ -105,18 +105,36 @@
                 @php($feedbackText = $isStrictlyWrong ? 'Jawaban belum tepat atau tidak sesuai dengan materi bacaan. Pelajari kunci jawaban yang benar di bawah ini.' : ($ans['feedback'] ?? 'Jawaban dianalisis berdasarkan kesesuaian argumen terhadap isi bacaan materi.'))
 
                 @php($resolved = app(\App\Http\Controllers\Student\StudentTeacherChallengeController::class)->resolveModelAnswer($q, $document))
-                @php($rawModel = $ans['model_answer'] ?? ($q->rubric ?: ''))
-                @php($isMetaRubric = (bool) preg_match('/^(?:gunakan nalar|perhatikan|fokuslah|cari bagian|analisis|pikirkan|kembangkan|telaah|rancang)/i', $rawModel))
-                @php($modelAns = (! empty($rawModel) && ! $isMetaRubric) ? $rawModel : $resolved['model_answer'])
+                @php($storedRef = trim((string) ($q->reference_excerpt ?? '')))
+                @php($storedRubric = trim((string) ($q->rubric ?? '')))
+                @php($isLegacyBadRubric = (bool) preg_match('/Menjelaskan pengertian|Berdasarkan bacaan:\s*Menjelaskan/i', $storedRubric))
+                @php($isMetaStoredRubric = (bool) preg_match('/^(?:gunakan nalar|perhatikan|fokuslah|cari bagian|analisis|pikirkan|kembangkan|telaah|rancang)/i', $storedRubric))
+                @php($storedRubricWords = preg_split('/\s+/u', $storedRubric, -1, PREG_SPLIT_NO_EMPTY) ?: [])
+                @php($isRichStoredRubric = mb_strlen($storedRubric) >= 35 && count($storedRubricWords) >= 6 && ! $isMetaStoredRubric && ! $isLegacyBadRubric)
+
+                @php($rawModel = $ans['model_answer'] ?? $storedRubric)
+                @php($isLegacyBadModel = (bool) preg_match('/Menjelaskan pengertian|Berdasarkan bacaan:\s*Menjelaskan/i', (string) $rawModel))
+                @php($isMetaRubric = (bool) preg_match('/^(?:gunakan nalar|perhatikan|fokuslah|cari bagian|analisis|pikirkan|kembangkan|telaah|rancang)/i', (string) $rawModel))
+                @php($modelAns = ($isRichStoredRubric && $storedRef !== '') ? $resolved['model_answer'] : ((! empty($rawModel) && ! $isMetaRubric && ! $isLegacyBadModel && mb_strlen(trim((string) $rawModel)) >= 35) ? $rawModel : $resolved['model_answer']))
+
                 @php($rawExcerpt = $ans['reference_excerpt'] ?? '')
-                @php($refExcerpt = (! empty($rawExcerpt) && ! preg_match('/^(?:gunakan nalar|perhatikan)/i', $rawExcerpt)) ? $rawExcerpt : $resolved['reference_excerpt'])
+                @php($isLegacyBadExcerpt = (bool) preg_match('/Menjelaskan pengertian|^(?:gunakan nalar|perhatikan)/i', (string) $rawExcerpt))
+                @php($refExcerpt = $storedRef !== '' ? $storedRef : ((! empty($rawExcerpt) && ! $isLegacyBadExcerpt) ? $rawExcerpt : $resolved['reference_excerpt']))
+
+                @php($qMaxPoints = $ans['points_max'] ?? ($pointsMap[$q->id] ?? $pointsPerQuestion))
+                @php($qDiff = strtolower((string) ($q->difficulty ?? ($ans['difficulty'] ?? 'medium'))))
+                @php($diffLabel = match ($qDiff) { 'easy' => 'Easy', 'hard' => 'Hard', default => 'Medium' })
+                @php($diffCls = match ($qDiff) { 'easy' => 'bg-emerald-100 text-emerald-800 border-emerald-200', 'hard' => 'bg-rose-100 text-rose-800 border-rose-200', default => 'bg-amber-100 text-amber-800 border-amber-200' })
 
                 <article class="panel p-5 sm:p-6 rounded-2xl border shadow-xs bg-white {{ $status === 'salah' ? 'border-rose-200/90' : ($status === 'hampir_benar' ? 'border-amber-200/90' : 'border-emerald-200/90') }}">
                     <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
-                        <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-2 flex-wrap">
                             <span class="rounded-lg bg-slate-100 text-slate-700 font-bold text-xs px-2.5 py-1">Soal #{{ $idx + 1 }}</span>
                             <span class="rounded-md {{ $isEssay ? 'bg-purple-50 text-purple-700 border border-purple-200/60' : 'bg-blue-50 text-blue-700 border border-blue-200/60' }} text-[10px] font-bold uppercase px-2 py-0.5">
                                 {{ $isEssay ? 'Esai Analisis' : 'Pilihan Ganda' }}
+                            </span>
+                            <span class="rounded-md border {{ $diffCls }} text-[10px] font-bold uppercase px-2 py-0.5">
+                                {{ $diffLabel }}
                             </span>
                             @if ($status === 'salah')
                                 <span class="rounded-full bg-rose-50 border border-rose-200 text-rose-700 text-[10px] font-extrabold px-2.5 py-0.5 inline-flex items-center gap-1">
@@ -136,11 +154,16 @@
                             @endif
                         </div>
                         <div class="text-xs font-black {{ $earned > 0 ? ($status === 'hampir_benar' ? 'text-amber-600' : 'text-emerald-600') : 'text-rose-600' }}">
-                            Nilai: {{ number_format($earned, 2) }} / {{ $pointsPerQuestion }} Poin
+                            Nilai: {{ number_format($earned, 2) }} / {{ $qMaxPoints }} Poin
                         </div>
                     </div>
 
-                    <h3 class="text-sm sm:text-base font-bold text-slate-900 mb-4">{{ $q->question }}</h3>
+                    <h3 class="text-sm sm:text-base font-bold text-slate-900 {{ ! empty($q->context) ? 'mb-2' : 'mb-4' }}">{{ $q->question }}</h3>
+                    @if (! empty($q->context))
+                        <p class="text-xs text-slate-600 bg-slate-50 border border-slate-200/80 rounded-xl px-3.5 py-2 mb-4">
+                            <strong class="text-slate-700">Konteks:</strong> {{ $q->context }}
+                        </p>
+                    @endif
 
                     @if (! $isEssay)
                         {{-- Review Pilihan Ganda --}}
@@ -162,19 +185,33 @@
                             @endforeach
                         </div>
 
-                        @if (! empty($ans['feedback']))
-                            <div class="p-3 rounded-xl {{ ($ans['is_correct'] ?? false) ? 'bg-emerald-50/70 border border-emerald-200 text-emerald-900' : 'bg-rose-50/70 border border-rose-200 text-rose-900' }} text-xs">
-                                <strong>{{ ($ans['is_correct'] ?? false) ? '✅ Evaluasi:' : '❌ Evaluasi:' }}</strong>
-                                <span>{{ $ans['feedback'] }}</span>
+                        @php($pgCorrectKey = strtoupper((string) ($q->correct_answer ?? '')))
+                        @php($pgCorrectText = $q->options[$pgCorrectKey] ?? $pgCorrectKey)
+                        @php($pgChosenKey = strtoupper((string) ($ans['chosen'] ?? '')))
+                        @php($pgIsCorrect = ($ans['is_correct'] ?? false))
+                        <div class="p-4 rounded-xl border text-xs space-y-1.5 {{ $pgIsCorrect ? 'bg-emerald-50/70 border-emerald-200 text-emerald-950' : 'bg-rose-50/70 border-rose-200 text-rose-950' }}">
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="font-bold text-blue-900">💡 Pembahasan Kunci Jawaban:</span>
+                                <span class="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full {{ $pgIsCorrect ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800' }}">
+                                    {{ $pgIsCorrect ? '✓ Jawaban Anda Benar' : ($pgChosenKey ? "✗ Anda Memilih {$pgChosenKey}" : '✗ Tidak Dijawab') }}
+                                </span>
                             </div>
-                        @endif
+                            <p class="font-bold text-slate-900">Kunci Jawaban Benar: {{ $pgCorrectKey }} — {{ $pgCorrectText }}</p>
+                            @if (! empty($ans['feedback']))
+                                <p class="text-slate-700 leading-relaxed">{{ $ans['feedback'] }}</p>
+                            @endif
+                        </div>
                     @else
                         {{-- Review Soal Esai: Desain Bersih & Elegan Mirip Gemini NotebookLM --}}
                         <div class="space-y-4">
-                            <!-- 1. Box Jawaban Anda (NotebookLM Style) -->
+                            <!-- 1. Box Jawaban Anda (NotebookLM Style + Highlight Kata Kunci Benar) -->
+                            @php($highlightService = app(\App\Services\Evaluation\AnswerHighlightService::class))
+                            @php($savedSpans = is_array($ans['matched_spans'] ?? null) ? $ans['matched_spans'] : [])
+                            @php($highlightSpans = ($status !== 'salah' && mb_strlen($studentAnswerText) >= 12) ? (! empty($savedSpans) ? $savedSpans : $highlightService->extractMatchedSpans($studentAnswerText, $modelAns ?: $refExcerpt, $document)) : [])
+                            @php($highlightedAnswerHtml = $highlightService->formatHighlightedHtml($studentAnswerText ?: '(Tidak diisi)', $highlightSpans, $status !== 'salah'))
                             <div class="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200/90 text-xs">
                                 <span class="text-xs font-bold text-slate-500 block mb-2">Jawaban Anda</span>
-                                <p class="text-slate-800 text-xs sm:text-sm leading-relaxed whitespace-pre-line font-medium">{{ $ans['student_answer'] ?? '(Tidak diisi)' }}</p>
+                                <p class="text-slate-700 text-xs sm:text-sm leading-relaxed whitespace-pre-line font-normal">{!! $highlightedAnswerHtml !!}</p>
                             </div>
 
                             <!-- 2. Box Ulasan / Evaluasi Analisis AI (NotebookLM Style: 1 Box Utuh & Rapi) -->
@@ -235,6 +272,24 @@
                                             <span class="italic">"{{ $refExcerpt }}"</span>
                                         </div>
                                     @endif
+                                @else
+                                    <details class="mt-3 pt-2.5 border-t border-emerald-200/60 text-xs">
+                                        <summary class="cursor-pointer font-semibold text-emerald-800 hover:text-emerald-950 select-none">
+                                            Lihat Kunci Jawaban & Rujukan Teks
+                                        </summary>
+                                        <div class="mt-2 space-y-1.5 text-slate-700">
+                                            <p class="leading-relaxed">
+                                                <strong class="font-bold text-slate-800">Jawaban Acuan Materi:</strong>
+                                                <span class="whitespace-pre-line">{{ $modelAns }}</span>
+                                            </p>
+                                            @if (! empty($refExcerpt))
+                                                <p class="text-[11px] text-slate-500">
+                                                    <span class="font-semibold text-slate-700">Rujukan Teks:</span>
+                                                    <span class="italic">"{{ $refExcerpt }}"</span>
+                                                </p>
+                                            @endif
+                                        </div>
+                                    </details>
                                 @endif
                             </div>
                         </div>
@@ -267,22 +322,34 @@
             @csrf
             <div class="space-y-5 mb-8">
                 @foreach ($challenges as $idx => $q)
+                    @php($qMaxPoints = $pointsMap[$q->id] ?? $pointsPerQuestion)
+                    @php($qDiff = strtolower((string) ($q->difficulty ?? 'medium')))
+                    @php($diffLabel = match ($qDiff) { 'easy' => 'Easy', 'hard' => 'Hard', default => 'Medium' })
+                    @php($diffCls = match ($qDiff) { 'easy' => 'bg-emerald-100 text-emerald-800 border-emerald-200', 'hard' => 'bg-rose-100 text-rose-800 border-rose-200', default => 'bg-amber-100 text-amber-800 border-amber-200' })
                     <article class="panel p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-xs bg-white">
                         <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
-                            <div class="flex items-center gap-2">
+                            <div class="flex items-center gap-2 flex-wrap">
                                 <span class="rounded-lg bg-blue-50 text-blue-700 font-bold text-xs px-2.5 py-1 border border-blue-200/60">
                                     Soal #{{ $idx + 1 }} dari {{ $totalQuestions }}
                                 </span>
                                 <span class="rounded-md {{ $q->type === 'essay' ? 'bg-purple-50 text-purple-700 border border-purple-200/60' : 'bg-slate-100 text-slate-700' }} text-[10px] font-bold uppercase px-2 py-0.5">
                                     {{ $q->type === 'essay' ? 'Esai Analisis' : 'Pilihan Ganda' }}
                                 </span>
+                                <span class="rounded-md border {{ $diffCls }} text-[10px] font-bold uppercase px-2 py-0.5">
+                                    {{ $diffLabel }}
+                                </span>
                             </div>
                             <span class="text-xs font-bold text-slate-400">
-                                Maksimal <strong class="text-slate-800">{{ $pointsPerQuestion }}</strong> Poin
+                                Maksimal <strong class="text-slate-800">{{ $qMaxPoints }}</strong> Poin
                             </span>
                         </div>
 
-                        <h3 class="text-sm sm:text-base font-bold text-slate-900 mb-4">{{ $q->question }}</h3>
+                        <h3 class="text-sm sm:text-base font-bold text-slate-900 {{ ! empty($q->context) ? 'mb-2' : 'mb-4' }}">{{ $q->question }}</h3>
+                        @if (! empty($q->context))
+                            <p class="text-xs text-slate-600 bg-slate-50 border border-slate-200/80 rounded-xl px-3.5 py-2 mb-4">
+                                <strong class="text-slate-700">Konteks:</strong> {{ $q->context }}
+                            </p>
+                        @endif
 
                         @if ($q->type === 'multiple_choice')
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5" data-mcq-group="{{ $q->id }}">
@@ -304,9 +371,9 @@
                                 <textarea id="essay_{{ $q->id }}"
                                           name="answers[{{ $q->id }}]"
                                           rows="5"
+                                          data-essay-input="{{ $idx + 1 }}"
                                           class="w-full rounded-xl border border-slate-200 p-3.5 text-xs text-slate-800 placeholder-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition"
-                                          placeholder="Jelaskan alasan, temuan bukti dari bacaan, dan kesimpulan Anda..."
-                                          required></textarea>
+                                          placeholder="Jelaskan alasan, temuan bukti dari bacaan, dan kesimpulan Anda..."></textarea>
                                 <p class="text-[11px] text-slate-400">Jawaban akan dianalisis secara cerdas oleh AI Socrates berdasarkan kesesuaian konsep materi dan bukti bacaan.</p>
                             </div>
                         @endif
@@ -332,8 +399,8 @@
                 <div class="w-16 h-16 rounded-2xl mx-auto mb-4 grid place-items-center bg-blue-100 text-blue-600">
                     <x-icon name="send" class="w-8 h-8" />
                 </div>
-                <h3 class="text-xl font-bold text-slate-900 mb-2">Kumpulkan Jawaban Tantangan?</h3>
-                <p class="text-xs text-slate-600 leading-relaxed mb-6">
+                <h3 id="teacherModalTitle" class="text-xl font-bold text-slate-900 mb-2">Kumpulkan Jawaban Tantangan?</h3>
+                <p id="teacherModalMessage" class="text-xs text-slate-600 leading-relaxed mb-6">
                     Seluruh jawaban esai dan pilihan ganda Anda akan dikumpulkan dan dinilai secara objektif oleh AI Socrates. Pastikan semua pertanyaan telah dijawab dengan seksama.
                 </p>
                 <div class="flex items-center justify-center gap-3">
@@ -348,29 +415,69 @@
         </div>
 
         <script>
-            // Modal Konfirmasi Pengumpulan
+            // Modal Konfirmasi Pengumpulan + Proteksi Double-Submit
             const teacherSubmitModal = document.getElementById('teacherSubmitModal');
+            const teacherModalTitle = document.getElementById('teacherModalTitle');
+            const teacherModalMessage = document.getElementById('teacherModalMessage');
             const btnOpenSubmitTeacherModal = document.getElementById('btnOpenSubmitTeacherModal');
             const btnCancelTeacherSubmit = document.getElementById('btnCancelTeacherSubmit');
             const btnConfirmTeacherSubmit = document.getElementById('btnConfirmTeacherSubmit');
             const teacherChallengeForm = document.getElementById('teacherChallengeForm');
+            let isSubmittingTeacherForm = false;
 
             if (btnOpenSubmitTeacherModal && teacherSubmitModal) {
                 btnOpenSubmitTeacherModal.addEventListener('click', () => {
+                    if (isSubmittingTeacherForm) return;
+                    const unanswered = [];
+                    document.querySelectorAll('[data-essay-input]').forEach(el => {
+                        if (!el.value || el.value.trim().length < 5) {
+                            unanswered.push(el.dataset.essayInput);
+                        }
+                    });
+                    document.querySelectorAll('[data-mcq-group]').forEach((group, gIdx) => {
+                        const checked = group.querySelector('input[type="radio"]:checked');
+                        if (!checked) {
+                            const article = group.closest('article');
+                            const badge = article ? article.querySelector('span')?.textContent : '';
+                            const m = badge ? badge.match(/Soal #(\d+)/) : null;
+                            unanswered.push(m ? m[1] : String(gIdx + 1));
+                        }
+                    });
+
+                    if (unanswered.length > 0 && teacherModalTitle && teacherModalMessage) {
+                        const sorted = [...new Set(unanswered)].sort((a, b) => Number(a) - Number(b));
+                        teacherModalTitle.textContent = `Ada ${sorted.length} Soal Belum Dijawab!`;
+                        teacherModalMessage.innerHTML = `Soal nomor <strong class="text-amber-700 font-bold">${sorted.join(', ')}</strong> masih kosong atau terlalu singkat.<br><br>Apakah Anda tetap yakin ingin mengumpulkan sekarang?`;
+                    } else if (teacherModalTitle && teacherModalMessage) {
+                        teacherModalTitle.textContent = 'Kumpulkan Jawaban Tantangan?';
+                        teacherModalMessage.textContent = 'Seluruh jawaban esai dan pilihan ganda Anda akan dikumpulkan dan dinilai secara objektif oleh AI Socrates.';
+                    }
+
                     teacherSubmitModal.classList.remove('hidden');
                 });
             }
 
             if (btnCancelTeacherSubmit && teacherSubmitModal) {
                 btnCancelTeacherSubmit.addEventListener('click', () => {
+                    if (isSubmittingTeacherForm) return;
                     teacherSubmitModal.classList.add('hidden');
                 });
             }
 
             if (btnConfirmTeacherSubmit && teacherChallengeForm) {
                 btnConfirmTeacherSubmit.addEventListener('click', () => {
-                    teacherSubmitModal.classList.add('hidden');
+                    if (isSubmittingTeacherForm) return;
+                    isSubmittingTeacherForm = true;
+                    btnConfirmTeacherSubmit.disabled = true;
+                    btnConfirmTeacherSubmit.textContent = '⏳ Menilai jawaban...';
+                    if (btnCancelTeacherSubmit) btnCancelTeacherSubmit.disabled = true;
+                    if (btnOpenSubmitTeacherModal) btnOpenSubmitTeacherModal.disabled = true;
                     teacherChallengeForm.submit();
+                });
+
+                teacherChallengeForm.addEventListener('submit', (e) => {
+                    if (isSubmittingTeacherForm) return;
+                    isSubmittingTeacherForm = true;
                 });
             }
 
