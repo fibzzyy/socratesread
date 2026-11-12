@@ -152,7 +152,7 @@ class GamificationService
         }
 
         return $this->activitiesForGrade($user, $grade ?? 'all', $documentIds)
-            ->with(['readingSession.document:id,title', 'document:id,title'])
+            ->with(['readingSession.document:id,title,category', 'document:id,title,category'])
             ->latest('created_at')
             ->limit($limit)
             ->get();

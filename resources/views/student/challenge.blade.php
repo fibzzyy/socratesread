@@ -61,6 +61,7 @@
                     @endif
                 </div>
                 <textarea id="student-answer" rows="5" maxlength="800" placeholder="{{ $isLocked ? 'Belum ada jawaban tersimpan.' : 'Tuliskan pemikiranmu di sini sepahammu. Coba sertakan bukti dari bacaan…' }}" data-answer {{ $isLocked ? 'readonly disabled' : '' }} class="{{ $isLocked ? '!bg-slate-50 !text-slate-800 !cursor-not-allowed !border-slate-200 font-medium' : '' }}">{{ $savedAnswers->get($questions->first()->id) }}</textarea>
+                <div id="student-answer-preview" data-answer-preview hidden class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs sm:text-sm leading-relaxed text-slate-700 whitespace-pre-line font-normal"></div>
                 <div class="answer-hint-row">
                     <button type="button" class="hint-button" data-hint-toggle aria-expanded="false"><x-icon name="lightbulb" /><span data-hint-label>Beri saya petunjuk</span></button>
                     @if (! $isLocked)
@@ -96,6 +97,12 @@
                     <div class="mt-2.5 pt-2.5 border-t border-slate-200/70 text-xs" data-eval-hint-box hidden>
                         <strong class="font-bold text-[11px] uppercase tracking-wider block mb-0.5">Petunjuk Perbaikan:</strong>
                         <p class="italic text-slate-700" data-eval-hint-text></p>
+                    </div>
+
+                    <!-- Kunci Jawaban yang Benar Berdasarkan Materi (Tampil saat jawaban salah / belum tuntas) -->
+                    <div class="mt-2.5 pt-2.5 border-t border-slate-200/70 text-xs" data-eval-model-box hidden>
+                        <strong class="font-bold text-[11px] uppercase tracking-wider block mb-0.5 text-slate-800">Kunci Jawaban yang Benar Berdasarkan Materi:</strong>
+                        <p class="text-slate-700 font-medium leading-relaxed" data-eval-model-text></p>
                     </div>
                 </div>
             </div>
@@ -137,6 +144,7 @@
 
     const form = document.querySelector('[data-challenge]');
     const answer = form.querySelector('[data-answer]');
+    const answerPreview = form.querySelector('[data-answer-preview]');
     const hintButton = form.querySelector('[data-hint-toggle]');
     const hint = form.querySelector('[data-hint]');
     const prevButton = form.querySelector('[data-prev-question]');
@@ -155,6 +163,8 @@
     const evalMissingList = form.querySelector('[data-eval-missing-list]');
     const evalHintBox = form.querySelector('[data-eval-hint-box]');
     const evalHintText = form.querySelector('[data-eval-hint-text]');
+    const evalModelBox = form.querySelector('[data-eval-model-box]');
+    const evalModelText = form.querySelector('[data-eval-model-text]');
 
     if (countEl) countEl.textContent = answer.value.length;
     if (!isLocked) {
@@ -184,23 +194,27 @@
         const feedback = String(evalData.feedback || (evalData.evaluation && evalData.evaluation.feedback) || 'Jawaban Anda telah dievaluasi berdasarkan materi bacaan.');
         const missing = (evalData.missing_concepts || (evalData.evaluation && evalData.evaluation.missing_concepts) || []);
         const hintText = evalData.hint || (evalData.evaluation && evalData.evaluation.hint) || '';
+        const levelLower = rawLevel.toLowerCase();
+
+        const isWrong = score < 40 || levelLower.includes('salah') || levelLower.includes('belum tepat');
+        const isAlmost = !isWrong && (score < 70 || levelLower.includes('hampir') || levelLower.includes('cukup'));
 
         let boxClasses = '';
         let badgeHtml = '';
         let scoreClass = '';
 
-        if (score >= 70 || rawLevel.toLowerCase().includes('mahir') || rawLevel.toLowerCase().includes('tepat') || rawLevel.toLowerCase().includes('baik')) {
+        if (!isWrong && !isAlmost) {
             boxClasses = 'border-emerald-300 bg-emerald-50/80 text-emerald-950';
             scoreClass = 'bg-emerald-100 text-emerald-800';
             badgeHtml = `<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800"><svg class="w-3.5 h-3.5 mr-1 text-emerald-600 stroke-[3]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>✓ Benar / Tepat & Sesuai</span>`;
-        } else if (score >= 40 || rawLevel.toLowerCase().includes('hampir') || rawLevel.toLowerCase().includes('cukup')) {
+        } else if (isAlmost) {
             boxClasses = 'border-amber-300 bg-amber-50/80 text-amber-950';
             scoreClass = 'bg-amber-100 text-amber-900';
             badgeHtml = `<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900"><svg class="w-3.5 h-3.5 mr-1 text-amber-600 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>⚠ Hampir Benar / Perlu Perbaikan</span>`;
         } else {
             boxClasses = 'border-rose-300 bg-rose-50/80 text-rose-950';
             scoreClass = 'bg-rose-100 text-rose-900';
-            badgeHtml = `<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-900"><svg class="w-3.5 h-3.5 mr-1 text-rose-600 stroke-[3]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>✕ Belum Tepat</span>`;
+            badgeHtml = `<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-900"><svg class="w-3.5 h-3.5 mr-1 text-rose-600 stroke-[3]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>✕ Salah / Belum Tepat</span>`;
         }
 
         evalBox.className = `evaluation-review-box mt-4 rounded-2xl border p-4 sm:p-5 transition-all duration-300 ${boxClasses}`;
@@ -221,6 +235,67 @@
             evalHintBox.hidden = false;
         } else {
             evalHintBox.hidden = true;
+        }
+
+        const qObj = questions[current] || {};
+        const modelAns = String(qObj.hint || '').trim();
+        if (evalModelBox && evalModelText && (isWrong || isAlmost) && modelAns.length > 0) {
+            evalModelText.textContent = modelAns;
+            evalModelBox.hidden = false;
+        } else if (evalModelBox) {
+            evalModelBox.hidden = true;
+        }
+
+        const spans = evalData.matched_spans || (evalData.evaluation && evalData.evaluation.matched_spans) || [];
+        syncAnswerPreview(!isWrong || isAlmost, spans);
+    };
+
+    const escapeHtml = (str) => String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+
+    const formatHighlightedAnswerHtml = (rawText, spans, allowHighlight) => {
+        if (!allowHighlight || !Array.isArray(spans) || spans.length === 0 || !rawText) {
+            return escapeHtml(rawText || '(Belum ada jawaban tersimpan.)');
+        }
+        const lowerText = rawText.toLowerCase();
+        const ranges = [];
+        spans.forEach((sp) => {
+            const cleanSpan = String(sp || '').trim();
+            if (!cleanSpan) return;
+            const pos = lowerText.indexOf(cleanSpan.toLowerCase());
+            if (pos === -1) return;
+            const end = pos + cleanSpan.length;
+            const overlaps = ranges.some((r) => !(end <= r.start || pos >= r.end));
+            if (!overlaps) ranges.push({ start: pos, end });
+        });
+        if (ranges.length === 0) return escapeHtml(rawText);
+        ranges.sort((a, b) => a.start - b.start);
+
+        let html = '';
+        let cursor = 0;
+        ranges.forEach((r) => {
+            if (r.start > cursor) html += escapeHtml(rawText.slice(cursor, r.start));
+            html += `<strong class="font-bold text-slate-950">${escapeHtml(rawText.slice(r.start, r.end))}</strong>`;
+            cursor = r.end;
+        });
+        if (cursor < rawText.length) html += escapeHtml(rawText.slice(cursor));
+        return html;
+    };
+
+    const syncAnswerPreview = (allowHighlight, spans) => {
+        if (!answerPreview) return;
+        const showPreview = isLocked || answer.readOnly;
+        if (showPreview && answer.value.trim().length > 0) {
+            answerPreview.innerHTML = formatHighlightedAnswerHtml(answer.value.trim(), spans, allowHighlight);
+            answerPreview.hidden = false;
+            answer.hidden = true;
+        } else {
+            answerPreview.hidden = true;
+            answer.hidden = false;
         }
     };
 
@@ -255,21 +330,26 @@
             answer.disabled = true;
             if (editButton) editButton.hidden = true;
             renderEvaluation(existingEval);
+            if (!existingEval) {
+                syncAnswerPreview(false, []);
+            }
             actionButton.disabled = false;
             actionLabel.textContent = current === questions.length - 1 ? 'Selesai meninjau' : 'Pertanyaan berikutnya';
         } else {
             if (existingEval) {
-                renderEvaluation(existingEval);
                 answer.readOnly = true;
                 answer.classList.add('!bg-slate-50');
+                renderEvaluation(existingEval);
                 if (editButton) editButton.hidden = false;
                 actionButton.disabled = false;
                 actionLabel.textContent = current === questions.length - 1 ? 'Selesaikan Tantangan' : 'Pertanyaan Berikutnya';
             } else {
-                renderEvaluation(null);
                 answer.readOnly = false;
                 answer.disabled = false;
                 answer.classList.remove('!bg-slate-50');
+                renderEvaluation(null);
+                if (answerPreview) answerPreview.hidden = true;
+                answer.hidden = false;
                 if (editButton) editButton.hidden = true;
                 actionButton.disabled = false;
                 actionLabel.textContent = 'Periksa Jawaban';
@@ -289,6 +369,8 @@
         editButton.addEventListener('click', () => {
             answer.readOnly = false;
             answer.disabled = false;
+            answer.hidden = false;
+            if (answerPreview) answerPreview.hidden = true;
             answer.classList.remove('!bg-slate-50');
             answer.focus();
             evalBox.hidden = true;
@@ -390,9 +472,9 @@
             savedAnswers[qId] = answer.value.trim();
             savedEvaluations[qId] = data.evaluation;
 
-            renderEvaluation(data.evaluation);
             answer.readOnly = true;
             answer.classList.add('!bg-slate-50');
+            renderEvaluation(data.evaluation);
             if (editButton) editButton.hidden = false;
 
             actionButton.disabled = false;

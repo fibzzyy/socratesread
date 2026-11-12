@@ -35,6 +35,11 @@ class ReadingSession extends Model
         return $this->hasMany(StudentAnswer::class);
     }
 
+    public function coachMessages(): HasMany
+    {
+        return $this->hasMany(ReadingCoachMessage::class)->orderBy('id');
+    }
+
     public function learningActivities(): HasMany
     {
         return $this->hasMany(LearningActivity::class);

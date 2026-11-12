@@ -90,6 +90,8 @@ Route::middleware(['auth', 'role:teacher'])->prefix('teacher')->name('teacher.')
     Route::delete('/documents/{document}', [DocumentController::class, 'destroy'])->whereNumber('document')->name('documents.destroy');
     Route::get('/documents/{document}/challenges', [TeacherChallengeController::class, 'index'])->whereNumber('document')->name('documents.challenges.index');
     Route::get('/documents/{document}/challenges/suggestions', [TeacherChallengeController::class, 'suggestions'])->whereNumber('document')->name('documents.challenges.suggestions');
+    Route::post('/documents/{document}/challenges/analyze', [TeacherChallengeController::class, 'analyze'])->whereNumber('document')->name('documents.challenges.analyze');
+    Route::post('/documents/{document}/challenges/recommend-answer', [TeacherChallengeController::class, 'recommendAnswer'])->whereNumber('document')->name('documents.challenges.recommend_answer');
     Route::post('/documents/{document}/challenges', [TeacherChallengeController::class, 'store'])->whereNumber('document')->name('documents.challenges.store');
     Route::delete('/documents/{document}/challenges/{challenge}', [TeacherChallengeController::class, 'destroy'])->whereNumber('document')->name('documents.challenges.destroy');
 });

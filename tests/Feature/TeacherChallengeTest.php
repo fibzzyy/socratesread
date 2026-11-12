@@ -166,7 +166,7 @@ class TeacherChallengeTest extends TestCase
             'title' => 'Struktur Data Antrian',
             'category' => 'Informatika',
             'target_grade' => '10',
-            'body' => "Queue menggunakan prinsip FIFO.\n\nOperasi enqueue menambahkan elemen ke bagian belakang.",
+            'body' => "Queue adalah struktur data yang menggunakan prinsip FIFO (First In First Out).\n\nOperasi enqueue berfungsi menambahkan elemen ke bagian belakang antrian.",
             'excerpt' => 'Konsep antrian.',
             'estimated_minutes' => 5,
             'is_published' => true,
@@ -174,10 +174,57 @@ class TeacherChallengeTest extends TestCase
 
         $response = $this->actingAs($teacher)->getJson(route('teacher.documents.challenges.suggestions', $document));
         $response->assertOk();
-        $response->assertJsonStructure(['suggestions']);
+        $response->assertJsonStructure(['suggestions', 'max_xp']);
         $suggestions = $response->json('suggestions');
         $this->assertNotEmpty($suggestions);
         $this->assertEquals('essay', $suggestions[0]['type']);
+        $this->assertArrayHasKey('context', $suggestions[0]);
+        $this->assertArrayHasKey('difficulty', $suggestions[0]);
+        $this->assertContains($suggestions[0]['difficulty'], ['easy', 'medium', 'hard']);
+        $this->assertStringNotContainsString('(Konteks:', $suggestions[0]['question']);
+    }
+
+    public function test_teacher_custom_challenges_receive_weighted_difficulty_scoring_and_reward_xp(): void
+    {
+        $teacher = User::factory()->create(['role' => 'teacher']);
+        $document = Document::query()->create([
+            'uploaded_by' => $teacher->id,
+            'title' => 'Trigatra Bangun Bahasa',
+            'category' => 'Bahasa Indonesia',
+            'target_grade' => '11',
+            'body' => 'Trigatra Bangun Bahasa memadukan pengutamaan bahasa Indonesia, pelestarian bahasa daerah, dan penguasaan bahasa asing.',
+            'excerpt' => 'Konsep kebahasaan nasional.',
+            'estimated_minutes' => 5,
+            'is_published' => true,
+        ]);
+
+        $response = $this->actingAs($teacher)->postJson(route('teacher.documents.challenges.store', $document), [
+            'challenges' => [
+                [
+                    'type' => 'essay',
+                    'question' => 'Apa pengertian Trigatra Bangun Bahasa?',
+                    'context' => 'Fokus pada definisi pokok.',
+                    'rubric' => 'Strategi memadukan bahasa Indonesia, daerah, dan asing.',
+                ],
+                [
+                    'type' => 'essay',
+                    'question' => 'Rancang strategi konkret menjaga keseimbangan bahasa Indonesia dan bahasa asing di era digital!',
+                    'context' => 'Berikan contoh nyata.',
+                    'rubric' => 'Mengutamakan bahasa Indonesia di ruang publik sekaligus menguasai bahasa asing untuk akses iptek.',
+                ],
+            ],
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('success', true);
+        $this->assertGreaterThanOrEqual(20, $response->json('max_xp'));
+
+        $saved = $response->json('challenges');
+        $this->assertSame('easy', $saved[0]['difficulty']);
+        $this->assertSame('hard', $saved[1]['difficulty']);
+        // Easy (1) vs Hard (3) => total weight 4 => Easy 25.00 poin, Hard 75.00 poin
+        $this->assertEquals(25.0, $saved[0]['points_max']);
+        $this->assertEquals(75.0, $saved[1]['points_max']);
     }
 
     public function test_student_sees_empty_message_when_teacher_challenge_is_empty(): void
@@ -296,5 +343,50 @@ class TeacherChallengeTest extends TestCase
             'total_challenges' => 0,
             'challenges' => [],
         ]);
+    }
+
+    public function test_browser_resubmit_on_completed_teacher_challenge_redirects_instead_of_dumping_json(): void
+    {
+        $teacher = User::factory()->create(['role' => 'teacher']);
+        $student = User::factory()->create(['role' => 'student']);
+
+        $document = Document::query()->create([
+            'uploaded_by' => $teacher->id,
+            'title' => 'Trigatra Bangun Bahasa',
+            'category' => 'Bahasa Indonesia',
+            'target_grade' => '10',
+            'body' => "Setelah mengikuti pembelajaran ini, mahasiswa mampu:\n- Menjelaskan pengertian Trigatra Bangun Bahasa.\n\nTrigatra Bangun Bahasa adalah konsep yang diperkenalkan oleh Anton Moeliono (1985).",
+            'excerpt' => 'Konsep Trigatra Bangun Bahasa.',
+            'estimated_minutes' => 5,
+            'is_published' => true,
+        ]);
+
+        $challenge = TeacherChallenge::query()->create([
+            'document_id' => $document->id,
+            'type' => 'essay',
+            'sequence' => 1,
+            'question' => 'APA YANG DIMAKSUD DENGAN TRIGATRA BANGUN BAHASA?',
+            'rubric' => 'pengertian trigatra bangun bahasa',
+            'difficulty' => 'easy',
+            'difficulty_weight' => 1,
+        ]);
+
+        // Submit pertama via browser form (non-JSON)
+        $firstRes = $this->actingAs($student)->post(route('student.teacher-challenges.submit', $document), [
+            'answers' => [$challenge->id => 'tidak tahu'],
+        ]);
+        $firstRes->assertRedirect(route('student.teacher-challenges.show', $document));
+
+        // Submit kedua (double-submit browser form) harus redirect rapi, bukan layar JSON 403
+        $secondRes = $this->actingAs($student)->post(route('student.teacher-challenges.submit', $document), [
+            'answers' => [$challenge->id => 'tidak tahu'],
+        ]);
+        $secondRes->assertRedirect(route('student.teacher-challenges.show', $document));
+
+        // Pastikan kunci jawaban mengambil definisi nyata, bukan kalimat tujuan pembelajaran
+        $reviewRes = $this->actingAs($student)->get(route('student.teacher-challenges.show', $document));
+        $reviewRes->assertOk();
+        $reviewRes->assertSee('Anton Moeliono (1985)');
+        $reviewRes->assertDontSee('Menjelaskan pengertian Trigatra Bangun Bahasa.');
     }
 }
