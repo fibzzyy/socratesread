@@ -8,7 +8,10 @@ use App\Models\TeacherClass;
 use App\Models\User;
 use App\Services\AI\Contracts\LanguageModel;
 use App\Services\AI\DocumentAiProcessor;
+use App\Services\PdfTextExtractor;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Mockery;
 use Tests\TestCase;
 
 class TeacherChallengeCoPilotAndAlignmentTest extends TestCase
@@ -394,5 +397,81 @@ TEXT;
         $classRes->assertDontSee('return confirm(', false);
         $classRes->assertSee('id="webConfirmModal"', false);
         $classRes->assertSee('data-confirm-title="Arsipkan Kelas?"', false);
+    }
+
+    public function test_uploaded_slide_pdf_generates_clean_teacher_challenges_without_context_or_boilerplate(): void
+    {
+        $teacher = User::factory()->create(['role' => 'teacher']);
+
+        $slidePdfText = <<<'TEXT'
+Rangkuman& Ikhtisar Rizal D. Syifa Bahasa Indonesia Ringkasan,
+
+CAPAIAN PEMBELAJARANCAPAIAN PEMBELAJARAN
+
+Menjelaskan pengertian ringkasan, rangkuman, dan ikhtisar, serta Mengidentifikasi perbedaan antara ketiganya. Menyusun ringkasan, rangkuman, dan ikhtisar dari berbagai jenis teks. Menunjukkan kemampuan berpikir kritisdan selektif dalammengambil informasipenting dari bacaan atau sebuahcerita.
+
+Ringkasan Ringkasan Ringkasan adalah penyajian kembali suatu teks dalam bentuk yang lebih singkat dengan mempertahankan urutan isi dan gagasan utama dari teks aslinya. → Tujuannya untuk memahami keseluruhan isi bacaan secara cepat. Ciri: menggunakan kalimat sendiri, tetap mengikuti alur teks asli.
+
+Rangkuman merupakan penyederhanaan isi teks dengan cara mengambil pokok - pokok pikiran terpenting tanpa memperhatikan urutan asli secara ketat. → Tujuannya untuk menyimpan informasi inti dari beberapa sumber atau bagian teks yang panjang. Rangkuman Rangkuman
+
+Ikhtisar adalah bentuk penyajian singkat dari teks berdasarkan pemahaman penulis sendiri, tanpa harus mengikuti struktur teks asli, dan boleh disertai pendapat atau tafsiran penulis. → Tujuannya menunjukkan pemahaman dan interpretasi pribadi terhadap teks. Ikhtisar Ikhtisar
+
+Teknologi informasi berkembang pesat dalam dua dekade terakhir. Perkembangan ini membawa dampak positif seperti kemudahan komunikasi dan akses informasi. Penulis menggambarkan kemajuan teknologi yang berpengaruh besar pada kehidupan manusia.
+
+- Keraf, Gorys. (2004). Komposisi: Sebuah Pengantar Kemahiran Bahasa. Nusa Indah. - Dalman. (2016). Keterampilan Menulis. Raja Grafindo Persada. Referensi
+TEXT;
+
+        $mockExtractor = Mockery::mock(PdfTextExtractor::class);
+        $mockExtractor->shouldReceive('extract')->once()->andReturn([
+            'text' => $slidePdfText,
+            'pages' => 8,
+        ]);
+        $this->app->instance(PdfTextExtractor::class, $mockExtractor);
+
+        $response = $this->actingAs($teacher)->post(route('teacher.documents.store'), [
+            'title' => 'RRI',
+            'category' => 'BAHASA INDONESIA',
+            'target_grade' => '10',
+            'file' => UploadedFile::fake()->create('rri.pdf', 120, 'application/pdf'),
+        ]);
+        $response->assertRedirect(route('teacher.documents'));
+
+        $doc = Document::query()->where('title', 'RRI')->firstOrFail();
+        $challenges = $doc->teacherChallenges()->orderBy('sequence')->get();
+        $this->assertCount(5, $challenges);
+
+        foreach ($challenges as $challenge) {
+            $this->assertNull($challenge->context);
+            $this->assertStringNotContainsStringIgnoringCase('Menurut penalaran Anda', $challenge->question);
+            $this->assertStringNotContainsString('Ringkasan Ringkasan', $challenge->question);
+            $this->assertStringNotContainsString('Ringkasan Ringkasan', (string) $challenge->rubric);
+            $this->assertStringNotContainsString('Menyusun ringkasan', (string) $challenge->rubric);
+            $this->assertStringNotContainsString('Raja Grafindo Persada', (string) $challenge->rubric);
+        }
+
+        $this->assertStringContainsString('Ringkasan', $challenges[0]->question);
+        $this->assertStringContainsString('penyampaian ulang', (string) $challenges[0]->rubric);
+        $this->assertStringNotContainsString('→', (string) $challenges[0]->rubric);
+        $this->assertStringContainsString('Rangkuman', $challenges[1]->question);
+        $this->assertStringContainsString('menyederhanakan isi bacaan', (string) $challenges[1]->rubric);
+        $this->assertStringNotContainsString('→', (string) $challenges[1]->rubric);
+        $this->assertStringContainsString('Ikhtisar', $challenges[2]->question);
+        $this->assertStringNotContainsString('spesifikasi apa saja yang terkait dengan Ikhtisar', $challenges[2]->question);
+        $this->assertStringNotContainsString('→', (string) $challenges[2]->rubric);
+        $this->assertStringNotContainsString('risiko', mb_strtolower($challenges[3]->question));
+
+        $tbbSuggestions = app(DocumentAiProcessor::class)->generateTeacherChallengeSuggestions(
+            "Trigatra Bangun Bahasa adalah konsep yang diperkenalkan oleh Anton Moeliono.\n"
+            . "Kedudukan: bahasa nasional & bahasa negara (UUD 1945 Pasal 36).\n"
+            . "Trigatra bangun bahasa adalah konsep yang menekankan pada tiga aspek utama pembinaan bahasa Indonesia.\n"
+            . "Prinsip: Mengutamakan bahasa Indonesia, melestarikan bahasa daerah, menguasai bahasa asing.\n"
+            . "Kuasai artinya jangan sampai kita tidak menguasai satu Bahasa asing pun di era digital saat ini.",
+            'TBB'
+        );
+        $this->assertCount(5, $tbbSuggestions);
+        $this->assertStringContainsString('kedudukan', mb_strtolower($tbbSuggestions[1]['question']));
+        $this->assertStringNotContainsString('Kedudukan:', $tbbSuggestions[1]['rubric']);
+        $this->assertStringContainsString('bahasa nasional dan bahasa negara', mb_strtolower($tbbSuggestions[1]['rubric']));
+        $this->assertNotSame($challenges[4]->question, $tbbSuggestions[4]['question']);
     }
 }

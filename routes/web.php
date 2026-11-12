@@ -72,6 +72,7 @@ Route::middleware(['auth', 'role:student'])->group(function () {
     Route::get('/progress', ProgressController::class)->name('progress');
     Route::get('/achievements', [AchievementController::class, 'index'])->name('achievements');
     Route::get('/teacher-challenges/{document}', [StudentTeacherChallengeController::class, 'show'])->whereNumber('document')->name('student.teacher-challenges.show');
+    Route::post('/teacher-challenges/{document}/check-question', [StudentTeacherChallengeController::class, 'checkQuestion'])->whereNumber('document')->name('student.teacher-challenges.check-question');
     Route::post('/teacher-challenges/{document}/submit', [StudentTeacherChallengeController::class, 'submit'])->whereNumber('document')->name('student.teacher-challenges.submit');
 });
 

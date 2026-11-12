@@ -9,6 +9,7 @@ use App\Models\SocraticQuestion;
 use App\Models\StudentTeacherChallengeSubmission;
 use App\Models\TeacherChallenge;
 use App\Services\Evaluation\AnswerEvaluationPipeline;
+use App\Services\Evaluation\AnswerHighlightService;
 use App\Services\GamificationService;
 use App\Services\TeacherChallengeScoringService;
 use Illuminate\Http\JsonResponse;
@@ -33,11 +34,25 @@ class StudentTeacherChallengeController extends Controller
         $pointsMap = $scoring->distributePoints($challenges);
         $pointsPerQuestion = $totalQuestions > 0 ? round(100 / $totalQuestions, 2) : 0;
         $maxRewardXp = $scoring->calculateMaxRewardXp($challenges);
+        $existingAnswers = ($submission && ! $submission->isCompleted() && is_array($submission->answers))
+            ? $submission->answers
+            : [];
+        $checkedCount = count($existingAnswers);
+        $initialActiveIndex = 0;
+        foreach ($challenges as $idx => $item) {
+            if (! isset($existingAnswers[$item->id])) {
+                $initialActiveIndex = $idx;
+                break;
+            }
+        }
 
         return view('student.teacher-challenge', compact(
             'document',
             'challenges',
             'submission',
+            'existingAnswers',
+            'checkedCount',
+            'initialActiveIndex',
             'totalQuestions',
             'pointsPerQuestion',
             'pointsMap',
@@ -45,10 +60,96 @@ class StudentTeacherChallengeController extends Controller
         ));
     }
 
+    /**
+     * Evaluasi interaktif per soal gaya Gemini NotebookLM (mengunci hasil soal yang sudah dicek).
+     */
+    public function checkQuestion(
+        Request $request,
+        Document $document,
+        AnswerEvaluationPipeline $pipeline,
+        AnswerHighlightService $highlightService,
+        TeacherChallengeScoringService $scoring
+    ): JsonResponse {
+        $validated = $request->validate([
+            'challenge_id' => ['required', 'integer'],
+            'answer' => ['nullable', 'string', 'max:10000'],
+        ]);
+
+        $user = $request->user();
+        $submission = StudentTeacherChallengeSubmission::query()
+            ->where('user_id', $user->id)
+            ->where('document_id', $document->id)
+            ->first();
+
+        if ($submission && $submission->isCompleted()) {
+            return response()->json(['message' => 'Tantangan guru ini sudah selesai dikumpulkan.'], 403);
+        }
+
+        $challenges = $document->teacherChallenges()->orderBy('sequence')->get();
+        $challenge = $challenges->firstWhere('id', (int) $validated['challenge_id']);
+        if (! $challenge) {
+            return response()->json(['message' => 'Soal tantangan tidak ditemukan pada materi ini.'], 404);
+        }
+
+        $existingAnswers = ($submission && is_array($submission->answers)) ? $submission->answers : [];
+
+        // Anti-peek guard: jika soal ini sudah pernah diperiksa, kembalikan hasil yang sudah terkunci
+        if (isset($existingAnswers[$challenge->id]) && is_array($existingAnswers[$challenge->id])) {
+            return response()->json([
+                'evaluated' => $existingAnswers[$challenge->id],
+                'checked_count' => count($existingAnswers),
+                'total_questions' => $challenges->count(),
+                'locked' => true,
+            ]);
+        }
+
+        $rawAnswer = trim((string) ($validated['answer'] ?? ''));
+        if ($challenge->type === 'multiple_choice' && $rawAnswer === '') {
+            return response()->json(['message' => 'Pilih salah satu opsi jawaban terlebih dahulu sebelum memeriksa.'], 422);
+        }
+        $words = preg_split('/\s+/u', $rawAnswer, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        if ($challenge->type === 'essay' && (mb_strlen($rawAnswer) < 10 || count($words) < 4)) {
+            return response()->json(['message' => 'Tuliskan jawaban esai minimal 4 kata sebelum menekan Periksa Jawaban.'], 422);
+        }
+
+        @set_time_limit(120);
+
+        $pointsMap = $scoring->distributePoints($challenges);
+        $evaluated = $this->evaluateSingleChallenge(
+            $challenge,
+            $rawAnswer,
+            $document,
+            $pointsMap,
+            $challenges->count(),
+            $pipeline,
+            $highlightService
+        );
+
+        $existingAnswers[$challenge->id] = $evaluated;
+
+        StudentTeacherChallengeSubmission::updateOrCreate(
+            ['user_id' => $user->id, 'document_id' => $document->id],
+            [
+                'score' => 0,
+                'xp_awarded' => 0,
+                'answers' => $existingAnswers,
+                'status' => 'in_progress',
+            ]
+        );
+
+        return response()->json([
+            'evaluated' => $evaluated,
+            'checked_count' => count($existingAnswers),
+            'total_questions' => $challenges->count(),
+            'locked' => true,
+        ]);
+    }
+
     public function submit(
         Request $request,
         Document $document,
         AnswerEvaluationPipeline $pipeline,
+        AnswerHighlightService $highlightService,
         GamificationService $gamification,
         TeacherChallengeScoringService $scoring
     ): JsonResponse|RedirectResponse {
@@ -85,118 +186,33 @@ class StudentTeacherChallengeController extends Controller
         $pointsMap = $scoring->distributePoints($challenges);
         $maxRewardXp = $scoring->calculateMaxRewardXp($challenges);
 
+        $existingDraftAnswers = ($submission && ! $submission->isCompleted() && is_array($submission->answers))
+            ? $submission->answers
+            : [];
+
         $answersBreakdown = [];
         $totalEarnedScore = 0.0;
 
         foreach ($challenges as $challenge) {
-            $rawAnswer = trim((string) ($submittedAnswers[$challenge->id] ?? ''));
-            $maxPointsForQuestion = (float) ($pointsMap[$challenge->id] ?? round(100 / max(1, $totalQuestions), 2));
-            $difficulty = $challenge->difficulty ?? 'medium';
-
-            if ($challenge->type === 'multiple_choice') {
-                $chosen = strtoupper($rawAnswer);
-                $correct = strtoupper((string) $challenge->correct_answer);
-                $isCorrect = ($chosen !== '' && $chosen === $correct);
-                $earnedPoints = $isCorrect ? $maxPointsForQuestion : 0.0;
-
-                $totalEarnedScore += $earnedPoints;
-
-                $correctOptionText = $challenge->options[$correct] ?? $correct;
-                $chosenOptionText = $chosen ? ($challenge->options[$chosen] ?? $chosen) : '(Tidak dijawab)';
-
-                $answersBreakdown[$challenge->id] = [
-                    'type' => 'multiple_choice',
-                    'difficulty' => $difficulty,
-                    'question' => $challenge->question,
-                    'context' => $challenge->context,
-                    'chosen' => $chosen,
-                    'chosen_text' => $chosenOptionText,
-                    'correct_answer' => $correct,
-                    'correct_text' => $correctOptionText,
-                    'is_correct' => $isCorrect,
-                    'evaluation_status' => $isCorrect ? 'benar' : 'salah',
-                    'points_earned' => $earnedPoints,
-                    'points_max' => $maxPointsForQuestion,
-                    'feedback' => $isCorrect
-                        ? 'Jawaban Anda tepat! Pilihan (' . $correct . ') adalah jawaban yang benar.'
-                        : 'Jawaban salah. Anda memilih (' . ($chosen ?: 'Kosong') . '), sedangkan kunci jawaban yang benar adalah (' . $correct . '): ' . $correctOptionText . '.',
-                ];
-            } else {
-                // Tipe Esai: Evaluasi menggunakan pipeline analisis hybrid dengan acuan kunci jawaban yang konsisten
-                $modelData = $this->resolveModelAnswer($challenge, $document);
-
-                $mockQuestion = new SocraticQuestion([
-                    'document_id' => $document->id,
-                    'skill' => 'Analisis Esai Guru',
-                    'prompt' => $challenge->question,
-                    'context' => $challenge->context ?: ($modelData['reference_excerpt'] ?? ''),
-                    'hint' => $modelData['model_answer'] ?: ($challenge->rubric ?: 'Jelaskan dengan pemahaman konsep dan bukti teks bacaan.'),
-                ]);
-
-                if (empty($rawAnswer) || mb_strlen($rawAnswer) < 10) {
-                    $answersBreakdown[$challenge->id] = [
-                        'type' => 'essay',
-                        'difficulty' => $difficulty,
-                        'question' => $challenge->question,
-                        'context' => $challenge->context,
-                        'student_answer' => $rawAnswer ?: '(Tidak diisi)',
-                        'points_earned' => 0.0,
-                        'points_max' => $maxPointsForQuestion,
-                        'quality_percent' => 0,
-                        'understanding_level' => 'Salah / Belum Tepat',
-                        'evaluation_status' => 'salah',
-                        'has_evidence' => false,
-                        'is_copied' => false,
-                        'feedback' => 'Jawaban esai belum diisi atau terlalu singkat sehingga dinyatakan salah (0 poin). Pelajari kunci jawaban yang benar di bawah ini.',
-                        'model_answer' => $modelData['model_answer'],
-                        'reference_excerpt' => $modelData['reference_excerpt'],
-                        'missing_concepts' => ['Penjelasan konsep materi secara utuh', 'Bukti fakta dari bacaan'],
-                    ];
-                } else {
-                    $evalResult = $pipeline->evaluate($document, $mockQuestion, $rawAnswer);
-                    $qualityPercent = max(0, min(100, $evalResult->score));
-
-                    if ($qualityPercent < 40 || $evalResult->understandingLevel === 'Salah / Belum Tepat') {
-                        $earnedPoints = 0.0;
-                        $evaluationStatus = 'salah';
-                        $understandingLevel = 'Salah / Belum Tepat';
-                        $feedback = $evalResult->feedback ?: 'Jawaban belum tepat atau tidak sesuai dengan materi bacaan. Pelajari kunci jawaban yang benar di bawah ini.';
-                    } elseif ($qualityPercent < 70) {
-                        $earnedPoints = round(($qualityPercent / 100) * $maxPointsForQuestion, 2);
-                        $evaluationStatus = 'hampir_benar';
-                        $understandingLevel = 'Hampir Benar (Sebagian Benar)';
-                        $feedback = $evalResult->feedback ?: 'Jawaban hampir benar dan menyentuh sebagian konsep, namun belum tuntas. Pelajari penyempurnaannya di bawah.';
-                    } else {
-                        $earnedPoints = round(($qualityPercent / 100) * $maxPointsForQuestion, 2);
-                        $evaluationStatus = 'benar';
-                        $understandingLevel = $evalResult->understandingLevel ?: 'Tepat & Sesuai';
-                        $feedback = $evalResult->feedback ?: 'Jawaban Anda tepat, logis, dan sesuai dengan fakta materi bacaan.';
-                    }
-
-                    $totalEarnedScore += $earnedPoints;
-
-                    $answersBreakdown[$challenge->id] = [
-                        'type' => 'essay',
-                        'difficulty' => $difficulty,
-                        'question' => $challenge->question,
-                        'context' => $challenge->context,
-                        'student_answer' => $rawAnswer,
-                        'points_earned' => $earnedPoints,
-                        'points_max' => $maxPointsForQuestion,
-                        'quality_percent' => $qualityPercent,
-                        'understanding_level' => $understandingLevel,
-                        'evaluation_status' => $evaluationStatus,
-                        'has_evidence' => $evalResult->hasEvidence,
-                        'is_copied' => $evalResult->isCopied,
-                        'feedback' => $feedback,
-                        'model_answer' => $modelData['model_answer'],
-                        'reference_excerpt' => $modelData['reference_excerpt'],
-                        'matched_spans' => $evalResult->layerDetails['matched_spans'] ?? [],
-                        'missing_concepts' => $evalResult->missingConcepts,
-                        'hint' => $evalResult->hint,
-                    ];
-                }
+            if (isset($existingDraftAnswers[$challenge->id]) && is_array($existingDraftAnswers[$challenge->id])) {
+                $entry = $existingDraftAnswers[$challenge->id];
+                $answersBreakdown[$challenge->id] = $entry;
+                $totalEarnedScore += (float) ($entry['points_earned'] ?? 0.0);
+                continue;
             }
+
+            $rawAnswer = trim((string) ($submittedAnswers[$challenge->id] ?? ''));
+            $entry = $this->evaluateSingleChallenge(
+                $challenge,
+                $rawAnswer,
+                $document,
+                $pointsMap,
+                $totalQuestions,
+                $pipeline,
+                $highlightService
+            );
+            $answersBreakdown[$challenge->id] = $entry;
+            $totalEarnedScore += (float) ($entry['points_earned'] ?? 0.0);
         }
 
         // Skor akhir dibatasi maksimal 100
@@ -261,6 +277,161 @@ class StudentTeacherChallengeController extends Controller
             ->with('status', "Tantangan guru berhasil dikumpulkan! Anda memperoleh skor {$finalScore}/100 (+{$earnedXp} XP).");
     }
 
+    /**
+     * Mengevaluasi satu soal Tantangan Guru (Pilihan Ganda atau Esai) agar konsisten
+     * baik saat cek per-nomor interaktif maupun saat pengumpulan akhir.
+     *
+     * @param array<int, float> $pointsMap
+     * @return array<string, mixed>
+     */
+    private function evaluateSingleChallenge(
+        TeacherChallenge $challenge,
+        string $rawAnswer,
+        Document $document,
+        array $pointsMap,
+        int $totalQuestions,
+        AnswerEvaluationPipeline $pipeline,
+        AnswerHighlightService $highlightService
+    ): array {
+        $maxPointsForQuestion = (float) ($pointsMap[$challenge->id] ?? round(100 / max(1, $totalQuestions), 2));
+        $difficulty = $challenge->difficulty ?? 'medium';
+
+        if ($challenge->type === 'multiple_choice') {
+            $chosen = strtoupper($rawAnswer);
+            $correct = strtoupper((string) $challenge->correct_answer);
+            $isCorrect = ($chosen !== '' && $chosen === $correct);
+            $earnedPoints = $isCorrect ? $maxPointsForQuestion : 0.0;
+
+            $correctOptionText = $challenge->options[$correct] ?? $correct;
+            $chosenOptionText = $chosen ? ($challenge->options[$chosen] ?? $chosen) : '(Tidak dijawab)';
+
+            $isBlankMcq = $chosen === '';
+
+            return [
+                'type' => 'multiple_choice',
+                'difficulty' => $difficulty,
+                'question' => $challenge->question,
+                'context' => $challenge->context,
+                'chosen' => $chosen,
+                'chosen_text' => $chosenOptionText,
+                'correct_answer' => $correct,
+                'correct_text' => $correctOptionText,
+                'is_correct' => $isCorrect,
+                'evaluation_status' => $isCorrect ? 'benar' : ($isBlankMcq ? 'kosong' : 'salah'),
+                'points_earned' => $earnedPoints,
+                'points_max' => $maxPointsForQuestion,
+                'feedback' => $isCorrect
+                    ? 'Jawaban Anda tepat! Pilihan (' . $correct . ') adalah jawaban yang benar.'
+                    : ($isBlankMcq
+                        ? 'Anda belum memilih jawaban pada soal ini (0 poin). Berikut kunci jawaban yang benar untuk dipelajari: (' . $correct . ') ' . $correctOptionText . '.'
+                        : 'Jawaban salah. Anda memilih (' . $chosen . '), sedangkan kunci jawaban yang benar adalah (' . $correct . '): ' . $correctOptionText . '.'),
+            ];
+        }
+
+        $modelData = $this->resolveModelAnswer($challenge, $document);
+        $mockQuestion = new SocraticQuestion([
+            'document_id' => $document->id,
+            'skill' => 'Analisis Esai Guru',
+            'prompt' => $challenge->question,
+            'context' => $challenge->context ?: ($modelData['reference_excerpt'] ?? ''),
+            'hint' => $modelData['model_answer'] ?: ($challenge->rubric ?: 'Jelaskan dengan pemahaman konsep dan bukti teks bacaan.'),
+        ]);
+
+        if ($rawAnswer === '') {
+            return [
+                'type' => 'essay',
+                'difficulty' => $difficulty,
+                'question' => $challenge->question,
+                'context' => $challenge->context,
+                'student_answer' => '(Tidak diisi)',
+                'highlighted_answer_html' => e('(Tidak diisi)'),
+                'points_earned' => 0.0,
+                'points_max' => $maxPointsForQuestion,
+                'quality_percent' => 0,
+                'understanding_level' => 'Jawaban Kosong',
+                'evaluation_status' => 'kosong',
+                'has_evidence' => false,
+                'is_copied' => false,
+                'feedback' => 'Anda belum mengisi jawaban pada soal ini (0 poin). Berikut kunci jawaban yang benar berdasarkan materi untuk dipelajari.',
+                'model_answer' => $modelData['model_answer'],
+                'reference_excerpt' => $modelData['reference_excerpt'],
+                'missing_concepts' => [],
+            ];
+        }
+
+        if (mb_strlen($rawAnswer) < 10) {
+            return [
+                'type' => 'essay',
+                'difficulty' => $difficulty,
+                'question' => $challenge->question,
+                'context' => $challenge->context,
+                'student_answer' => $rawAnswer,
+                'highlighted_answer_html' => e($rawAnswer),
+                'points_earned' => 0.0,
+                'points_max' => $maxPointsForQuestion,
+                'quality_percent' => 0,
+                'understanding_level' => 'Salah / Belum Tepat',
+                'evaluation_status' => 'salah',
+                'has_evidence' => false,
+                'is_copied' => false,
+                'feedback' => 'Jawaban esai terlalu singkat sehingga belum dapat dinilai tepat (0 poin). Pelajari kunci jawaban yang benar di bawah ini.',
+                'model_answer' => $modelData['model_answer'],
+                'reference_excerpt' => $modelData['reference_excerpt'],
+                'missing_concepts' => ['Penjelasan konsep materi secara utuh', 'Bukti fakta dari bacaan'],
+            ];
+        }
+
+        $evalResult = $pipeline->evaluate($document, $mockQuestion, $rawAnswer);
+        $qualityPercent = max(0, min(100, $evalResult->score));
+
+        if ($qualityPercent < 40 || $evalResult->understandingLevel === 'Salah / Belum Tepat') {
+            $earnedPoints = 0.0;
+            $evaluationStatus = 'salah';
+            $understandingLevel = 'Salah / Belum Tepat';
+            $feedback = $evalResult->feedback ?: 'Jawaban belum tepat atau tidak sesuai dengan materi bacaan. Pelajari kunci jawaban yang benar di bawah ini.';
+        } elseif ($qualityPercent < 70) {
+            $earnedPoints = round(($qualityPercent / 100) * $maxPointsForQuestion, 2);
+            $evaluationStatus = 'hampir_benar';
+            $understandingLevel = 'Hampir Benar (Sebagian Benar)';
+            $feedback = $evalResult->feedback ?: 'Jawaban hampir benar dan menyentuh sebagian konsep, namun belum tuntas. Pelajari penyempurnaannya di bawah.';
+        } else {
+            $earnedPoints = round(($qualityPercent / 100) * $maxPointsForQuestion, 2);
+            $evaluationStatus = 'benar';
+            $understandingLevel = $evalResult->understandingLevel ?: 'Tepat & Sesuai';
+            $feedback = $evalResult->feedback ?: 'Jawaban Anda tepat, logis, dan sesuai dengan fakta materi bacaan.';
+        }
+
+        $matchedSpans = is_array($evalResult->layerDetails['matched_spans'] ?? null)
+            ? $evalResult->layerDetails['matched_spans']
+            : [];
+        $highlightSpans = ($evaluationStatus !== 'salah' && mb_strlen($rawAnswer) >= 12)
+            ? (! empty($matchedSpans) ? $matchedSpans : $highlightService->extractMatchedSpans($rawAnswer, $modelData['model_answer'] ?: $modelData['reference_excerpt'], $document))
+            : [];
+        $highlightedAnswerHtml = $highlightService->formatHighlightedHtml($rawAnswer, $highlightSpans, $evaluationStatus !== 'salah');
+
+        return [
+            'type' => 'essay',
+            'difficulty' => $difficulty,
+            'question' => $challenge->question,
+            'context' => $challenge->context,
+            'student_answer' => $rawAnswer,
+            'highlighted_answer_html' => $highlightedAnswerHtml,
+            'points_earned' => $earnedPoints,
+            'points_max' => $maxPointsForQuestion,
+            'quality_percent' => $qualityPercent,
+            'understanding_level' => $understandingLevel,
+            'evaluation_status' => $evaluationStatus,
+            'has_evidence' => $evalResult->hasEvidence,
+            'is_copied' => $evalResult->isCopied,
+            'feedback' => $feedback,
+            'model_answer' => $modelData['model_answer'],
+            'reference_excerpt' => $modelData['reference_excerpt'],
+            'matched_spans' => $matchedSpans,
+            'missing_concepts' => $evalResult->missingConcepts,
+            'hint' => $evalResult->hint,
+        ];
+    }
+
     public function seedDefaultTeacherChallenges(Document $document): void
     {
         $processor = app(\App\Services\AI\DocumentAiProcessor::class);
@@ -309,7 +480,7 @@ class StudentTeacherChallengeController extends Controller
         $isMetaInstruction = (bool) preg_match('/^(?:gunakan nalar|perhatikan|fokuslah|cari bagian|analisis|pikirkan|kembangkan|telaah|rancang)/i', $rubricText);
         $isLegacyBad = (bool) preg_match('/Menjelaskan pengertian|Berdasarkan bacaan:\s*Menjelaskan/iu', $rubricText . ' ' . $storedReference);
         $rubricWords = preg_split('/\s+/u', $rubricText, -1, PREG_SPLIT_NO_EMPTY) ?: [];
-        $hasExplanatoryVerb = (bool) preg_match('/\b(?:adalah|merupakan|yaitu|yakni|berfungsi|bertujuan|untuk|karena|sehingga|memadukan|mengatur|melindungi|menjamin|mencakup|menghasilkan|memungkinkan|berarti|menjelaskan|mendukung|bekerja|mengubah|menerjemahkan|mengarahkan|menyediakan|menentukan)\b/iu', $rubricText);
+        $hasExplanatoryVerb = (bool) preg_match('/\b(?:adalah|merupakan|yaitu|yakni|berfungsi|berperan|bertujuan|memiliki|menekankan|untuk|karena|sehingga|memadukan|mengatur|melindungi|menjamin|mencakup|menghasilkan|memungkinkan|berarti|menjelaskan|mendukung|bekerja|mengubah|menerjemahkan|mengarahkan|menyediakan|menentukan)\b/iu', $rubricText);
         $isRichRubric = mb_strlen($rubricText) >= 35 && count($rubricWords) >= 6 && $hasExplanatoryVerb && ! $isMetaInstruction && ! $isLegacyBad;
 
         if ($isRichRubric && $storedReference !== '') {
