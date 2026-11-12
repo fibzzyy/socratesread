@@ -57,11 +57,15 @@
         </aside>
         <main class="main-content {{ $isReadingIndex ? 'reading-room-shell' : '' }}">
             @unless($isReadingIndex)
-                <header class="topbar">
+                <header class="topbar {{ request()->routeIs('quiz.index') ? 'quiz-topbar' : '' }}">
                     <button class="icon-button menu-toggle" type="button" aria-label="Buka navigasi" aria-controls="primary-navigation" aria-expanded="false" data-menu-toggle><x-icon name="menu" /></button>
-                    <div class="breadcrumb"><a href="{{ route('dashboard') }}">Ruang belajar</a><span>/</span><strong>@yield('breadcrumb', 'Halaman')</strong></div>
+                    <div class="breadcrumb">
+                        @if(request()->routeIs('quiz.index'))
+                            <a href="{{ route('dashboard') }}" class="quiz-home-link" aria-label="Beranda"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7M5 9v12h14V9M9 21v-7h6v7" /></svg></a>
+                        @endif
+                        <a href="{{ route('dashboard') }}">Ruang belajar</a><span>/</span><strong>@yield('breadcrumb', 'Halaman')</strong></div>
                     <div class="topbar-actions">
-                        <span class="today-label">{{ now()->locale('id')->translatedFormat('l, d F Y') }}</span>
+                        <span class="today-label">@if(request()->routeIs('quiz.index'))<x-icon name="calendar-days" />@endif{{ now()->locale('id')->translatedFormat('l, d F Y') }}</span>
                         <button class="icon-button notification-button" type="button" aria-label="Notifikasi"><x-icon name="bell" /><i></i></button>
                         <a href="{{ route('profile') }}" class="avatar avatar-top avatar-link" aria-label="Profil {{ auth()->user()->name }}" title="Profil">
                             @if (auth()->user()->avatarUrl())
@@ -70,6 +74,7 @@
                                 {{ mb_strtoupper($userInitials) }}
                             @endif
                         </a>
+                        @if(request()->routeIs('quiz.index'))<span class="quiz-profile-chevron" aria-hidden="true"><x-icon name="chevron-down" /></span>@endif
                     </div>
                 </header>
             @endunless
