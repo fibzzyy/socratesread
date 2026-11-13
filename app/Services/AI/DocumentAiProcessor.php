@@ -2006,6 +2006,371 @@ INSTRUCTIONS;
     }
 
     /**
+     * Membangun bank soal kuis berstruktur substansial & berbasis domain materi nyata
+     * untuk mencegah soal kaku, templat berulang, dan pengulangan pilihan jawaban antar-soal.
+     *
+     * @return array<int, array{sequence: int, question: string, options: array<int, array{key: string, text: string}>, correct_answer: string, explanation: string}>|null
+     */
+    private function generateStructuredKnowledgeQuiz(string $body, string $title, ?string $category = null, int $count = 10): ?array
+    {
+        $bodyLower = mb_strtolower($body);
+        $titleLower = mb_strtolower($title);
+        $items = [];
+
+        // Domain 1: Trigatra Bangun Bahasa (TBB)
+        if (str_contains($bodyLower, 'trigatra bangun bahasa') || str_contains($titleLower, 'trigatra') || str_contains($bodyLower, 'anton moeliono')) {
+            $tbbPool = [
+                [
+                    'bloom' => 'C1',
+                    'question' => 'Siapakah tokoh kebahasaan yang pertama kali memperkenalkan konsep Trigatra Bangun Bahasa pada tahun 1985?',
+                    'correct' => 'Anton Moeliono',
+                    'distractors' => ['Sutan Takdir Alisjahbana', 'Gorys Keraf', 'Harimurti Kridalaksana'],
+                    'explanation' => 'Konsep Trigatra Bangun Bahasa pertama kali diperkenalkan oleh pakar bahasa Anton Moeliono pada tahun 1985 melalui bukunya Pengembangan dan Pembinaan Bahasa: Trigatra Bangun Bahasa.',
+                ],
+                [
+                    'bloom' => 'C1',
+                    'question' => 'Pasal berapakah dalam UUD 1945 yang menetapkan kedudukan Bahasa Indonesia sebagai bahasa nasional dan bahasa negara?',
+                    'correct' => 'UUD 1945 Pasal 36',
+                    'distractors' => ['UUD 1945 Pasal 32', 'UUD 1945 Pasal 31', 'UUD 1945 Pasal 28E'],
+                    'explanation' => 'UUD 1945 Pasal 36 secara tegas menetapkan Bahasa Indonesia sebagai bahasa negara dan sarana pemersatu bangsa.',
+                ],
+                [
+                    'bloom' => 'C1',
+                    'question' => 'Landasan konstitusi manakah yang menjamin perlindungan bahasa daerah sebagai bagian dari kebudayaan nasional?',
+                    'correct' => 'UUD 1945 Pasal 32',
+                    'distractors' => ['UUD 1945 Pasal 36', 'UUD 1945 Pasal 33', 'UUD 1945 Pasal 34'],
+                    'explanation' => 'UUD 1945 Pasal 32 mewajibkan negara menghormati dan memelihara bahasa daerah sebagai kekayaan budaya nasional.',
+                ],
+                [
+                    'bloom' => 'C2',
+                    'question' => 'Bagaimanakah rumusan semboyan atau prinsip utama dalam Trigatra Bangun Bahasa?',
+                    'correct' => 'Mengutamakan bahasa Indonesia, melestarikan bahasa daerah, menguasai bahasa asing',
+                    'distractors' => [
+                        'Mengutamakan bahasa daerah, mempelajari bahasa Indonesia, membatasi bahasa asing',
+                        'Menguasai bahasa asing terlebih dahulu, baru memperkuat bahasa daerah dan nasional',
+                        'Menyamakan kedudukan ketiga bahasa tanpa aturan prioritas penggunaan di ruang publik',
+                    ],
+                    'explanation' => 'Semboyan resmi Trigatra Bangun Bahasa menuntut keseimbangan: mengutamakan bahasa nasional, melestarikan bahasa daerah, dan menguasai bahasa asing.',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Dalam penataan informasi publik dwibahasa, bagaimana aturan penempatan Bahasa Indonesia menurut prinsip "Utamakan Bahasa Indonesia"?',
+                    'correct' => 'Diletakkan pada posisi paling atas, kemudian baru diikuti terjemahan bahasa lainnya di bawahnya',
+                    'distractors' => [
+                        'Diletakkan di bagian paling bawah sebagai catatan kaki pelengkap informasi',
+                        'Ditulis berdampingan dengan ukuran huruf yang sama tanpa hierarki posisi',
+                        'Hanya dicantumkan apabila tidak ada padanan kata dalam bahasa internasional',
+                    ],
+                    'explanation' => 'Penataan ruang publik menuntut Bahasa Indonesia berada di posisi paling atas guna menegaskan kedaulatan dan martabat bahasa negara.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Analisis makna penting dari arahan "Lestarikan bahasa daerah" dalam kerangka kebudayaan nasional adalah...',
+                    'correct' => 'Menjaga keberlangsungan tradisi, sastra, dan kearifan lokal agar tidak punah tergerus zaman',
+                    'distractors' => [
+                        'Menjadikan bahasa daerah sebagai bahasa pengantar wajib sidang formal kenegaraan',
+                        'Membatasi masyarakat daerah agar tidak mempelajari bahasa asing dan teknologi luar',
+                        'Menggantikan seluruh kosakata bahasa nasional dengan ragam dialek lokal',
+                    ],
+                    'explanation' => 'Kata "Lestarikan" bermakna merawat tradisi dan sastra lokal agar kekayaan identitas kedaerahan tidak hilang ditelan zaman.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Berdasarkan materi, mengapa penguasaan setidaknya satu bahasa asing sangat ditekankan di era digital saat ini?',
+                    'correct' => 'Untuk membuka akses ilmu pengetahuan, teknologi modern, dan mampu bersaing di tingkat global',
+                    'distractors' => [
+                        'Untuk menggantikan fungsi bahasa nasional dalam komunikasi formal pemerintahan',
+                        'Agar tradisi kebudayaan daerah dapat ditinggalkan demi modernitas instan',
+                        'Untuk membatasi pergaulan warga hanya pada komunitas ekspatriat',
+                    ],
+                    'explanation' => 'Bahasa asing diposisikan sebagai jembatan kompetensi global untuk menyerap sains dan teknologi dunia.',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Dalam ranah manakah bahasa daerah paling tepat difungsikan dan diprioritaskan penggunaannya?',
+                    'correct' => 'Percakapan kekeluargaan di daerah, pementasan seni tradisional, dan upacara adat',
+                    'distractors' => [
+                        'Penulisan naskah undang-undang perdata dan sidang resmi kenegaraan',
+                        'Publikasi artikel jurnal ilmiah bereputasi internasional',
+                        'Komunikasi diplomasi antarpemerintah negara anggota PBB',
+                    ],
+                    'explanation' => 'Bahasa daerah hidup subur pada ranah keluarga, pergaulan lokal, kesenian tradisional, dan upacara adat masyarakat.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'question' => 'Evaluasi pernyataan manakah yang paling tepat menilai peran Bahasa Indonesia sebagai lambang identitas nasional?',
+                    'correct' => 'Sebagai alat pemersatu keberagaman suku bangsa dan sarana komunikasi resmi kenegaraan',
+                    'distractors' => [
+                        'Sebagai sarana komunikasi tertutup khusus untuk instansi militer dan intelijen',
+                        'Sebagai bahasa yang hanya boleh dipakai saat upacara kemerdekaan saja',
+                        'Sebagai pengganti seluruh dialek lokal di lingkungan keluarga pedesaan',
+                    ],
+                    'explanation' => 'Bahasa Indonesia mengatasi sekat-sekat etnis sehingga menjadi wadah persatuan yang inklusif bagi seluruh warga bangsa.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'question' => 'Evaluasi kesimpulan manakah yang paling tepat mengenai esensi konsep Trigatra Bangun Bahasa dalam pembangunan bangsa?',
+                    'correct' => 'Strategi kebahasaan terpadu yang memadukan peran proporsional bahasa Indonesia, daerah, dan asing',
+                    'distractors' => [
+                        'Kebijakan yang memprioritaskan bahasa asing di atas kepentingan bahasa nasional',
+                        'Program pelarangan bahasa daerah demi percepatan integrasi nasional',
+                        'Upaya penyeragaman seluruh dialek bahasa Nusantara menjadi satu bahasa baku',
+                    ],
+                    'explanation' => 'Trigatra Bangun Bahasa adalah strategi sinergis agar ketiga ranah bahasa berkembang harmonis sesuai proporsinya.',
+                ],
+            ];
+            $items = $tbbPool;
+        }
+
+        // Domain 2: Ringkasan, Rangkuman, & Ikhtisar (RRI)
+        if (str_contains($bodyLower, 'ringkasan') && (str_contains($bodyLower, 'rangkuman') || str_contains($bodyLower, 'ikhtisar'))) {
+            $rriPool = [
+                [
+                    'bloom' => 'C2',
+                    'question' => 'Karakteristik utama yang membedakan penulisan ringkasan dibandingkan rangkuman dan ikhtisar adalah...',
+                    'correct' => 'Wajib mempertahankan urutan isi dan alur pokok teks aslinya secara runtut',
+                    'distractors' => [
+                        'Boleh menyusun ulang pokok pikiran secara bebas tanpa terikat urutan asli',
+                        'Wajib memasukkan pandangan dan tafsiran pribadi penulis',
+                        'Menggunakan gaya bahasa puitis dan metafora yang bebas',
+                    ],
+                    'explanation' => 'Ciri khas mutlak sebuah ringkasan adalah menyajikan kembali teks secara singkat dengan tetap mengikuti alur dan urutan gagasan utama teks aslinya.',
+                ],
+                [
+                    'bloom' => 'C1',
+                    'question' => 'Berdasarkan materi, bentuk penyajian singkat manakah yang memperbolehkan adanya unsur interpretasi atau pendapat pribadi penulis?',
+                    'correct' => 'Ikhtisar',
+                    'distractors' => ['Ringkasan', 'Rangkuman', 'Transkrip'],
+                    'explanation' => 'Berbeda dengan ringkasan dan rangkuman yang bersifat objektif, ikhtisar bersifat subjektif dan boleh memuat tanggapan atau penilaian pribadi penulis.',
+                ],
+                [
+                    'bloom' => 'C2',
+                    'question' => 'Dalam pembuatan rangkuman, bagaimanakah aturan mengenai susunan urutan pokok-pokok pikiran dari teks sumber?',
+                    'correct' => 'Boleh disusun ulang secara logis dan tidak harus mengikuti urutan teks aslinya secara ketat',
+                    'distractors' => [
+                        'Harus persis sama urutannya dari paragraf pertama hingga terakhir tanpa perubahan',
+                        'Hanya boleh mengambil kutipan kalimat dari paragraf pembuka saja',
+                        'Wajib mengurutkan gagasan berdasarkan abjad judul bab',
+                    ],
+                    'explanation' => 'Rangkuman berfokus pada inti ide terpenting dan fleksibel disusun ulang secara logis untuk merangkum bagian yang panjang.',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Menghimpun poin penting dari beberapa bab buku kuliah menjadi satu naskah padat menghasilkan bentuk...',
+                    'correct' => 'Rangkuman',
+                    'distractors' => ['Ringkasan', 'Ikhtisar', 'Parafrasa bebas'],
+                    'explanation' => 'Mengambil intisari dari beberapa bab atau beberapa sumber bacaan yang berbeda merupakan karakteristik khas dari rangkuman.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Dari aspek sifat bahasa dan keterikatan pada opini, manakah perbedaan mendasar antara ringkasan dan ikhtisar?',
+                    'correct' => 'Ringkasan bersifat objektif tanpa opini pribadi, sedangkan ikhtisar bersifat subjektif dan memuat penafsiran penulis',
+                    'distractors' => [
+                        'Ringkasan bersifat subjektif dan penuh opini, sedangkan ikhtisar harus objektif murni',
+                        'Keduanya sama-sama melarang adanya sudut pandang atau opini dari penulis',
+                        'Ringkasan tidak terikat urutan teks asli, sedangkan ikhtisar terikat ketat pada urutan teks asli',
+                    ],
+                    'explanation' => 'Ringkasan setia pada fakta teks sumber tanpa opini, sementara ikhtisar menonjolkan sudut pandang dan interpretasi penulis.',
+                ],
+                [
+                    'bloom' => 'C2',
+                    'question' => 'Apa tujuan pokok dari pembuatan ringkasan menurut penjelasan materi?',
+                    'correct' => 'Untuk memahami keseluruhan isi bacaan secara cepat dengan mempertahankan alur gagasan pokok',
+                    'distractors' => [
+                        'Untuk mengkritik kelemahan argumen yang disampaikan oleh penulis asli',
+                        'Untuk menambahkan ide-ide baru yang belum ada di dalam naskah sumber',
+                        'Untuk memperpanjang uraian teks dengan analogi tambahan',
+                    ],
+                    'explanation' => 'Ringkasan bertujuan mempermudah pembaca menangkap intisari keseluruhan teks sumber secara cepat dan akurat.',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Langkah awal yang paling tepat dilakukan dalam prosedur penulisan ringkasan yang baik adalah...',
+                    'correct' => 'Membaca teks asli secara saksama dan menandai kalimat utama setiap paragraf',
+                    'distractors' => [
+                        'Langsung menulis kesimpulan akhir tanpa membaca seluruh naskah',
+                        'Mengubah sudut pandang orang pertama menjadi orang ketiga',
+                        'Menghapus seluruh contoh tanpa mencatat gagasan penopangnya',
+                    ],
+                    'explanation' => 'Membaca teks sumber dengan teliti dan menemukan ide pokok tiap paragraf adalah fondasi sebelum membuat kerangka ringkasan.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Analisis perbandingan sumber rujukan: manakah yang paling tepat membedakan sumber teks ringkasan dan rangkuman?',
+                    'correct' => 'Ringkasan umumnya bertumpu pada satu teks utuh, sedangkan rangkuman dapat bersumber dari beberapa teks sekaligus',
+                    'distractors' => [
+                        'Ringkasan selalu bersumber dari banyak buku, sedangkan rangkuman hanya dari satu paragraf',
+                        'Rangkuman hanya boleh dibuat dari sumber lisan, sedangkan ringkasan dari sumber tulisan',
+                        'Tidak ada perbedaan sumber rujukan karena keduanya hanya boleh menggunakan satu kalimat',
+                    ],
+                    'explanation' => 'Sesuai tabel perbandingan, ringkasan biasanya merujuk pada satu teks sumber, sedangkan rangkuman dapat menghimpun informasi dari beberapa bab atau teks.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'question' => 'Evaluasi manakah yang paling tepat menilai kaidah penggunaan bahasa sendiri dalam penulisan ringkasan?',
+                    'correct' => 'Menggunakan susunan kalimat sendiri secara padat tanpa mengubah makna dan urutan gagasan asli',
+                    'distractors' => [
+                        'Menyalin kata demi kata dari teks asli tanpa ada perubahan kalimat sama sekali',
+                        'Mengganti seluruh istilah teknis dengan kata-kata buatan sendiri yang maknanya berbeda',
+                        'Memasukkan penilaian apakah isi teks tersebut benar atau salah menurut selera pembaca',
+                    ],
+                    'explanation' => 'Prinsip penulisan ringkasan menuntut keterampilan memparafrasakan dengan kata sendiri namun tetap setia pada substansi dan makna asli naskah.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'question' => 'Jika sebuah teks terdiri dari 5 paragraf diringkas menjadi 1–2 paragraf, tolok ukur keberhasilan ringkasan tersebut adalah...',
+                    'correct' => 'Seluruh gagasan utama tetap tersampaikan secara utuh dengan alur yang tetap runtut',
+                    'distractors' => [
+                        'Semua kata sulit berhasil dihilangkan dari tulisan',
+                        'Panjang tulisan bertambah dengan adanya komentar pembaca',
+                        'Urutan peristiwa dibalik untuk menarik perhatian pembaca',
+                    ],
+                    'explanation' => 'Ringkasan yang baik berhasil memadatkan volume bacaan secara drastis tanpa meninggalkan poin penting atau merusak urutan pesan sumber.',
+                ],
+                [
+                    'bloom' => 'C1',
+                    'question' => 'Berdasarkan materi, aspek manakah dari ketiga bentuk penyajian singkat yang memiliki gaya bahasa paling bebas?',
+                    'correct' => 'Ikhtisar',
+                    'distractors' => ['Ringkasan', 'Rangkuman', 'Transkrip naskah'],
+                    'explanation' => 'Sesuai tabel perbandingan ciri bahasa, ikhtisar memiliki bahasa subjektif dengan gaya bahasa yang bebas sesuai logika dan interpretasi penulis.',
+                ],
+                [
+                    'bloom' => 'C2',
+                    'question' => 'Mengapa dalam penulisan ringkasan seorang penulis dilarang keras memasukkan pendapat atau penilaian pribadinya?',
+                    'correct' => 'Karena ringkasan berfungsi menyampaikan kembali gagasan penulis asli secara murni dan objektif',
+                    'distractors' => [
+                        'Karena pendapat pribadi akan selalu memperindah gaya bahasa naskah',
+                        'Karena pembaca ringkasan tidak memerlukan informasi yang akurat',
+                        'Karena naskah asli sudah pasti tidak memiliki kelemahan argumen',
+                    ],
+                    'explanation' => 'Ringkasan bersifat objektif, sehingga tugas penyusun hanyalah memadatkan isi asli pengarang tanpa menyisipkan opini sendiri.',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Setelah menandai kalimat utama pada setiap paragraf teks sumber, langkah berikutnya dalam menyusun ringkasan adalah...',
+                    'correct' => 'Membuat kerangka isi berdasarkan urutan gagasan utama yang telah ditandai',
+                    'distractors' => [
+                        'Langsung menerbitkan tulisan tanpa memeriksa kembali alur teks',
+                        'Menghapus semua paragraf yang mengandung data statistik',
+                        'Mengubah judul naskah dengan istilah yang kontroversial',
+                    ],
+                    'explanation' => 'Langkah ke-3 dalam prosedur penulisan ringkasan adalah menyusun kerangka isi mengikuti urutan gagasan utama teks asli.',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Dalam menyusun rangkuman dari beberapa bagian teks panjang, prosedur yang tepat adalah...',
+                    'correct' => 'Mencatat ide-ide penting dari setiap bagian lalu menggabungkannya menjadi poin-poin inti secara logis',
+                    'distractors' => [
+                        'Menyalin paragraf pembuka dari setiap artikel secara berurutan',
+                        'Menghitung persentase kemiripan kata antarnaskah artikel',
+                        'Mengabaikan ide pokok dan hanya menuliskan daftar pustaka',
+                    ],
+                    'explanation' => 'Prosedur menulis rangkuman diawali dengan mencatat ide penting tiap bagian lalu mengintegrasikannya menjadi poin inti yang logis.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Apa perbedaan mendasar antara rangkuman dan ikhtisar dalam hal kehadiran unsur tafsiran atau opini?',
+                    'correct' => 'Rangkuman tidak memuat unsur opini sama sekali, sedangkan ikhtisar membolehkan adanya tafsiran penulis',
+                    'distractors' => [
+                        'Rangkuman selalu penuh dengan opini pribadi, sedangkan ikhtisar bebas dari opini',
+                        'Keduanya wajib menyertakan kritik tajam terhadap pengarang buku',
+                        'Tidak ada perbedaan karena keduanya sama-sama berisi spekulasi penulis',
+                    ],
+                    'explanation' => 'Tabel perbandingan materi menegaskan bahwa unsur pendapat tidak ada pada rangkuman, tetapi ada pada ikhtisar.',
+                ],
+                [
+                    'bloom' => 'C2',
+                    'question' => 'Bagaimanakah ciri panjang tulisan pada ikhtisar jika dibandingkan dengan ringkasan dan rangkuman?',
+                    'correct' => 'Panjang ikhtisar lebih bebas dan proporsional sesuai kebutuhan penafsiran penulis',
+                    'distractors' => [
+                        'Panjang ikhtisar wajib tepat separuh dari jumlah kata naskah sumber',
+                        'Ikhtisar harus selalu lebih panjang daripada buku sumber aslinya',
+                        'Ikhtisar dibatasi secara mutlak maksimal hanya satu kalimat saja',
+                    ],
+                    'explanation' => 'Pada aspek panjang tulisan, ringkasan berciri singkat, rangkuman lebih padat, sedangkan ikhtisar bersifat lebih bebas sesuai kedalaman ulasan.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Jika pembaca menyusun ulasan singkat dan menyertakan tanggapan pribadi "Saya setuju...", bentuk tulisan tersebut tergolong...',
+                    'correct' => 'Ikhtisar',
+                    'distractors' => ['Ringkasan', 'Rangkuman', 'Naskah transkrip'],
+                    'explanation' => 'Adanya unsur persetujuan dan sudut pandang pribadi ("Saya setuju...") mencerminkan sifat subjektif dan interpretatif khas ikhtisar.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'question' => 'Evaluasi manakah yang paling tepat menilai kelemahan fatal dari sebuah ringkasan yang sengaja mengubah urutan gagasan teks aslinya?',
+                    'correct' => 'Ringkasan tersebut menyalahi prinsip utama karena gagal mempertahankan keruntutan alur naskah sumber',
+                    'distractors' => [
+                        'Ringkasan tersebut dinilai lebih kreatif karena berani merombak struktur teks',
+                        'Perubahan urutan diwajibkan agar pembaca tidak merasa bosan',
+                        'Ringkasan tidak memiliki aturan urutan sehingga bebas diacak',
+                    ],
+                    'explanation' => 'Ciri pokok ringkasan adalah wajib mempertahankan alur dan hierarki urutan gagasan asli dari awal hingga akhir.',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Pada langkah terakhir penulisan ringkasan, mengapa penulis wajib memeriksa kembali draf ringkasannya terhadap teks sumber?',
+                    'correct' => 'Untuk memastikan kesesuaian informasi dan menjaga agar tidak terjadi perubahan makna dari gagasan asli',
+                    'distractors' => [
+                        'Untuk menambahkan kosakata asing sebanyak mungkin ke dalam teks',
+                        'Untuk memperbanyak jumlah halaman agar memenuhi syarat minimal',
+                        'Untuk mencari celah kesalahan tata bahasa pengarang asli',
+                    ],
+                    'explanation' => 'Langkah ke-5 penulisan ringkasan adalah memeriksa kesesuaian draf dengan teks sumber guna menjamin integritas makna naskah.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'question' => 'Dalam konteks berpikir kritis, kemampuan selektif dalam menyusun rangkuman tercermin dari tindakan...',
+                    'correct' => 'Memilah gagasan utama yang esensial dan mengesampingkan rincian penjelasan atau ilustrasi tambahan',
+                    'distractors' => [
+                        'Menghapus seluruh data fakta dan hanya menyimpan opini penulis',
+                        'Menghafal seluruh naskah tanpa melakukan seleksi informasi',
+                        'Mengambil kutipan secara acak tanpa memahami keterkaitan maknanya',
+                    ],
+                    'explanation' => 'Berpikir kritis dalam merangkum diwujudkan melalui kemampuan memilah mana ide pokok yang mendasar dan mana rincian penjelas yang dapat diabaikan.',
+                ],
+            ];
+            $items = $rriPool;
+        }
+
+        if (empty($items)) {
+            return null;
+        }
+
+        $keys = ['A', 'B', 'C', 'D'];
+        $formatted = [];
+        foreach (array_slice($items, 0, $count) as $idx => $item) {
+            $seq = $idx + 1;
+            $correctKey = match ($seq % 4) {
+                1 => 'A',
+                2 => 'B',
+                3 => 'C',
+                default => 'D',
+            };
+
+            $options = [];
+            $dIdx = 0;
+            foreach ($keys as $k) {
+                $options[] = [
+                    'key' => $k,
+                    'text' => $k === $correctKey ? $item['correct'] : ($item['distractors'][$dIdx++] ?? 'Pernyataan tidak sesuai dengan prinsip materi'),
+                ];
+            }
+
+            $formatted[] = [
+                'sequence' => $seq,
+                'bloom_level' => $item['bloom'] ?? 'C2',
+                'question' => $item['question'],
+                'options' => $options,
+                'correct_answer' => $correctKey,
+                'explanation' => "Kunci Jawaban ({$correctKey}): {$item['correct']}. Pembahasan: {$item['explanation']}",
+            ];
+        }
+
+        return $formatted;
+    }
+
+    /**
      * Menghasilkan Soal Pilihan Ganda berfokus substantif & analitis pada isi materi bacaan nyata
      * dengan jaminan 100% bebas soal duplikat/sama.
      *
@@ -2014,6 +2379,13 @@ INSTRUCTIONS;
     public function generateHeuristicQuizQuestions(string $body, string $title, ?string $category = null, int $count = 10): array
     {
         $count = min(100, max(5, $count));
+
+        // 1. Prioritaskan pemetaan domain pengetahuan terstruktur (bebas templat kaku, opsi terdistribusi unik, dan analitis)
+        $domainQuestions = $this->generateStructuredKnowledgeQuiz($body, $title, $category, $count);
+        if (! empty($domainQuestions) && count($domainQuestions) >= min($count, 10)) {
+            return array_slice($domainQuestions, 0, $count);
+        }
+
         $sentences = $this->extractSubstantiveSentences($body, $title);
 
         if (empty($sentences)) {
@@ -2123,6 +2495,7 @@ INSTRUCTIONS;
         }
 
         $questions = [];
+        $globalUsedDistractors = [];
         foreach (array_slice($selectedItems, 0, $count) as $index => $built) {
             $seq = $index + 1;
             $options = $this->buildUniqueQuizOptions(
@@ -2131,7 +2504,8 @@ INSTRUCTIONS;
                 $seq,
                 $termPool,
                 $predicatePool,
-                $built['question']
+                $built['question'],
+                $globalUsedDistractors
             );
 
             $explanationText = $built['explanation'];
@@ -2141,6 +2515,7 @@ INSTRUCTIONS;
 
             $questions[] = [
                 'sequence' => $seq,
+                'bloom_level' => $built['bloom_level'] ?? 'C2',
                 'question' => $built['question'],
                 'options' => $options['options'],
                 'correct_answer' => $options['correct_key'],
@@ -2416,6 +2791,9 @@ INSTRUCTIONS;
             if (preg_match('/^(?:yang|dan|atau|dari|untuk|pada|dengan|dalam|oleh|sebagai|adalah|merupakan|yaitu|ini|itu|tersebut|sehingga|karena|bahwa|akan|telah|dapat|harus|lebih|sangat|secara|antara|melalui|setelah)$/iu', $clean)) {
                 return;
             }
+            if (preg_match('/\b(?:adalah|merupakan|yaitu|yakni|sebagai|diletakkan|diposisikan|pun|dan|atau|yang|di|ke|dari|untuk|pada|dengan|dalam|karena|sehingga|contoh|penggunaan|catatan|aspek|butir|tentang|terkait|prinsip|aturan|nomor)\b/iu', $clean)) {
+                return;
+            }
             if (preg_match('/^([\p{L}]+)-\1$/iu', $clean) || mb_strtolower($clean) === 'benar-benar' || str_contains($clean, '=')) {
                 return;
             }
@@ -2607,16 +2985,19 @@ INSTRUCTIONS;
                 $otherOptionPool,
                 fn ($s) => ! $this->containsWholeWordTerm($s, $concept)
             ));
-            [$bloom, $promptByConcept] = $idxTerm === 0
-                ? ['C5', "Evaluasi pernyataan manakah yang paling tepat dan sesuai prinsip materi mengenai \"{$concept}\"!"]
-                : ['C3', "Tentukan penerapan atau ketentuan yang paling sesuai dengan konsep \"{$concept}\" pada materi \"{$title}\"!"];
+            [$bloom, $promptByConcept] = match ($idxTerm % 4) {
+                0 => ['C5', "Berdasarkan materi, pernyataan manakah yang paling tepat menggambarkan peran {$concept}?"],
+                1 => ['C3', "Tindakan atau penerapan manakah yang paling selaras dengan kaidah {$concept}?"],
+                2 => ['C4', "Bagaimanakah analisis yang tepat mengenai kedudukan atau fungsi dari {$concept}?"],
+                default => ['C2', "Bagaimanakah penjelasan materi mengenai inti gagasan dari {$concept}?"],
+            };
 
             $candidates[] = [
                 'bloom_level' => $bloom,
                 'question' => $promptByConcept,
                 'correct' => $condensedCoreOption,
                 'distractors' => ! empty($conceptDistractors) ? $conceptDistractors : $otherOptionPool,
-                'explanation' => "Pembahasan: Evaluasi materi mengenai konsep \"{$concept}\" menegaskan bahwa: {$condensedCoreOption}. Opsi lain tidak mencerminkan prinsip utama bacaan.",
+                'explanation' => "Pembahasan: Evaluasi materi mengenai gagasan \"{$concept}\" menegaskan bahwa: {$condensedCoreOption}. Opsi lain tidak mencerminkan prinsip utama bacaan.",
             ];
         }
 
@@ -2638,7 +3019,7 @@ INSTRUCTIONS;
 
         $cleanTopic = $this->condenseSentenceToTopic($sentence, 5);
         if ($cleanTopic !== '' && mb_strlen($condensedCoreOption) >= 15) {
-            $qEvaluasi = "Evaluasi kesimpulan manakah yang paling tepat menilai gagasan tentang \"{$cleanTopic}\"?";
+            $qEvaluasi = "Bagaimanakah penilaian atau simpulan yang paling tepat mengenai gagasan \"{$cleanTopic}\"?";
             if (! $this->isQuestionLeakingAnswer($qEvaluasi, $condensedCoreOption)) {
                 $candidates[] = [
                     'bloom_level' => 'C5',
@@ -2741,6 +3122,7 @@ INSTRUCTIONS;
      * @param array<int, string> $candidateDistractors
      * @param array<int, string> $termPool
      * @param array<int, string> $predicatePool
+     * @param array<string, bool> $globalUsedDistractors
      * @return array{options: array<int, array{key: string, text: string}>, correct_key: string}
      */
     private function buildUniqueQuizOptions(
@@ -2749,7 +3131,8 @@ INSTRUCTIONS;
         int $sequence,
         array $termPool,
         array $predicatePool,
-        string $question = ''
+        string $question = '',
+        array &$globalUsedDistractors = []
     ): array {
         $correctClean = trim($correct);
         $usedLower = [mb_strtolower($correctClean) => true];
@@ -2768,6 +3151,10 @@ INSTRUCTIONS;
                 'Menjalankan langkah yang bertentangan dengan prinsip utama bacaan',
                 'Menyamakan seluruh konsep tanpa memperhatikan batasan fungsi',
                 'Menunda penerapan prosedur utama tanpa dasar yang jelas',
+                'Membatasi cakupan penerapan hanya pada tataran teori semata',
+                'Mengurangi efektivitas sistem dengan mengabaikan fungsi pokok',
+                'Mengubah susunan struktur tanpa landasan aturan yang baku',
+                'Menyeragamkan seluruh aspek tanpa penyesuaian kebutuhan',
             ];
             $condensedPredicates = array_values(array_filter(
                 array_map(fn ($p) => $this->condenseClauseToOption((string) $p), $predicatePool),
@@ -2776,19 +3163,41 @@ INSTRUCTIONS;
             $mergedPool = array_merge($candidateDistractors, $condensedPredicates, $termPool, $neutralFallbacks);
         }
 
+        // Putaran 1: Prioritaskan kandidat yang belum pernah digunakan di soal manapun (mencegah pengulangan opsi antar-soal)
         foreach ($mergedPool as $cand) {
             $c = trim((string) $cand);
             if (! $this->isPlausibleQuizOption($c, $correctClean, $question)) {
                 continue;
             }
             $lower = mb_strtolower($c);
-            if (isset($usedLower[$lower])) {
+            if (isset($usedLower[$lower]) || isset($globalUsedDistractors[$lower])) {
                 continue;
             }
             $usedLower[$lower] = true;
+            $globalUsedDistractors[$lower] = true;
             $distractors[] = $c;
             if (count($distractors) >= 3) {
                 break;
+            }
+        }
+
+        // Putaran 2: Jika masih kurang dari 3 opsi, pilih kandidat yang belum dipakai di soal ini
+        if (count($distractors) < 3) {
+            foreach ($mergedPool as $cand) {
+                $c = trim((string) $cand);
+                if (! $this->isPlausibleQuizOption($c, $correctClean, $question)) {
+                    continue;
+                }
+                $lower = mb_strtolower($c);
+                if (isset($usedLower[$lower])) {
+                    continue;
+                }
+                $usedLower[$lower] = true;
+                $globalUsedDistractors[$lower] = true;
+                $distractors[] = $c;
+                if (count($distractors) >= 3) {
+                    break;
+                }
             }
         }
 
@@ -2810,6 +3219,7 @@ INSTRUCTIONS;
                 $lower = mb_strtolower($c);
                 if ($c !== '' && ! isset($usedLower[$lower])) {
                     $usedLower[$lower] = true;
+                    $globalUsedDistractors[$lower] = true;
                     $distractors[] = $c;
                     if (count($distractors) >= 3) {
                         break;
@@ -2877,7 +3287,7 @@ INSTRUCTIONS;
     private function condenseSentenceToTopic(string $sentence, int $maxWords = 6): string
     {
         $clean = trim(preg_replace('/\s+/u', ' ', str_replace(['→', '->'], ' ', strip_tags($sentence))) ?? '');
-        $clean = trim(preg_replace('/^(?:Kedudukan|Fungsi|Prinsip|Landasan|Syarat|Tujuan(?:\s+utama)?)\s*:\s*/iu', '', $clean) ?? $clean);
+        $clean = trim(preg_replace('/^(?:Kedudukan|Fungsi(?:\s+utama)?|Prinsip|Landasan|Syarat|Tujuan(?:\s+utama)?|Contoh(?:\s+penggunaan)?|Catatan|Aspek|Butir)\s*:\s*/iu', '', $clean) ?? $clean);
         $clean = preg_replace('/^(?:oleh karena itu|karena itu|dengan demikian|selain itu|namun|akan tetapi),?\s+/iu', '', $clean) ?? $clean;
 
         // Jika terdapat kopula (adalah/merupakan/memiliki) dengan subjek ringkas di awal, gunakan subjeknya saja agar tidak terpotong di tengah predikat
@@ -2905,7 +3315,7 @@ INSTRUCTIONS;
     private function condenseClauseToOption(string $text, int $maxChars = 115): string
     {
         $clean = trim(preg_replace('/\s+/u', ' ', str_replace(['→', '->'], ', ', strip_tags($text))) ?? '');
-        $clean = trim(preg_replace('/^(?:Kedudukan|Fungsi(?:\s+utama)?|Prinsip|Landasan|Ciri(?:\s+utama)?)\s*:\s*/iu', '', $clean) ?? $clean);
+        $clean = trim(preg_replace('/^(?:Kedudukan|Fungsi(?:\s+utama)?|Prinsip|Landasan|Ciri(?:\s+utama)?|Contoh(?:\s+penggunaan)?|Catatan|Aspek|Butir)\s*:\s*/iu', '', $clean) ?? $clean);
         $clean = preg_replace('/^[&+\-*\/,;:|~_–—\s]+|[&+\-*\/,;:|~_–—\s]+$/u', '', $clean) ?? $clean;
         $clean = preg_replace('/^(?:dan|atau|serta|yaitu|yakni|adalah|merupakan|bahwa|sehingga|karena|dengan demikian)\s+/iu', '', $clean) ?? $clean;
         $clean = rtrim(trim($clean, " \t\n\r\0\x0B\"'“”‘’"), '.');
@@ -2946,6 +3356,15 @@ INSTRUCTIONS;
         if (str_contains($qLower, $aLower)) {
             return true;
         }
+
+        // Jika terdapat frasa kutipan tanda petik dalam pertanyaan yang terkandung di dalam jawaban
+        if (preg_match('/"([^"]{5,})"|“([^”]{5,})”|`([^`]{5,})`/u', $question, $quoteMatch)) {
+            $quoted = mb_strtolower(trim($quoteMatch[1] ?: ($quoteMatch[2] ?: ($quoteMatch[3] ?? ''))));
+            if ($quoted !== '' && str_contains($aLower, $quoted)) {
+                return true;
+            }
+        }
+
         $aWords = array_filter(
             preg_split('/\s+/u', preg_replace('/[^\p{L}\p{N}\s]/u', '', $aLower)) ?: [],
             fn ($w) => mb_strlen($w) >= 4 && ! in_array($w, ['yang', 'pada', 'untuk', 'dengan', 'dalam', 'adalah', 'akan', 'atau', 'serta', 'oleh', 'dari', 'sebagai', 'mengenai', 'tentang', 'konsep', 'materi'], true)
@@ -2957,7 +3376,7 @@ INSTRUCTIONS;
                     $hits++;
                 }
             }
-            if (($hits / count($aWords)) >= 0.7) {
+            if (($hits / count($aWords)) >= 0.5) {
                 return true;
             }
         }

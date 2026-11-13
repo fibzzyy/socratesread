@@ -48,7 +48,13 @@ class RefreshDocumentsContent extends Command
             if ($doc->source_file_path && Storage::disk('local')->exists($doc->source_file_path)) {
                 $fullPath = Storage::disk('local')->path($doc->source_file_path);
                 $pdf = $parser->parseFile($fullPath);
-                $extracted = $pdf->getText();
+                $pdfExtractor = app(\App\Services\PdfTextExtractor::class);
+                $pageTexts = [];
+                foreach ($pdf->getPages() as $p) {
+                    $pageTexts[] = $pdfExtractor->normalizeSlidePageText($p->getText());
+                }
+                $extracted = implode("\n\n", array_filter($pageTexts, fn ($t) => trim($t) !== ''));
+                $extracted = $pdfExtractor->cleanShadowAndDuplicates($extracted);
                 $extracted = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $extracted) ?? $extracted;
                 if (trim($extracted) !== '') {
                     $rawText = $extracted;
