@@ -129,43 +129,44 @@ class DocumentAiProcessor
         $sampleText = $this->buildFullCoverageContext($formattedBody, 18000);
 
         $instructions = <<<INSTRUCTIONS
-Kamu adalah Kurator Literasi & Asesor Berpikir Kritis Taksonomi Bloom SocratesRead AI.
-Tugasmu adalah membaca KESELURUHAN isi materi bacaan (dari paragraf awal hingga penutup) lalu menyusun soal esai & kuis yang valid, kritis, serta kunci jawaban akurat.
+Kamu adalah Kurator Literasi & Asesor Berpikir Kritis Taksonomi Bloom SocratesRead AI (setara standar tinggi Challenge Socrates).
+Tugasmu adalah membaca KESELURUHAN isi materi bacaan (dari paragraf awal hingga penutup) lalu menyusun intisari materi, tepat 5 soal esai penalaran kritis analitis HOTS (Bloom C3–C5), serta 10 butir soal kuis pilihan ganda berbasis skenario/studi kasus nyata.
 
 Format output WAJIB HANYA berupa JSON valid tanpa teks lain:
 {
-  "cleaned_body": "teks materi lengkap jika dirapikan (jangan dipotong/diringkas), atau kosongkan string jika teks sudah rapi",
   "excerpt": "Ringkasan intisari materi 2-3 kalimat yang padat dan jelas...",
   "questions": [
     {
       "s": "C4 Menganalisis",
       "d": "easy",
-      "q": "Pertanyaan memakai kata kerja operasional Bloom (C1-C5) dan TIDAK menyalin paragraf utuh",
+      "q": "Pertanyaan esai analitis mendalam (Bloom C3–C5) tanpa awalan klise 'Berdasarkan teks...'",
       "c": "Konteks singkat atau fokus pemikiran yang membantu siswa mengarahkan jawaban",
-      "h": "Kunci jawaban model berparafrase rapi (diambil dari paragraf yang benar-benar menjawab 'q', 100% langsung menjawab setiap poin pertanyaan)",
-      "r": "Kutipan kalimat asli dari paragraf materi yang menjadi bukti langsung kunci jawaban"
+      "h": "Kunci jawaban model yang komprehensif, akurat, dan substantif (2-4 kalimat) yang benar-benar menjawab tuntas seluruh aspek pertanyaan sesuai fakta materi.",
+      "r": "Kutipan kalimat asli dari teks materi yang menjadi rujukan bukti langsung kunci jawaban."
     }
   ],
   "quiz_questions": [
     {
-      "q": "Pertanyaan PG dengan kata kerja Bloom (C1 Mengingat, C2 Memahami, C3 Menerapkan, C4 Menganalisis, C5 Mengevaluasi) tanpa menyalin paragraf utuh?",
-      "a": "Pilihan A (ringkas, sejenis, masuk akal)",
-      "b": "Pilihan B (ringkas, sejenis, masuk akal)",
-      "c": "Pilihan C (ringkas, sejenis, masuk akal)",
-      "d": "Pilihan D (ringkas, sejenis, masuk akal)",
+      "q": "Pertanyaan PG berbobot kritis (skenario kasus / perbandingan konsep / evaluasi keputusan / analisis aturan) tanpa menyalin kalimat mentah?",
+      "a": "Pilihan A (ringkas, satu kategori, masuk akal)",
+      "b": "Pilihan B (ringkas, satu kategori, masuk akal)",
+      "c": "Pilihan C (ringkas, satu kategori, masuk akal)",
+      "d": "Pilihan D (ringkas, satu kategori, masuk akal)",
       "k": "A",
-      "e": "Penjelasan lengkap MENGAPA pilihan tersebut benar berdasarkan paragraf sumber di materi."
+      "e": "Penjelasan lengkap MENGAPA pilihan tersebut benar berdasarkan fakta/prinsip materi."
     }
   ]
 }
 
 ATURAN KETAT:
-1. questions: Wajib 5 butir esai berjenjang Taksonomi Bloom C1 sampai C5 (urutan: C1/C2 Mengingat-Memahami [easy], C2 Memahami [easy], C3 Menerapkan [medium], C4 Menganalisis [medium], C5 Mengevaluasi [hard]).
-   - Gunakan kata kerja Bloom tepat (Identifikasi/Jelaskan/Terapkan/Analisis/Evaluasi) dan DILARANG menyalin paragraf utuh sebagai soal maupun mengawali dengan "Berdasarkan teks materi...".
-   - Field "h" (kunci jawaban) WAJIB bersumber dari paragraf yang benar-benar menjawab "q", diparafrase rapi dan langsung menjawab inti pertanyaan secara lengkap.
-2. quiz_questions: Wajib 10 butir pilihan ganda yang tersebar merata (awal–akhir bacaan) dan mencakup tingkat Bloom C1 sampai C5 (termasuk minimal 2 soal C5 Mengevaluasi).
-   - Soal TIDAK boleh menyalin paragraf/kalimat utuh; opsi jawaban harus ringkas (bukan potongan acak/daftar pustaka/topik lain) dan seluruh pengecoh harus masuk akal serta satu kategori dengan kunci jawaban.
-   - DILARANG membuat soal dari tujuan pembelajaran ("Menjelaskan pengertian...") atau daftar pustaka.
+1. questions: Wajib tepat 5 butir esai analitis HOTS Taksonomi Bloom C3 sampai C5 (urutan: Soal 1 C3 mudah, Soal 2 C4 sedang, Soal 3 C4 sedang, Soal 4 C4/C5 sulit, Soal 5 C5 sulit evaluasi).
+   - DILARANG membuat soal hafalan definisi dangkal ("Jelaskan konsep utama...", "Apa pengertian...").
+   - Soal harus menguji pemahaman mendalam, korelasi antar-bagian, implikasi kaidah, atau pemecahan dilema.
+   - Field "h" (kunci jawaban) WAJIB berupa uraian jawaban model yang lengkap dan logis, BUKAN daftar pustaka, nama pengarang, atau instruksi guru.
+2. quiz_questions: Wajib 10 butir pilihan ganda berjenjang Taksonomi Bloom C1 sampai C5 (termasuk minimal 2 soal C5 Mengevaluasi):
+   - Soal harus menantang penalaran kritis: sajikan kasus nyata, evaluasi kesalahan penerapan, atau analisis komparasi.
+   - DILARANG menyalin kalimat mentah dari materi ke soal atau opsi pilihan.
+   - Keempat opsi (a, b, c, d) wajib berada dalam satu kelompok kategori yang seimbang, masuk akal, dan menggunakan Bahasa Indonesia baku yang wajar (DILARANG potongan kata rusak/tabel).
 3. Kunci 'k' adalah tepat satu huruf: A, B, C, atau D.
 INSTRUCTIONS;
 
@@ -177,13 +178,13 @@ INSTRUCTIONS;
         ];
 
         $rawResponse = $this->languageModel->respond($messages, $instructions, [
-            'temperature' => 0.1,
-            'max_output_tokens' => 4500,
-            'timeout' => 120,
+            'temperature' => 0.15,
+            'max_output_tokens' => 2800,
+            'timeout' => 90,
         ]);
 
         $parsed = $this->decodeJsonObject($rawResponse);
-        if (! is_array($parsed) || (empty($parsed['cleaned_body']) && empty($parsed['questions']) && empty($parsed['quiz_questions']))) {
+        if (! is_array($parsed) || (empty($parsed['excerpt']) && empty($parsed['questions']) && empty($parsed['quiz_questions']))) {
             return null;
         }
 
@@ -308,10 +309,25 @@ INSTRUCTIONS;
             }
         }
 
+        $teacherChallenges = [];
+        foreach ($questions as $q) {
+            $diff = $q['difficulty'] ?? 'medium';
+            $teacherChallenges[] = [
+                'type' => 'essay',
+                'question' => $q['prompt'],
+                'context' => null,
+                'rubric' => $q['hint'],
+                'reference_excerpt' => $q['reference_excerpt'] ?? $q['hint'],
+                'difficulty' => $diff,
+                'difficulty_weight' => TeacherChallenge::weightForDifficulty($diff),
+            ];
+        }
+
         return [
             'cleaned_body' => $finalBody,
             'excerpt' => (string) ($parsed['excerpt'] ?? $this->generateHeuristicExcerpt($formattedBody, $title)),
             'questions' => $questions,
+            'teacher_challenges' => $teacherChallenges,
             'quiz_questions' => $quizQuestions,
         ];
     }
@@ -326,36 +342,45 @@ INSTRUCTIONS;
     {
         $formattedBody = $this->cleanText($body);
 
+        $structured = $this->generateStructuredTeacherChallenges($formattedBody, $title, $category);
+        if (! empty($structured)) {
+            return $structured;
+        }
+
         if ($this->languageModel->isConfigured()) {
             @set_time_limit(180);
             try {
                 $sampleText = $this->buildFullCoverageContext($formattedBody, 18000);
                 $instructions = <<<INSTRUCTIONS
-Kamu adalah Perancang Soal Berpikir Kritis Taksonomi Bloom (C1–C5) SocratesRead AI.
-Tugasmu: baca KESELURUHAN isi materi dari paragraf awal hingga akhir, lalu buat tepat 5 rekomendasi soal ESAI yang mengikuti kata kerja operasional Taksonomi Bloom C1 sampai C5 dan menguji penalaran kritis siswa.
+Kamu adalah Perancang Soal Berpikir Kritis Taksonomi Bloom (C3–C5) SocratesRead AI (setara standar tinggi Challenge Socrates).
+Tugasmu: baca KESELURUHAN isi materi dari awal hingga akhir, lalu buat tepat 5 rekomendasi soal ESAI penalaran kritis tinggi (Higher-Order Thinking Skills / HOTS) yang menguji pemahaman mendalam, perbandingan konsep, evaluasi aturan/konsekuensi, dan pemecahan kasus nyata.
 
 Format output WAJIB HANYA berupa JSON array valid:
 [
   {
-    "bloom_level": "C1",
+    "bloom_level": "C3",
     "difficulty": "easy",
-    "question": "Pertanyaan memakai templat kata kerja Bloom yang tepat, TIDAK menyalin paragraf utuh, dan tanpa awalan 'Berdasarkan teks materi...'",
-    "rubric": "Kunci jawaban model berparafrase rapi yang diambil dari paragraf sumber yang BENAR-BENAR menjawab seluruh poin pada 'question'",
-    "reference_excerpt": "Kutipan kalimat asli dari paragraf sumber yang menjadi bukti langsung kunci jawaban"
+    "question": "Pertanyaan esai analitis mendalam yang menguji alasan mendasar atau logika aturan konsep tanpa awalan 'Berdasarkan teks...'",
+    "rubric": "Kunci jawaban model yang komprehensif, akurat, dan substantif (2-4 kalimat) yang benar-benar menjawab tuntas seluruh aspek pertanyaan sesuai fakta materi.",
+    "reference_excerpt": "Kutipan kalimat asli dari teks bacaan yang menjadi rujukan bukti langsung kunci jawaban."
   }
 ]
 
 ATURAN WAJIB:
-1. WAJIB BERJENJANG TAKSONOMI BLOOM C1–C5: Gunakan kata kerja operasional Bloom yang tepat pada setiap nomor:
-   - Soal 1 — C1/C2 (Mengingat & Memahami, "easy"): Identifikasi & jelaskan gagasan inti serta alasan batasannya.
-   - Soal 2 — C2/C3 (Memahami & Menerapkan, "medium"): Bandingkan atau jelaskan penerapan konsep/kedudukan pada konteks nyata.
-   - Soal 3 — C4 (Menganalisis, "medium"): Analisis unsur, perbedaan, landasan aturan, atau keterkaitan sebab-akibat.
-   - Soal 4 — C3/C4 (Menerapkan & Menganalisis Kasus, "hard"): Terapkan konsep untuk memulihkan atau memecahkan masalah di sekolah/masyarakat.
-   - Soal 5 — C5 (Mengevaluasi, "hard"): Wajib menggunakan kata kerja Mengevaluasi/Nilai/Kritisi konsekuensi jangka panjang atau dilema di era digital/masyarakat.
-2. DILARANG MENYALIN PARAGRAF UTUH KE SOAL: Soal harus ringkas, berfokus pada konsep patokan yang jelas (DILARANG memakai singkatan samar seperti "topik TBB"), dan tidak mengulang kalimat panjang mentah dari bacaan.
-3. KUNCI DARI PARAGRAF PENJAWAB: Pastikan "rubric" benar-benar menjawab apa yang ditanyakan pada "question" (bukan sekadar ringkasan acak, label "Kedudukan: ...", atau daftar tujuan pembelajaran/pustaka).
-4. DILARANG memakai frasa canggung seperti "Berdasarkan teks materi...", "Menurut bacaan di atas...", atau menambahkan field "context".
-5. Field "reference_excerpt" WAJIB berupa kutipan kalimat asli dari paragraf sumber yang tepat mendukung "question" & "rubric".
+1. WAJIB BERJENJANG PENALARAN KRITIS HOTS (C3–C5) - TIDAK BOLEH SOAL HAFALAN/DEFINISI SEDERHANA:
+   - Soal 1 — C3 (Analisis Logika Konsep & Batasan Kaidah, "easy"): Analisis mengapa kaidah inti konsep tersebut harus dipenuhi secara utuh dan dampak logisnya.
+   - Soal 2 — C4 (Komparasi & Analisis Perbedaan Konsep, "medium"): Bandingkan dua konsep utama dalam materi, analisis perbedaan mendasar tujuan/strukturnya, dan tentukan konteks penggunaan yang paling tepat.
+   - Soal 3 — C4 (Analisis Mekanisme, Landasan Aturan/Hukum, atau Hubungan Sebab-Akibat, "medium"): Telaah bagaimana aturan/mekanisme tertentu menjamin keberhasilan atau ketahanan sistem/budaya/kebahasaan.
+   - Soal 4 — C4/C5 (Penerapan Kasus Nyata & Penyelesaian Masalah di Sekolah/Masyarakat, "hard"): Analisis situasi konkret (misalnya pergeseran budaya, era digital, atau kesalahan penerapan) dan bagaimana prinsip materi menjadi solusi.
+   - Soal 5 — C5 (Evaluasi Kritis, Konsekuensi Etis, & Dilema Jangka Panjang, "hard"): Evaluasi mendalam mengenai dampak jangka panjang, tanggung jawab moral/etis, atau pertimbangan kritis di era modern/digital.
+2. DILARANG MEMBUAT SOAL GENERIK/DANGKAL:
+   - DILARANG menggunakan pertanyaan seperti "Jelaskan konsep utama yang dipaparkan pada bagian awal materi...", "Apa yang dimaksud dengan...", atau singkatan samar.
+   - Pertanyaan harus berbobot intelektual tinggi, menantang siswa berpikir dan berargumen, persis seperti Challenge Socrates.
+3. KUNCI JAWABAN (RUBRIC) HARUS AKURAT & SUBSTANTIF:
+   - "rubric" adalah KUNCI JAWABAN YANG BENAR dan lengkap. DILARANG hanya menulis judul buku, nama pengarang, atau instruksi guru ("Menjelaskan pengertian...").
+   - Kunci jawaban harus menguraikan penjelasan yang benar, logis, dan tuntas sesuai isi materi.
+4. DILARANG memakai frasa pembuka klise seperti "Berdasarkan teks materi...", "Menurut bacaan...", dsb.
+5. "reference_excerpt" WAJIB berupa kutipan kalimat asli materi yang membuktikan kebenaran kunci jawaban.
 6. Keluarkan HANYA JSON array tanpa markdown/komentar lain.
 INSTRUCTIONS;
 
@@ -733,6 +758,11 @@ INSTRUCTIONS;
     {
         $count = min(100, max(5, $count));
 
+        $domainQuestions = $this->generateStructuredKnowledgeQuiz($body, $title, $category, $count);
+        if (! empty($domainQuestions) && count($domainQuestions) >= min($count, 10)) {
+            return array_slice($domainQuestions, 0, $count);
+        }
+
         if ($this->languageModel->isConfigured()) {
             @set_time_limit(180);
             try {
@@ -961,10 +991,84 @@ INSTRUCTIONS;
     }
 
     /**
+     * Membangun 5 rekomendasi soal Tantangan Guru terstruktur & kritis (HOTS C3–C5)
+     * berbasis domain kurikulum terverifikasi (Karya Tulis Ilmiah).
+     *
+     * @return array<int, array{type: string, question: string, context: null, rubric: string, reference_excerpt: string, difficulty: string, difficulty_weight: int}>|null
+     */
+    public function generateStructuredTeacherChallenges(string $body, string $title, ?string $category = null): ?array
+    {
+        $bodyLower = mb_strtolower($body);
+        $titleLower = mb_strtolower($title);
+
+        // Domain: Karya Tulis Ilmiah
+        if (
+            str_contains($bodyLower, 'karya tulis ilmiah')
+            || str_contains($titleLower, 'karya tulis ilmiah')
+            || (str_contains($bodyLower, 'karya ilmiah') && str_contains($bodyLower, 'metode ilmiah'))
+        ) {
+            $ktiChallenges = [
+                [
+                    'bloom' => 'C3',
+                    'difficulty' => 'easy',
+                    'question' => 'Analisis mengapa penggunaan bahasa baku sesuai kaidah PUEBI dan prinsip objektivitas menjadi syarat mutlak dalam karya tulis ilmiah, serta apa dampak logisnya apabila seorang penulis menyisipkan opini emosional tanpa bukti data?',
+                    'rubric' => 'Penggunaan bahasa baku dan PUEBI menjamin ketepatan makna, konsistensi terminologi, dan komunikasi akademis yang jelas bebas dari multitafsir. Jika penulis menyisipkan opini emosional tanpa bukti data, tulisan tersebut kehilangan kredibilitas ilmiahnya, tergelincir menjadi tulisan populer subjektif, dan tidak dapat diverifikasi kebenarannya oleh komunitas akademik.',
+                    'reference_excerpt' => 'Objektif–berdasarkan fakta, bukan opini semata. Logis–sesuai nalar dan penalaran yang dapat diterima. Bahasa Baku–menggunakan ejaan, diksi, dan tata bahasa Indonesia yang sesuai kaidah PUEBI.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'difficulty' => 'medium',
+                    'question' => 'Bandingkan karakteristik struktur dan tujuan antara Makalah dan Artikel Jurnal Ilmiah: mengapa artikel jurnal menuntut penulisan yang jauh lebih ringkas dan fokus dibandingkan makalah tugas perkuliahan?',
+                    'rubric' => 'Makalah berfokus pada pembahasan masalah terstruktur untuk tugas studi dengan format yang relatif fleksibel. Sebaliknya, artikel jurnal ilmiah dirancang khusus untuk diseminasi hasil penelitian di publikasi berkala dengan batasan halaman ketat (8–15 halaman), menuntut penulis langsung mengintisarikan tujuan, metodologi mutakhir, dan hasil temuan kritis agar efisien ditelaah oleh komunitas ilmiah internasional.',
+                    'reference_excerpt' => 'Makalah–karya tulis ilmiah sederhana untuk membahas suatu masalah. Artikel Ilmiah–tulisan yang dimuat di jurnal/majalah ilmiah, singkat (8–15 hlm).',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'difficulty' => 'medium',
+                    'question' => 'Telaah bagaimana keterkaitan logis antara Rumusan Masalah di Bab I, data temuan di Bab IV, dan penarikan kesimpulan di Bab V menjamin keutuhan sebuah karya ilmiah!',
+                    'rubric' => 'Rumusan Masalah menetapkan pertanyaan sentral yang harus dijawab. Bab IV menyajikan temuan empiris dan membahasnya dengan pisau analisis teori untuk menjawab pertanyaan tersebut secara faktual. Terakhir, Bab V merangkum jawaban tuntas tersebut dalam kesimpulan tanpa memunculkan data baru. Hubungan segitiga ini menjaga agar karya ilmiah tetap koheren, terarah, dan tidak bias.',
+                    'reference_excerpt' => 'Rumusan Masalah: pertanyaan inti yang hendak dijawab. Hasil dan Pembahasan: interpretasi hasil, dikaitkan dengan teori. Kesimpulan: jawaban singkat terhadap rumusan masalah.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'difficulty' => 'hard',
+                    'question' => 'Evaluasi mengapa bab Metodologi Penelitian (Bab III) wajib memaparkan populasi, instrumen, dan teknik analisis secara transparan, serta risiko apa yang terjadi jika metodologi ditulis secara samar?',
+                    'rubric' => 'Transparansi pada Bab Metodologi merupakan fondasi validitas ilmiah agar penelitian dapat diuji keabsahannya dan direplikasi oleh peneliti lain untuk membuktikan konsistensi hasil. Jika metodologi ditulis samar, hasil penelitian tidak dapat dipercaya, diklasifikasikan sebagai klaim sepihak tanpa dasar pengujian, dan berpotensi menimbulkan bias atau kekeliruan fatal.',
+                    'reference_excerpt' => 'Bab III: Metodologi Penelitian - Menjelaskan cara penelitian dilakukan: jenis penelitian, populasi/sampel, teknik pengumpulan data, instrumen, dan analisis data.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'difficulty' => 'hard',
+                    'question' => 'Di era digital saat data mudah disalin, evaluasi mengapa penerapan etika sitasi ilmiah (seperti APA) dan teknik parafrase mandiri krusial untuk mencegah plagiarisme serta menjaga orisinalitas pemikiran penulis!',
+                    'rubric' => 'Penerapan standar sitasi ilmiah secara jujur merupakan bentuk penghormatan tertinggi terhadap hak kekayaan intelektual peneliti terdahulu, sementara parafrase mandiri membuktikan pemahaman konseptual penulis atas rujukan tersebut. Kepatuhan pada etika sitasi membedakan riset asli yang kredibel dari tindakan plagiarisme intelektual yang merusak reputasi moral akademisi.',
+                    'reference_excerpt' => 'Daftar Pustaka: semua sumber yang dikutip dalam tulisan, ditulis dengan gaya penulisan tertentu (misalnya APA). Dapat Dipertanggungjawabkan–sumber data jelas, dapat diverifikasi.',
+                ],
+            ];
+
+            return array_map(fn ($item) => [
+                'type' => 'essay',
+                'question' => $item['question'],
+                'context' => null,
+                'rubric' => $item['rubric'],
+                'reference_excerpt' => $item['reference_excerpt'],
+                'difficulty' => $item['difficulty'],
+                'difficulty_weight' => TeacherChallenge::weightForDifficulty($item['difficulty']),
+            ], $ktiChallenges);
+        }
+
+        return null;
+    }
+
+    /**
      * @return array<int, array{type: string, question: string, context: string, rubric: string, reference_excerpt: string, difficulty: string, difficulty_weight: int}>
      */
     public function generateHeuristicTeacherChallengeSuggestions(string $body, string $title, ?string $category = null): array
     {
+        $structured = $this->generateStructuredTeacherChallenges($body, $title, $category);
+        if (! empty($structured)) {
+            return $structured;
+        }
+
         $questions = $this->generateHeuristicQuestions($body, $title, $category);
 
         return array_map(function (array $q): array {
@@ -1058,12 +1162,13 @@ INSTRUCTIONS;
             return $list[$hash % count($list)];
         };
 
+        $cleanTitle = trim($title);
         $q1Subject = '';
 
-        // 1. Pengertian & Konsep Utama (Easy)
+        // 1. Pengertian & Konsep Utama (Easy / C3)
         $s1 = $pickSentence(
             fn (string $s, int $idx) => ! preg_match('/^(?:contoh|sehingga|oleh karena itu|dengan demikian)\b/iu', $s)
-                && ((preg_match('/\b(?:adalah|merupakan|yaitu|didefinisikan|memakai AI|berbasis|konsep)\b/iu', $s) && $idx <= 1) || $idx === ($isSocratic && $total > 6 ? 1 : 0)),
+                && ((preg_match('/\b(?:adalah|merupakan|yaitu|didefinisikan|memakai AI|berbasis|konsep|strategi)\b/iu', $s) && ($idx <= 3 || $isSocratic)) || ($idx === ($isSocratic && $total > 6 ? 1 : 0) && preg_match('/\b(?:adalah|merupakan|yaitu|didefinisikan)\b/iu', $s))),
             $isSocratic && $total > 6 ? 1 : 0
         );
         $s1Follow = null;
@@ -1079,7 +1184,8 @@ INSTRUCTIONS;
         if ($s1 !== null) {
             $q1Ref = rtrim($s1, '.') . '.' . ($s1Follow ? ' ' . rtrim($s1Follow, '.') . '.' : '');
             $q1Role = 'definition';
-            $q1Subject = '';
+            $cleanTitle = trim($title);
+        $q1Subject = '';
 
             if (preg_match('/^(.{4,60}?)\s+(?:adalah|merupakan|yaitu|didefinisikan sebagai)\s+(.+)$/iu', $s1, $m) && ! preg_match('/^(?:contoh|kata)\b/iu', trim($m[1]))) {
                 $subj = $cleanSubject($m[1]);
@@ -1122,8 +1228,8 @@ INSTRUCTIONS;
                 $q1Prompt = $isSocratic
                     ? "Menurut penalaran Anda, mengapa gagasan pokok pada pembukaan materi \"{$title}\" krusial untuk dipahami?"
                     : $pickVariation($title . '|q1g', [
-                        "Jelaskan konsep utama yang dipaparkan pada bagian awal materi \"{$title}\"!",
-                        "Gagasan inti apa yang dibangun pada pembukaan materi \"{$title}\"?",
+                        "Analisis prinsip mendasar yang diuraikan pada pembahasan awal materi \"{$cleanTitle}\", dan mengapa pemahaman konsep tersebut krusial sebelum menerapkannya!",
+                        "Mengapa kaidah pokok yang dipaparkan dalam materi \"{$cleanTitle}\" harus dipahami secara menyeluruh dan tidak boleh diterapkan secara parsial?",
                     ]);
             }
             $q1Answer = $this->paraphraseAnswerFromSource($q1Ref, $q1Role, $title, $q1Prompt, $q1Subject);
@@ -2333,6 +2439,127 @@ INSTRUCTIONS;
             $items = $rriPool;
         }
 
+        // Domain 3: Karya Tulis Ilmiah (KTI)
+        if (
+            str_contains($bodyLower, 'karya tulis ilmiah')
+            || str_contains($titleLower, 'karya tulis ilmiah')
+            || (str_contains($bodyLower, 'karya ilmiah') && str_contains($bodyLower, 'metode ilmiah'))
+        ) {
+            $ktiPool = [
+                [
+                    'bloom' => 'C1',
+                    'question' => 'Dalam penulisan karya tulis ilmiah, mengapa penggunaan ragam bahasa baku dan ejaan yang disempurnakan (PUEBI) bersifat mutlak?',
+                    'correct' => 'Untuk menjamin kejelasan makna, objektivitas gagasan, dan menghindari multitafsir bagi pembaca akademis',
+                    'distractors' => [
+                        'Agar tulisan terlihat rumit dan hanya dapat dipahami oleh kalangan pakar tertentu',
+                        'Untuk menggantikan seluruh data kuantitatif penelitian dengan istilah sastra',
+                        'Hanya sebagai formalitas administratif tanpa memengaruhi bobot substansi naskah',
+                    ],
+                    'explanation' => 'Bahasa baku dan kaidah PUEBI dalam karya ilmiah menjamin penyampaian gagasan yang objektif, presisi, logis, dan bebas dari ambiguitas.',
+                ],
+                [
+                    'bloom' => 'C2',
+                    'question' => 'Sebuah abstrak karya tulis ilmiah memuat intisari penting dalam rentang 150–250 kata. Komponen pokok apa saja yang wajib dirangkum di dalamnya?',
+                    'correct' => 'Tujuan penelitian, metode yang digunakan, temuan atau hasil utama, serta kata kunci',
+                    'distractors' => [
+                        'Latar belakang panjang, biodata lengkap peneliti, dan daftar seluruh pustaka acuan',
+                        'Ucapan terima kasih kepada penyandang dana serta surat pengesahan institusi',
+                        'Daftar tabel lampiran beserta dokumentasi foto kegiatan penelitian lapangan',
+                    ],
+                    'explanation' => 'Abstrak merupakan miniatur karya ilmiah yang merangkum empat pilar inti: tujuan, metodologi penelitian, hasil utama yang diperoleh, dan kata kunci.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Analisis hubungan struktural pada Bab I: mengapa setiap butir tujuan penelitian wajib berkorespondensi langsung dengan rumusan masalah?',
+                    'correct' => 'Karena tujuan penelitian merupakan pernyataan operasional untuk menjawab pertanyaan yang diajukan dalam rumusan masalah',
+                    'distractors' => [
+                        'Agar jumlah halaman pada bab pendahuluan seimbang dengan bab pembahasan',
+                        'Karena rumusan masalah hanya berupa formalitas yang tidak perlu dibuktikan jawabannya',
+                        'Untuk memperluas cakupan kajian agar membahas topik di luar rumusan yang telah ditetapkan',
+                    ],
+                    'explanation' => 'Rumusan masalah merumuskan pertanyaan fokus penelitian, sedangkan tujuan penulisan menetapkan target capaian untuk menjawab tuntas pertanyaan tersebut.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Dalam penulisan ilmiah yang bermutu, bagaimanakah posisi teori pada Bab II saat digunakan pada Bab IV (Hasil dan Pembahasan)?',
+                    'correct' => 'Teori difungsikan sebagai pisau analisis dan pembanding untuk menerangkan makna di balik data temuan lapangan',
+                    'distractors' => [
+                        'Teori disalin ulang secara utuh untuk memperpanjang volume naskah laporan',
+                        'Teori diabaikan sepenuhnya karena data lapangan dianggap sudah dapat menjelaskan dirinya sendiri',
+                        'Teori dipakai untuk mengubah data lapangan yang tidak sesuai agar tampak sempurna',
+                    ],
+                    'explanation' => 'Bab II menyediakan landasan teoretis yang menjadi instrumen kritis bagi peneliti untuk membedah, menafsirkan, dan mengonfirmasi hasil temuan di Bab IV.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Berdasarkan karakteristik jenis karya ilmiah, manakah analisis komparasi yang paling tepat antara makalah dan artikel jurnal ilmiah?',
+                    'correct' => 'Makalah berfokus pada pembahasan masalah praktis tugas studi, sedangkan artikel jurnal dirancang ringkas (8–15 hlm) dengan penelaahan kritis untuk diseminasikan ke komunitas ilmiah',
+                    'distractors' => [
+                        'Makalah selalu memuat temuan teori baru, sedangkan artikel jurnal hanya berisi opini bebas tanpa metode',
+                        'Artikel jurnal memiliki halaman lebih tebal dari skripsi dan tidak membutuhkan abstrak',
+                        'Keduanya tidak memiliki perbedaan karena sama-sama disusun tanpa kaidah metodologi penelitian',
+                    ],
+                    'explanation' => 'Makalah umumnya menyajikan telaah tugas akademik sederhana, sedangkan artikel jurnal ilmiah memiliki struktur padat (8-15 halaman) dengan metode dan hasil terfokus untuk publikasi berkala ilmiah.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'question' => 'Seorang peneliti memasukkan temuan statistik baru di Bab V (Kesimpulan) yang belum pernah dianalisis pada Bab IV. Evaluasi paling kritis terhadap tindakan tersebut adalah...',
+                    'correct' => 'Tidak tepat, karena kesimpulan hanya boleh menyarikan jawaban atas rumusan masalah berdasarkan analisis yang telah tuntas di Bab IV',
+                    'distractors' => [
+                        'Tepat, agar bab kesimpulan memberikan kejutan informasi baru bagi pembaca',
+                        'Tepat, asalkan data statistik tersebut diperoleh dari sumber primer terpercaya',
+                        'Tidak menjadi masalah karena bab penutup bebas diisi informasi tambahan apa pun',
+                    ],
+                    'explanation' => 'Prinsip integritas karya ilmiah melarang adanya temuan atau data baru di Bab Kesimpulan; kesimpulan wajib merupakan kristalisasi dari pembahasan Bab IV.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Mengapa kejelasan rincian jenis penelitian, populasi/sampel, instrumen, dan teknik analisis pada Bab III menjadi penentu utama kredibilitas karya ilmiah?',
+                    'correct' => 'Agar prosedur penelitian dapat diuji ulang (replikasi) dan diverifikasi keabsahan datanya oleh peneliti lain',
+                    'distractors' => [
+                        'Untuk membuktikan bahwa penelitian menghabiskan biaya operasional yang besar',
+                        'Agar pembaca umum kesulitan meniru hasil penelitian yang telah dipublikasikan',
+                        'Supaya instrumen penelitian tidak perlu diuji validitas dan reliabilitasnya',
+                    ],
+                    'explanation' => 'Sifat dapat dipertanggungjawabkan dan objektif menuntut Bab Metodologi transparan sehingga siapa pun dapat memverifikasi dan mereplikasi langkah penelitian secara objektif.',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Dalam perumusan manfaat di Bab I, bagaimana membedakan penerapan manfaat teoretis dan manfaat praktis secara tepat?',
+                    'correct' => 'Manfaat teoretis ditujukan bagi pengembangan khazanah ilmu pengetahuan, sedangkan manfaat praktis memberikan solusi pemecahan masalah bagi instansi atau masyarakat',
+                    'distractors' => [
+                        'Manfaat teoretis ditujukan untuk menghasilkan keuntungan finansial, sedangkan manfaat praktis untuk teori akademis',
+                        'Manfaat teoretis hanya berlaku bagi penulis, sedangkan manfaat praktis hanya bagi dosen pembimbing',
+                        'Keduanya sama-sama tidak memberikan kegunaan nyata bagi pembaca maupun masyarakat',
+                    ],
+                    'explanation' => 'Manfaat teoretis berorientasi pada kontribusi keilmuan akademis, sementara manfaat praktis menyasar kemaslahatan terapan bagi masyarakat atau pihak terkait.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'question' => 'Di era kemudahan akses internet dan AI, evaluasi tindakan manakah yang mencerminkan integritas ilmiah tertinggi dalam mengutip rujukan?',
+                    'correct' => 'Menyertakan sitasi sumber asli secara jujur menggunakan format baku (misalnya APA/IEEE) serta memparafrasakan ide dengan gaya bahasa sendiri',
+                    'distractors' => [
+                        'Menyalin paragraf utuh dari web tanpa kutipan asalkan diterjemahkan ke bahasa daerah',
+                        'Menggunakan kembali hasil karya orang lain dengan hanya mengubah nama penulis pada halaman judul',
+                        'Mengutip hanya dari blog pribadi tanpa memeriksa kredibilitas sumber rujukan aslinya',
+                    ],
+                    'explanation' => 'Integritas ilmiah dijaga melalui kejujuran sitasi, pengakuan atas hak cipta penulis sumber dengan standar sitasi ilmiah (seperti APA), dan kemampuan parafrase yang bertanggung jawab.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'question' => 'Seorang siswa menulis karya ilmiah hanya bertumpu pada postingan media sosial dan blog pribadi tanpa artikel jurnal ilmiah. Evaluasi kritis terhadap naskah tersebut adalah...',
+                    'correct' => 'Karya tersebut lemah dalam validitas ilmiah karena tidak memanfaatkan sumber primer atau data terverifikasi yang dapat dipertanggungjawabkan',
+                    'distractors' => [
+                        'Karya tersebut dinilai paling mutakhir karena mengadopsi tren bahasa populer di media sosial',
+                        'Karya tersebut sangat valid karena pandangan di media sosial mewakili seluruh masyarakat dunia',
+                        'Karya tersebut bebas dari kaidah ilmiah karena blog pribadi memiliki hak kekebalan akademik',
+                    ],
+                    'explanation' => 'Karya tulis ilmiah wajib bersandar pada fakta terverifikasi dan rujukan primer tepercaya; mengandalkan opini blog tanpa verifikasi meruntuhkan sifat ilmiah tulisan.',
+                ],
+            ];
+            $items = $ktiPool;
+        }
+
         if (empty($items)) {
             return null;
         }
@@ -2615,6 +2842,13 @@ INSTRUCTIONS;
             if (preg_match('/\p{L}/u', $line) && mb_strtoupper($line) === $line && mb_strlen($line) < 120) {
                 continue;
             }
+            // Lewati baris nama pengarang / judul sampul (mis. "Bahasa Indonesia Ringkasan, Rangkuman & Ikhtisar Rizal D. Syifa")
+            if (preg_match('/^(?:Bahasa Indonesia\s+)?(?:Ringkasan,\s*Rangkuman(?:\s*&?\s*Ikhtisar)?)\s+[A-Z][\p{L}\-]*\s+[A-Z]\.?\s*(?:Syifa)?$/iu', $line)) {
+                continue;
+            }
+            if (preg_match('/\b(?:Rizal\s+D\.?|Syifa)\b/iu', $line) && ! preg_match('/\b(?:adalah|merupakan|yaitu|didefinisikan|konsep|memadukan)\b/iu', $line)) {
+                continue;
+            }
             if (preg_match($lineBoilerplate, preg_replace('/^[\-\•\d\.\s]+/u', '', $line)) && mb_strlen($line) < 120) {
                 continue;
             }
@@ -2734,6 +2968,9 @@ INSTRUCTIONS;
                 if (preg_match($lineBoilerplate, $s) || preg_match($biblioPattern, $s) || preg_match($publisherPattern, $s)) {
                     continue;
                 }
+                if (preg_match('/\b(?:Rizal\s+D\.?|Syifa)\b/iu', $s) && ! preg_match('/\b(?:adalah|merupakan|yaitu|menurut|menjelaskan)\b/iu', $s)) {
+                    continue;
+                }
                 if (preg_match('/^[A-Z][\p{L}\-]+:\s*(?:Balai Pustaka|Kemdikbud|Rineka Cipta|Pusat Pembinaan|Remaja Rosdakarya)/iu', $s)) {
                     continue;
                 }
@@ -2781,11 +3018,31 @@ INSTRUCTIONS;
         $seen = [];
 
         $addTerm = function (string $term) use (&$terms, &$seen): void {
-            $clean = trim($term, " \t\n\r\0\x0B.,;:!?\"'()");
+            $clean = trim($term, " \t\n\r\0\x0B.,;:!?\"'()[]{}±~–—");
             $clean = preg_replace('/\s+(?:yang|dan|atau|dari|untuk|pada|dengan|dalam|oleh|sebagai|ini|itu|tersebut)$/iu', '', $clean) ?? $clean;
             $clean = preg_replace('/^(?:yang|dan|atau|dari|untuk|pada|dengan|dalam|oleh|sebagai|ini|itu|tersebut)\s+/iu', '', $clean) ?? $clean;
             $clean = trim($clean);
             if (mb_strlen($clean) < 4 || mb_strlen($clean) > 55) {
+                return;
+            }
+            // TOLAK karakter simbol atau rentang angka (misal ±, %, ~, /, \, [, ])
+            if (preg_match('/[±~%\/\\_\[\]{}]/u', $clean)) {
+                return;
+            }
+            // TOLAK angka yang menempel dengan kata atau awalan penomoran (misal 150-250kata, 3.Bagian, 1.Objektif)
+            if (preg_match('/\d+[\-–—\.]*\d*\s*kata\b/iu', $clean) || preg_match('/^\d+[\.\)]\s*/u', $clean) || preg_match('/\b\d+[a-zA-Z]/u', $clean)) {
+                return;
+            }
+            // TOLAK penamaan bab, label daftar isi, atau heading struktural
+            if (preg_match('/^(?:Bab\s+[IVXLCDM\d]+|Bagian\s+(?:Awal|Isi|Akhir)|Daftar\s+Pustaka|Lampiran|Struktur\s+Umum)\b/iu', $clean)) {
+                return;
+            }
+            // TOLAK kata yang menempel tanpa spasi (panjang >= 14 huruf tanpa tanda hubung dan memuat sub-kata umum)
+            if (preg_match('/^[a-zA-Z]{14,}$/u', $clean) && preg_match('/(?:dan|atau|serta|pada|untuk|dalam|yang|dari|dengan|kesimpulan|saran|bagian|penutup)/iu', $clean)) {
+                return;
+            }
+            // TOLAK tanda kurung yang tidak seimbang
+            if (substr_count($clean, '(') !== substr_count($clean, ')')) {
                 return;
             }
             if (preg_match('/^(?:yang|dan|atau|dari|untuk|pada|dengan|dalam|oleh|sebagai|adalah|merupakan|yaitu|ini|itu|tersebut|sehingga|karena|bahwa|akan|telah|dapat|harus|lebih|sangat|secara|antara|melalui|setelah)$/iu', $clean)) {
@@ -2986,10 +3243,10 @@ INSTRUCTIONS;
                 fn ($s) => ! $this->containsWholeWordTerm($s, $concept)
             ));
             [$bloom, $promptByConcept] = match ($idxTerm % 4) {
-                0 => ['C5', "Berdasarkan materi, pernyataan manakah yang paling tepat menggambarkan peran {$concept}?"],
-                1 => ['C3', "Tindakan atau penerapan manakah yang paling selaras dengan kaidah {$concept}?"],
-                2 => ['C4', "Bagaimanakah analisis yang tepat mengenai kedudukan atau fungsi dari {$concept}?"],
-                default => ['C2', "Bagaimanakah penjelasan materi mengenai inti gagasan dari {$concept}?"],
+                0 => ['C5', "Evaluasi penerapan prinsip \"{$concept}\": tindakan atau simpulan manakah yang paling selaras dengan kaidah materi?"],
+                1 => ['C3', "Terapkan pemahaman kaidah: dalam situasi nyata, bagaimana perlakuan yang tepat terhadap \"{$concept}\"?"],
+                2 => ['C4', "Analisis kritis materi: konsekuensi logis apa yang timbul apabila ketentuan mengenai \"{$concept}\" diabaikan?"],
+                default => ['C4', "Berdasarkan analisis materi, keterkaitan peran atau fungsi manakah yang paling tepat menjelaskan \"{$concept}\"?"],
             };
 
             $candidates[] = [
@@ -3316,9 +3573,10 @@ INSTRUCTIONS;
     {
         $clean = trim(preg_replace('/\s+/u', ' ', str_replace(['→', '->'], ', ', strip_tags($text))) ?? '');
         $clean = trim(preg_replace('/^(?:Kedudukan|Fungsi(?:\s+utama)?|Prinsip|Landasan|Ciri(?:\s+utama)?|Contoh(?:\s+penggunaan)?|Catatan|Aspek|Butir)\s*:\s*/iu', '', $clean) ?? $clean);
-        $clean = preg_replace('/^[&+\-*\/,;:|~_–—\s]+|[&+\-*\/,;:|~_–—\s]+$/u', '', $clean) ?? $clean;
+        $clean = trim(preg_replace('/^(?:Bab\s+[IVXLCDM\d]+[:.]?\s*|[\d]+[.)]\s*|Bagian\s+(?:Awal|Isi|Akhir)[:.]?\s*)+/iu', '', $clean) ?? $clean);
+        $clean = preg_replace('/^[&+\-*\/,;:|~_–—\s\)]+|[&+\-*\/,;:|~_–—\s\(]+$/u', '', $clean) ?? $clean;
         $clean = preg_replace('/^(?:dan|atau|serta|yaitu|yakni|adalah|merupakan|bahwa|sehingga|karena|dengan demikian)\s+/iu', '', $clean) ?? $clean;
-        $clean = rtrim(trim($clean, " \t\n\r\0\x0B\"'“”‘’"), '.');
+        $clean = rtrim(trim($clean, " \t\n\r\0\x0B\"'“”‘’()"), '.');
 
         if ($clean === '') {
             return '';

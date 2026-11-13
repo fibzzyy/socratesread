@@ -44,6 +44,22 @@ class ReadingMaterialFormatter
         'diutamakan' => 1, 'dilestarikan' => 1, 'dikuasai' => 1, 'dipelajari' => 1,
         'digunakan' => 1, 'diterapkan' => 1, 'dijelaskan' => 1, 'disusun' => 1,
         'sehari-hari' => 1,
+        'karya' => 1, 'tulis' => 1, 'ilmiah' => 1, 'makalah' => 1, 'artikel' => 1,
+        'jurnal' => 1, 'skripsi' => 1, 'tesis' => 1, 'disertasi' => 1, 'laporan' => 1,
+        'penelitian' => 1, 'pengamatan' => 1, 'kajian' => 1, 'metode' => 1, 'metodologi' => 1,
+        'objektif' => 1, 'subjektif' => 1, 'logis' => 1, 'sistematis' => 1, 'kritis' => 1,
+        'analitis' => 1, 'baku' => 1, 'ejaan' => 1, 'diksi' => 1, 'tata' => 1,
+        'abstrak' => 1, 'kata' => 1, 'kunci' => 1, 'pengantar' => 1, 'daftar' => 1,
+        'isi' => 1, 'tabel' => 1, 'gambar' => 1, 'lampiran' => 1, 'pendahuluan' => 1,
+        'latar' => 1, 'belakang' => 1, 'rumusan' => 1, 'masalah' => 1, 'manfaat' => 1,
+        'teoritis' => 1, 'teoretis' => 1, 'praktis' => 1, 'tinjauan' => 1, 'pustaka' => 1,
+        'landasan' => 1, 'teori' => 1, 'populasi' => 1, 'sampel' => 1, 'teknik' => 1,
+        'pengumpulan' => 1, 'data' => 1, 'instrumen' => 1, 'analisis' => 1, 'hasil' => 1,
+        'pembahasan' => 1, 'kesimpulan' => 1, 'saran' => 1, 'penutup' => 1, 'sitasi' => 1,
+        'rujukan' => 1, 'primer' => 1, 'sekunder' => 1, 'plagiarisme' => 1, 'orisinalitas' => 1,
+        'semata' => 1, 'fakta' => 1, 'nalar' => 1, 'penalaran' => 1, 'diterima' => 1,
+        'aturan' => 1, 'penulisan' => 1, 'mendalam' => 1, 'valid' => 1, 'verifikasi' => 1,
+        'masyarakat' => 1, 'pembaca' => 1, 'penulis' => 1, 'peneliti' => 1,
     ];
 
     /**
@@ -439,6 +455,11 @@ HTML;
         // 3. Pecah angka/tanda kurung tutup yang menempel dengan huruf
         $text = preg_replace('/\)(?=\p{L})/u', ') ', $text) ?? $text;
         $text = preg_replace('/(?<=\p{L})\(/u', ' (', $text) ?? $text;
+        // Pecah penomoran dan rentang angka yang menempel (misal 1.Objektif -> 1. Objektif, ±150-250kata -> 150-250 kata)
+        $text = preg_replace('/(\d+)\.([A-Z\p{L}])/u', '$1. $2', $text) ?? $text;
+        $text = preg_replace('/(\d+)\s*[–—\-]\s*(\d+)\s*kata\b/iu', '$1–$2 kata', $text) ?? $text;
+        $text = preg_replace('/[±~]/u', '', $text) ?? $text;
+        $text = preg_replace('/(?<=\p{L})[–—](?=\p{L})/u', ' – ', $text) ?? $text;
 
         // 4. Segmentasi token panjang tanpa spasi (>= 9 huruf) menggunakan kamus kata umum Indonesia
         $text = preg_replace_callback('/\b\p{L}{9,}\b/u', function (array $m) {
