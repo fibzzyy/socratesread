@@ -28,10 +28,11 @@
 
         <section class="my-class-join" aria-labelledby="join-class-heading">
             <span class="my-class-join-accent" aria-hidden="true"></span>
+            <span class="my-class-join-decoration" aria-hidden="true"></span>
             <div class="my-class-join-copy">
                 <div class="my-class-join-eyebrow">
                     <x-icon name="users-round" />
-                    <span>GABUNG BERSAMA GURU</span>
+                    <span>GABUNG KELAS</span>
                 </div>
                 <h2 id="join-class-heading">Gabung kelas baru. Belajar bersama guru.</h2>
 
@@ -40,7 +41,8 @@
                     <label for="join_code">Kode gabung kelas (8 karakter)</label>
                     <div class="my-class-join-controls">
                         <div class="my-class-code-field">
-                            <input id="join_code" name="join_code" value="{{ old('join_code', $joinCode) }}" maxlength="8" minlength="8" required autocomplete="off" autocapitalize="characters" placeholder="CONTOH: BACA2026" aria-describedby="join-code-count @error('join_code') join-code-error @enderror">
+                            <span class="my-class-code-label" aria-hidden="true"><x-icon name="key-round" /> KODE KELAS</span>
+                            <input id="join_code" name="join_code" value="{{ old('join_code', $joinCode) }}" maxlength="8" minlength="8" required autocomplete="off" autocapitalize="characters" placeholder="Contoh: BACA2026" aria-describedby="join-code-count @error('join_code') join-code-error @enderror">
                             <span id="join-code-count" class="my-class-code-count" aria-live="polite">{{ mb_strlen(old('join_code', $joinCode ?? '')) }}/8</span>
                         </div>
                         <button type="submit" class="my-class-join-button">
@@ -64,20 +66,20 @@
 
         <section class="my-class-stats" aria-label="Ringkasan progress">
             <article class="my-class-stat">
-                <span class="my-class-stat-icon my-class-stat-blue"><x-icon name="book-open-text" /></span>
-                <div><p>Total materi selesai</p><div class="my-class-stat-value"><strong>{{ $completedReadings }}</strong></div><small>{{ $weeklyReadingCount }} dalam 7 hari terakhir</small></div>
+                <span class="my-class-stat-icon my-class-stat-blue"><x-icon name="book-open-check" /></span>
+                <div><p>Total Materi Selesai</p><div class="my-class-stat-value"><strong>{{ $completedReadings }}</strong></div><small>{{ $weeklyReadingCount }} dalam 7 hari terakhir</small></div>
             </article>
             <article class="my-class-stat">
-                <span class="my-class-stat-icon my-class-stat-sage"><x-icon name="zap" /></span>
-                <div><p>Total XP terkumpul</p><div class="my-class-stat-value"><strong>{{ number_format($summary['xp']) }} <small>XP</small></strong></div><small>Level {{ $summary['level'] }} · {{ $summary['xp_to_next_level'] }} XP menuju level berikutnya</small></div>
+                <span class="my-class-stat-icon my-class-stat-blue"><x-icon name="graduation-cap" /></span>
+                <div><p>Kelas yang Diikuti</p><div class="my-class-stat-value"><strong>{{ $classrooms->count() }}</strong></div><small>Kelas belajar yang kamu ikuti</small></div>
             </article>
             <article class="my-class-stat">
-                <span class="my-class-stat-icon my-class-stat-cream"><x-icon name="flame" /></span>
-                <div><p>Streak terpanjang</p><div class="my-class-stat-value"><strong>{{ $summary['longest_streak'] }} <small>hari</small></strong></div><small>Streak aktif: {{ $summary['current_streak'] }} hari</small></div>
+                <span class="my-class-stat-icon my-class-stat-blue"><x-icon name="trophy" /></span>
+                <div><p>Total Tantangan Selesai</p><div class="my-class-stat-value"><strong>{{ $completedChallenges }}</strong></div><small>Challenge Socrates &amp; Tantangan Guru</small></div>
             </article>
             <article class="my-class-stat">
-                <span class="my-class-stat-icon my-class-stat-blue"><x-icon name="award" /></span>
-                <div><p>Total tantangan selesai</p><div class="my-class-stat-value"><strong>{{ $completedChallenges }}</strong></div><small>Challenge Socrates & Tantangan Guru selesai</small></div>
+                <span class="my-class-stat-icon my-class-stat-blue"><x-icon name="library" /></span>
+                <div><p>Total Materi Tersedia</p><div class="my-class-stat-value"><strong>{{ $assignedReadingCount }}</strong></div><small>Materi dari kelas yang kamu ikuti</small></div>
             </article>
         </section>
 

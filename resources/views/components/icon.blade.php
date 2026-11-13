@@ -16,6 +16,49 @@
             <path d="M6 13h2" />
             <path d="M6 9h2" />
             @break
+        @case('book-open-check')
+            <path d="M12 7v14" />
+            <path d="M3 18V5a2 2 0 0 1 2-2h4a4 4 0 0 1 4 4 4 4 0 0 1 4-4h2a2 2 0 0 1 2 2v5" />
+            <path d="M3 18a2 2 0 0 0 2 2h4a4 4 0 0 1 3 1 4 4 0 0 1 3-1h1" />
+            <path d="m16 14 2 2 4-4" />
+            @break
+        @case('calculator')
+            <rect x="4" y="2" width="16" height="20" rx="2" />
+            <line x1="8" x2="16" y1="6" y2="6" />
+            <line x1="8" x2="8" y1="11" y2="11" />
+            <line x1="12" x2="12" y1="11" y2="11" />
+            <line x1="16" x2="16" y1="11" y2="11" />
+            <line x1="8" x2="8" y1="15" y2="15" />
+            <line x1="12" x2="12" y1="15" y2="15" />
+            <line x1="16" x2="16" y1="15" y2="15" />
+            <line x1="8" x2="8" y1="19" y2="19" />
+            <line x1="12" x2="12" y1="19" y2="19" />
+            <line x1="16" x2="16" y1="19" y2="19" />
+            @break
+        @case('flask-conical')
+            <path d="M14 2v6l5.5 9.5A3 3 0 0 1 16.9 22H7.1a3 3 0 0 1-2.6-4.5L10 8V2" />
+            <path d="M8 2h8M7 16h10" />
+            @break
+        @case('atom')
+            <circle cx="12" cy="12" r="1" />
+            <path d="M20.2 20.2c2-2 1.3-7.4-1.6-12.3S11.7.7 9.7 2.7s-1.3 7.4 1.6 12.3 6.9 7.2 8.9 5.2Z" />
+            <path d="M3.8 20.2c-2-2-1.3-7.4 1.6-12.3s6.9-7.2 8.9-5.2 1.3 7.4-1.6 12.3-6.9 7.2-8.9 5.2Z" />
+            @break
+        @case('leaf')
+            <path d="M11 20A7 7 0 0 1 4 13c0-6 8-10 16-10 0 8-4 16-10 16Z" />
+            <path d="M8 16c2-2 5-4 9-6" />
+            @break
+        @case('globe')
+            <circle cx="12" cy="12" r="10" />
+            <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10Z" />
+            @break
+        @case('languages')
+            <path d="m5 8 6 6M4 14l6-6 2-3M2 5h12M7 2h1M22 22l-5-10-5 10M14 18h6" />
+            @break
+        @case('monitor')
+            <rect x="2" y="3" width="20" height="14" rx="2" />
+            <path d="M8 21h8m-4-4v4" />
+            @break
         @case('book-minus')
             <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
             <path d="M9 10h6" />
@@ -41,6 +84,17 @@
             <circle cx="12" cy="12" r="10" />
             <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
             <path d="M12 17h.01" />
+            @break
+        @case('brain-circuit')
+            <path d="M12 18V5" />
+            <path d="M15 13a4.17 4.17 0 0 1-3-4 4.17 4.17 0 0 1-3 4" />
+            <path d="M17.598 6.5A3 3 0 1 0 12 5a3 3 0 1 0-5.598 1.5" />
+            <path d="M17.997 5.125a4 4 0 0 1 2.526 5.77" />
+            <path d="M18 18a4 4 0 0 0 2-7.464" />
+            <path d="M7.003 5.125a4 4 0 0 0-2.526 5.77" />
+            <path d="M6 18a4 4 0 0 1-2-7.464" />
+            <path d="M12 18a4 4 0 0 1-8 0" />
+            <path d="M12 18a4 4 0 0 0 8 0" />
             @break
         @case('message-circle')
             <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
@@ -72,6 +126,11 @@
             <circle cx="10" cy="7" r="4" />
             <path d="M20 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
             @break
+        @case('users-round')
+            <path d="M18 21a8 8 0 0 0-16 0" />
+            <circle cx="10" cy="8" r="5" />
+            <path d="M20 8v6M23 11h-6" />
+            @break
         @case('user')
             <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
             <circle cx="12" cy="7" r="4" />
@@ -92,6 +151,11 @@
             <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
             <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
             <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
+            @break
+        @case('key-round')
+            <circle cx="8" cy="16" r="5" />
+            <path d="m21 2-9.6 9.6" />
+            <path d="m15.5 7.5 3 3L22 7l-3-3" />
             @break
         @case('plus')
             <path d="M5 12h14" />

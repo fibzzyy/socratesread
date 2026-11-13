@@ -18,8 +18,9 @@
 @endphp
 
 @section('content')
+    <div class="reading-book-page">
     @if (session('notice')) <div class="auth-notice" role="status">{{ session('notice') }}</div> @endif
-    <section class="stage-heading" aria-labelledby="reading-title">
+    <section class="stage-heading reading-book-header" aria-labelledby="reading-title">
         <div>
             <p class="eyebrow">RUANG FOKUSMU</p>
             <h1 id="reading-title">Reading Room</h1>
@@ -30,8 +31,8 @@
         </a>
     </section>
 
-    <div class="reading-room-grid">
-        <article class="panel passage-panel" aria-labelledby="passage-title">
+    <div class="reading-room-grid reading-workspace-grid">
+        <article class="panel passage-panel reading-document-workspace" aria-labelledby="passage-title">
             <div class="passage-toolbar flex-wrap">
                 <div class="passage-tags">
                     <span class="category-tag tag-blue">{{ mb_strtoupper($document->category) }}</span>
@@ -40,10 +41,11 @@
                 <div class="flex flex-wrap items-center gap-2.5">
                     <div class="reading-mode-switch" role="group" aria-label="Mode tampilan membaca">
                         <button type="button" class="reading-mode-btn is-active" data-reading-mode-btn="scroll" aria-pressed="true">
-                            <span>📜 Gulir</span>
+                            <svg class="reading-mode-glyph" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2" /><path d="M9 8h6M9 12h6M9 16h4" /></svg>
+                            <span>Gulir</span>
                         </button>
                         <button type="button" class="reading-mode-btn" data-reading-mode-btn="book" aria-pressed="false">
-                            <span>📖 Halaman</span>
+                            <x-icon name="book-open-text" /> <span>Halaman</span>
                         </button>
                     </div>
                     <div class="text-controls" aria-label="Pengaturan teks">
@@ -54,7 +56,7 @@
                 </div>
             </div>
 
-            <div class="passage-content" data-reading-text>
+            <div class="passage-content reading-canvas" data-reading-text>
                 <p class="section-overline">{{ mb_strtoupper($document->category) }} · BACAAN PILIHAN</p>
                 <h2 id="passage-title">{{ $document->title }}</h2>
                 @php
@@ -115,7 +117,7 @@
             </div>
         </article>
 
-        <aside class="reading-side-column" aria-label="Panduan membaca">
+        <aside class="reading-side-column reading-companion-panel" aria-label="Panduan membaca">
             <section class="panel session-card" data-session-card>
                 <div class="session-head">
                     <div class="session-icon"><x-icon name="book-open-text" /></div>
@@ -289,6 +291,7 @@
         </aside>
     </div>
     <div class="toast-message" role="status" aria-live="polite" data-reading-toast></div>
+    </div>
 @endsection
 
 @push('scripts')

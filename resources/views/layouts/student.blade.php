@@ -9,7 +9,12 @@
     <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+    @if (request()->routeIs('reading') && ! request()->route('document'))
+        <link rel="preload" href="{{ asset('fonts/plus-jakarta-sans-latin.woff2') }}" as="font" type="font/woff2" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600&display=swap" rel="stylesheet">
+    @else
+        <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+    @endif
     @yield('head')
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
@@ -30,7 +35,7 @@
             </nav>
             <div class="nav-label nav-label-spaced">BELAJAR</div>
             <nav class="nav-list" aria-label="Materi belajar">
-                <a class="nav-link {{ request()->routeIs('quiz.*') ? 'is-active' : '' }}" href="{{ route('quiz.index') }}" @if(request()->routeIs('quiz.*')) aria-current="page" @endif><x-icon name="gamepad-2" /><span>Challenge Socrates</span></a>
+                <a class="nav-link {{ request()->routeIs('quiz.*') ? 'is-active' : '' }}" href="{{ route('quiz.index') }}" @if(request()->routeIs('quiz.*')) aria-current="page" @endif><x-icon name="brain-circuit" /><span>Challenge Socrates</span></a>
                 <a class="nav-link {{ request()->routeIs('progress') ? 'is-active' : '' }}" href="{{ route('progress') }}" @if(request()->routeIs('progress')) aria-current="page" @endif><x-icon name="chart-no-axes-combined" /><span>Kemajuan</span></a>
                 <a class="nav-link {{ request()->routeIs('achievements*') ? 'is-active' : '' }}" href="{{ route('achievements') }}" @if(request()->routeIs('achievements*')) aria-current="page" @endif><x-icon name="award" /><span>Pencapaian</span></a>
             </nav>
