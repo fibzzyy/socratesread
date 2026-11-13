@@ -18,7 +18,11 @@
 </head>
 
 <body>
-    @php($isReadingIndex = request()->routeIs('reading') && !request()->route('document'))
+    @php
+        $authUser = auth()->user();
+        $userInitials = $authUser ? collect(explode(' ', $authUser->name))->filter()->take(2)->map(fn ($part) => mb_substr($part, 0, 1))->implode('') : '';
+        $isReadingIndex = request()->routeIs('reading') && !request()->route('document');
+    @endphp
     <div class="app-shell">
         <button class="scrim" type="button" aria-label="Tutup navigasi" data-menu-close></button>
         <aside class="sidebar sidebar-theme" id="primary-navigation" aria-label="Navigasi utama">
