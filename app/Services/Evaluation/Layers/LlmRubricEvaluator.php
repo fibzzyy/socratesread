@@ -5,6 +5,7 @@ namespace App\Services\Evaluation\Layers;
 use App\Models\Document;
 use App\Models\SocraticQuestion;
 use App\Services\AI\Contracts\LanguageModel;
+use App\Services\AI\DocumentAiProcessor;
 use App\Services\Evaluation\AnswerHighlightService;
 use App\Services\Evaluation\EvaluationResult;
 use Illuminate\Support\Facades\Log;
@@ -61,25 +62,26 @@ class LlmRubricEvaluator
         array $layer1,
         array $layer2
     ): ?EvaluationResult {
-        // Ambil teks materi (maksimal 4500 karakter agar tidak melebihi konteks)
-        $materialExcerpt = mb_substr(trim((string) $document->body), 0, 4500);
+        // Cakupan materi penuh (awal, tengah, hingga akhir) agar soal di bab mana pun tetap terdukung
+        $materialExcerpt = app(DocumentAiProcessor::class)->buildFullCoverageContext((string) $document->body, 12000);
 
         $instructions = <<<INSTRUCTIONS
 Kamu adalah Penilai Utama Pembelajaran SocratesRead AI.
-Tugasmu adalah membandingkan jawaban esai (parafrase) siswa terhadap **KUNCI JAWABAN MODEL** dan **ISI MATERI BACAAN**, lalu menentukan skor akurasi 0–100 secara adil dan proporsional.
+Tugasmu adalah menilai makna dan pemahaman jawaban esai (parafrase) siswa terhadap **KUNCI JAWABAN MODEL** dan **ISI MATERI BACAAN**, dengan gaya analisis semantik persis seperti **Google NotebookLM**.
 
 ATURAN PENILAIAN:
-1. Bandingkan Akurasi Parafrase terhadap Kunci Jawaban Model:
-   - Siswa TIDAK wajib menyalin kata persis dari kunci jawaban atau teks bacaan. Jika siswa menjelaskan konsep yang sama dengan kata-katanya sendiri (parafrase) dan maknanya sesuai dengan Kunci Jawaban Model, berikan nilai tinggi sesuai kelengkapan poinnya!
-   - 85 – 100 ("Sangat Tepat (Mahir)"): Jawaban siswa akurat dan mencakup seluruh inti konsep pada Kunci Jawaban Model dengan bahasanya sendiri.
-   - 70 – 84 ("Tepat & Sesuai (Baik)"): Inti jawaban benar dan sesuai Kunci Jawaban, hanya ada sedikit detail pendukung yang bisa diperkaya.
-   - 40 – 69 ("Hampir Benar (Sebagian Benar)"): Jawaban hanya mencakup sebagian poin Kunci Jawaban atau kurang mendalam.
-   - 0 – 39 ("Salah / Belum Tepat"): Jawaban melenceng, salah konsep, atau bertentangan dengan Kunci Jawaban dan materi.
-   - Jika jawaban terindikasi hanya menyalin kalimat bacaan secara mentah (copy-paste > 70%) tanpa parafrase, batas nilai maksimal 55.
+1. Fokus pada Esensi & Makna (Bukan Pencocokan Kata Kaku):
+   - Siswa TIDAK wajib menyalin istilah buku atau menulis jawaban panjang bertele-tele. Jika 1–2 kalimat siswa dengan bahasa sehari-hari sudah menangkap esensi jawaban dengan tepat, berikan nilai tinggi (80–100)!
+   - Toleransi typo / selip istilah ringan: apabila siswa salah ketik atau terbalik istilah kecil (misalnya menulis "di menangkan" padahal konteks kalimatnya jelas bermaksud "tidak ada pihak yang dikalahkan/didominasi"), nilai tetap berdasarkan maksud esensinya dan luruskan istilahnya secara halus pada "feedback".
+   - 85 – 100 ("Sangat Tepat (Mahir)"): Jawaban menangkap esensi inti dan alasan/konsep kunci dengan bahasa sendiri secara akurat.
+   - 70 – 84 ("Tepat & Sesuai (Baik)"): Inti jawaban benar dan sejalan dengan Kunci Jawaban, hanya ada sedikit nuansa pendukung yang dapat diperkaya.
+   - 40 – 69 ("Hampir Benar (Sebagian Benar)"): Jawaban menyentuh sebagian poin kunci namun belum utuh atau melewatkan unsur penting pertanyaan.
+   - 0 – 39 ("Salah / Belum Tepat"): Jawaban melenceng, salah konsep secara fundamental, atau bertentangan dengan Kunci Jawaban dan materi.
+   - Jika jawaban terindikasi menyalin kalimat bacaan mentah (> 70% verbatim) tanpa parafrase, batas nilai maksimal 55.
 2. Gaya Feedback (Persis Seperti Google NotebookLM):
-   - Tulis feedback secara analitis, hangat, dan jelas dengan memparafrasekan esensi apa yang berhasil ditangkap oleh siswa (serta kekurangan spesifik bila skor < 85).
+   - Tulis feedback secara hangat, ringkas (1–2 kalimat), dan langsung memparafrasekan esensi apa yang berhasil ditangkap siswa serta pelurusan konsep/istilah bila ada yang kurang lengkap.
 3. Sorotan Bukti Jawaban Siswa ("evidence_spans"):
-   - Jika skor >= 40, ekstrak 1–2 frasa/klausa PERSIS seperti tertulis di "JAWABAN PARAFRASE SISWA" yang paling jelas menunjukkan inti kebenaran jawaban tersebut (bukan kata basa-basi pembuka). Jika skor < 40, kembalikan array kosong [].
+   - Jika skor >= 40, ekstrak 1–2 frasa/klausa PERSIS seperti tertulis di "JAWABAN PARAFRASE SISWA" yang paling jelas menunjukkan inti pemahaman benar tersebut. Jika skor < 40, kembalikan [].
 
 FORMAT OUTPUT WAJIB HANYA BERUPA JSON VALID TANPA MARKDOWN DAN TANPA TEKS LAIN:
 {
@@ -165,7 +167,10 @@ INSTRUCTIONS;
                 'layer_2_similarity' => $layer2,
                 'matched_spans' => $matchedSpans,
                 'layer_3_llm' => [
-                    'model' => config('services.openrouter.model'),
+                    'provider' => config('ai.provider'),
+                    'model' => config('ai.provider') === 'gemini'
+                        ? config('services.gemini.model')
+                        : config('services.openrouter.model'),
                     'temperature' => 0,
                     'text_alignment' => $textAlignment,
                 ],
