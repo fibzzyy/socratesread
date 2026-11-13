@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\OtpVerificationController;
+use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Student\AchievementController;
@@ -29,6 +30,14 @@ Route::middleware('guest')->group(function () {
     Route::get('/verify-otp', [OtpVerificationController::class, 'create'])->name('verification.otp');
     Route::post('/verify-otp', [OtpVerificationController::class, 'store'])->middleware('throttle:6,1')->name('verification.otp.submit');
     Route::post('/verify-otp/resend', [OtpVerificationController::class, 'resend'])->middleware('throttle:6,1')->name('verification.otp.resend');
+
+    Route::get('/forgot-password', [PasswordResetController::class, 'create'])->name('password.request');
+    Route::post('/forgot-password', [PasswordResetController::class, 'sendOtp'])->middleware('throttle:6,1')->name('password.email');
+    Route::get('/forgot-password/verify-otp', [PasswordResetController::class, 'showVerifyOtpForm'])->name('password.otp');
+    Route::post('/forgot-password/verify-otp', [PasswordResetController::class, 'verifyOtp'])->middleware('throttle:6,1')->name('password.otp.verify');
+    Route::post('/forgot-password/resend-otp', [PasswordResetController::class, 'resendOtp'])->middleware('throttle:6,1')->name('password.resend');
+    Route::get('/reset-password', [PasswordResetController::class, 'showResetForm'])->name('password.reset');
+    Route::post('/reset-password', [PasswordResetController::class, 'resetPassword'])->middleware('throttle:6,1')->name('password.update');
 });
 
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->middleware('auth')->name('logout');

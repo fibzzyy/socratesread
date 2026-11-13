@@ -10,132 +10,164 @@
             <h1 id="profile-title">Edit Profil Siswa</h1>
             <p class="welcome-subtitle">Perbarui nama, foto, dan informasi belajar Anda.</p>
         </div>
-        <a href="{{ route('profile') }}" class="form-cancel-link">Kembali ke Profil</a>
+        <a href="{{ route('profile') }}" class="form-cancel-link inline-flex items-center gap-2 px-4 py-2.5 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200/90 rounded-xl shadow-xs transition-colors no-underline">
+            <x-icon name="arrow-left" class="w-3.5 h-3.5" />
+            <span>Kembali ke Profil</span>
+        </a>
     </section>
 
     @if (session('status'))
-        <div class="auth-notice" role="status" style="display: flex; align-items: center; gap: 8px;">
-            <x-icon name="check" style="width: 18px; height: 18px; color: #16a34a;" />
+        <div class="auth-notice" role="status">
+            <x-icon name="check" />
             <span>{{ session('status') }}</span>
         </div>
     @endif
 
-    <section class="panel profile-edit-panel" aria-labelledby="edit-profile-heading">
-            <div class="section-heading">
-                <div>
-                    <p class="section-overline">INFORMASI PROFIL</p>
-                    <h2 id="edit-profile-heading">Perbarui Data Pribadi</h2>
+    <section class="profile-edit-panel bg-white rounded-3xl border border-slate-200/80 shadow-xs p-6 sm:p-8 mt-4" aria-labelledby="edit-profile-heading">
+        <div class="flex items-center justify-between pb-5 border-b border-slate-100">
+            <div>
+                <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400 m-0">INFORMASI PROFIL</p>
+                <h2 id="edit-profile-heading" class="text-xl font-bold text-slate-900 mt-1 m-0">Perbarui Data Pribadi</h2>
+                <p class="text-xs text-slate-500 mt-0.5 m-0">Sesuaikan data identitas dan informasi akun siswa Anda.</p>
+            </div>
+            <span class="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-2xs">
+                <x-icon name="user" class="w-5 h-5" />
+            </span>
+        </div>
+
+        <form method="POST" action="{{ route('settings.profile.update') }}" enctype="multipart/form-data" class="profile-form mt-6" id="profileForm">
+            @csrf
+            @method('PUT')
+
+            <!-- Hidden Input untuk gambar hasil crop (Base64) -->
+            <input type="hidden" name="avatar_base64" id="avatar_base64" value="">
+
+            <!-- Bagian Foto Profil & Fitur Crop Sederhana -->
+            <div class="p-5 rounded-2xl bg-slate-50/70 border border-slate-100 flex flex-col sm:flex-row items-center sm:items-start gap-6">
+                <div class="avatar-preview-box shrink-0">
+                    <div class="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl overflow-hidden ring-4 ring-white shadow-md bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center font-bold text-2xl" id="formAvatarPreview">
+                        @if ($user->avatarUrl())
+                            <img src="{{ $user->avatarUrl() }}" alt="Foto profil" class="w-full h-full object-cover">
+                        @else
+                            <span>{{ mb_strtoupper(collect(explode(' ', $user->name))->filter()->take(2)->map(fn ($part) => mb_substr($part, 0, 1))->implode('')) }}</span>
+                        @endif
+                    </div>
                 </div>
-                <span class="session-icon"><x-icon name="user" /></span>
+
+                <div class="flex-1 text-center sm:text-left">
+                    <label class="text-sm font-bold text-slate-900 block">Foto Profil</label>
+                    <p class="text-xs text-slate-500 mt-1 m-0 leading-relaxed">
+                        Pilih foto dari komputer atau HP Anda, lalu sesuaikan bagian yang ingin ditampilkan. Format: JPG, PNG, atau WebP.
+                    </p>
+                    
+                    <div class="mt-4 flex items-center gap-3 flex-wrap justify-center sm:justify-start">
+                        <input id="avatar" name="avatar" type="file" accept="image/jpeg,image/png,image/webp" class="hidden">
+                        <button type="button" class="btn-choose-photo inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl shadow-xs transition-all cursor-pointer" id="triggerUploadBtn">
+                            <x-icon name="user" class="w-3.5 h-3.5 text-slate-500" />
+                            <span>Pilih Foto Baru</span>
+                        </button>
+                        <span id="cropStatusBadge" class="crop-status-badge inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-semibold rounded-full" style="display: none;">
+                            <x-icon name="check" class="w-3 h-3 text-emerald-600" />
+                            Foto baru siap disimpan
+                        </span>
+                    </div>
+
+                    @error('avatar')
+                        <small class="text-xs text-rose-600 font-medium mt-2 block">{{ $message }}</small>
+                    @enderror
+                </div>
             </div>
 
-            <form method="POST" action="{{ route('settings.profile.update') }}" enctype="multipart/form-data" class="profile-form" id="profileForm">
-                @csrf
-                @method('PUT')
-
-                <!-- Hidden Input untuk gambar hasil crop (Base64) -->
-                <input type="hidden" name="avatar_base64" id="avatar_base64" value="">
-
-                <!-- Bagian Foto Profil & Fitur Crop Sederhana -->
-                <div class="profile-avatar-row">
-                    <div class="avatar-preview-box">
-                        <div class="avatar-preview" id="formAvatarPreview">
-                            @if ($user->avatarUrl())
-                                <img src="{{ $user->avatarUrl() }}" alt="Foto profil" class="avatar-image">
-                            @else
-                                <div class="avatar avatar-preview-placeholder">
-                                    {{ mb_strtoupper(collect(explode(' ', $user->name))->filter()->take(2)->map(fn ($part) => mb_substr($part, 0, 1))->implode('')) }}
-                                </div>
-                            @endif
-                        </div>
-                    </div>
-
-                    <div class="avatar-upload-info">
-                        <label class="section-sublabel">Foto Profil</label>
-                        <p class="upload-hint">Pilih foto dari komputer atau HP Anda, lalu sesuaikan bagian yang ingin ditampilkan.</p>
-                        
-                        <div class="upload-button-group">
-                            <input id="avatar" name="avatar" type="file" accept="image/jpeg,image/png,image/webp" class="upload-file-hidden">
-                            <button type="button" class="btn-choose-photo" id="triggerUploadBtn">
-                                <span>Pilih Foto</span>
-                            </button>
-                            <span id="cropStatusBadge" class="crop-status-badge" style="display: none;">Foto baru siap disimpan</span>
-                        </div>
-
-                        <small class="upload-help">Format: JPG, PNG, atau WebP.</small>
-                        @error('avatar')
-                            <small class="upload-field-error">{{ $message }}</small>
-                        @enderror
-                    </div>
+            <!-- Input Form Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-6">
+                <!-- Nama Lengkap -->
+                <div class="sm:col-span-2">
+                    <label for="name" class="block text-xs font-semibold text-slate-700 mb-1.5">Nama Lengkap</label>
+                    <input id="name" 
+                           name="name" 
+                           type="text" 
+                           class="w-full px-4 py-2.5 rounded-xl border @error('name') border-rose-300 ring-2 ring-rose-100 @else border-slate-200 @enderror bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all" 
+                           value="{{ old('name', $user->name) }}" 
+                           required 
+                           autocomplete="name">
+                    @error('name')
+                        <small class="text-xs text-rose-600 font-medium mt-1 block">{{ $message }}</small>
+                    @enderror
                 </div>
 
-                <div class="form-divider"></div>
-
-                <!-- Input Nama -->
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label for="name">Nama Lengkap</label>
-                        <input id="name" name="name" type="text" class="form-input @error('name') is-invalid @enderror" value="{{ old('name', $user->name) }}" required autocomplete="name">
-                        @error('name')
-                            <small class="form-error">{{ $message }}</small>
-                        @enderror
-                    </div>
-
+                <!-- NISN -->
+                <div class="sm:col-span-2">
+                    <label for="nisn" class="block text-xs font-semibold text-slate-700 mb-1.5">NISN</label>
+                    <input id="nisn" 
+                           name="nisn" 
+                           type="text" 
+                           class="w-full px-4 py-2.5 rounded-xl border @error('nisn') border-rose-300 ring-2 ring-rose-100 @else border-slate-200 @enderror bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all" 
+                           value="{{ old('nisn', $user->nisn) }}" 
+                           maxlength="50" 
+                           autocomplete="off"
+                           placeholder="Nomor Induk Siswa Nasional">
+                    @error('nisn')
+                        <small class="text-xs text-rose-600 font-medium mt-1 block">{{ $message }}</small>
+                    @enderror
                 </div>
 
-                <div class="form-grid student-learning-fields">
-                    <div class="form-group">
-                        <label for="nisn">NISN</label>
-                        <input id="nisn" name="nisn" type="text" class="form-input @error('nisn') is-invalid @enderror" value="{{ old('nisn', $user->nisn) }}" maxlength="50" autocomplete="off">
-                        @error('nisn')
-                            <small class="form-error">{{ $message }}</small>
-                        @enderror
+                <!-- Bio -->
+                <div class="sm:col-span-2">
+                    <div class="flex items-center justify-between mb-1.5">
+                        <label for="bio" class="text-xs font-semibold text-slate-700">Bio Belajar</label>
+                        <span class="text-[11px] text-slate-400">(opsional)</span>
                     </div>
-
-                    <div class="form-group">
-                        <label for="bio">Bio <span class="optional-label">(opsional)</span></label>
-                        <textarea id="bio" name="bio" class="form-input form-textarea @error('bio') is-invalid @enderror" rows="4" maxlength="1000" placeholder="Ceritakan sedikit tentang diri Anda">{{ old('bio', $user->bio) }}</textarea>
-                        @error('bio')
-                            <small class="form-error">{{ $message }}</small>
-                        @enderror
-                    </div>
+                    <textarea id="bio" 
+                              name="bio" 
+                              class="w-full px-4 py-2.5 rounded-xl border @error('bio') border-rose-300 ring-2 ring-rose-100 @else border-slate-200 @enderror bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all resize-y min-h-[100px]" 
+                              rows="4" 
+                              maxlength="1000" 
+                              placeholder="Ceritakan minat membaca atau cita-cita Anda...">{{ old('bio', $user->bio) }}</textarea>
+                    @error('bio')
+                        <small class="text-xs text-rose-600 font-medium mt-1 block">{{ $message }}</small>
+                    @enderror
                 </div>
+            </div>
 
-                <div class="form-actions">
-                    <button type="submit" class="challenge-button">
-                        <span>Simpan Perubahan</span>
-                        <x-icon name="arrow-right" />
-                    </button>
-                    <a href="{{ route('profile') }}" class="form-cancel-link">Batal</a>
-                </div>
-            </form>
+            <!-- Action Buttons -->
+            <div class="mt-8 pt-5 border-t border-slate-100 flex items-center justify-end gap-3">
+                <a href="{{ route('profile') }}" class="px-5 py-2.5 text-xs font-semibold text-slate-600 hover:text-slate-900 rounded-xl transition-colors no-underline">
+                    Batal
+                </a>
+                <button type="submit" class="inline-flex items-center gap-2 px-6 py-2.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 active:scale-98 rounded-xl shadow-xs transition-all cursor-pointer">
+                    <span>Simpan Perubahan</span>
+                    <x-icon name="arrow-right" class="w-3.5 h-3.5" />
+                </button>
+            </div>
+        </form>
     </section>
 
+    {{-- Form Keamanan (Password & Email) --}}
     @include('components.profile-password-form')
 
     <!-- MODAL CROP SEDERHANA -->
-    <div id="cropModal" class="simple-crop-backdrop" style="display: none;">
-        <div class="simple-crop-card">
-            <div class="simple-crop-header">
-                <h3>Sesuaikan Posisi Foto</h3>
-                <button type="button" class="simple-crop-close" id="closeCropModalBtn" aria-label="Tutup">&times;</button>
+    <div id="cropModal" class="simple-crop-backdrop fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4" style="display: none;">
+        <div class="simple-crop-card bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 text-center">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <h3 class="text-sm font-bold text-slate-900 m-0">Sesuaikan Posisi Foto</h3>
+                <button type="button" class="w-7 h-7 rounded-lg bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center text-lg leading-none cursor-pointer" id="closeCropModalBtn" aria-label="Tutup">&times;</button>
             </div>
 
-            <p class="simple-crop-instructions">Geser foto untuk menyesuaikan posisinya di dalam lingkaran.</p>
+            <p class="text-xs text-slate-500 mt-3 m-0">Geser dan atur perbesaran foto agar pas di dalam lingkaran.</p>
 
-            <div class="simple-crop-canvas-container">
-                <canvas id="cropCanvas" width="260" height="260"></canvas>
-                <div class="simple-crop-circle-mask"></div>
+            <div class="simple-crop-canvas-container relative w-[260px] h-[260px] mx-auto my-4 rounded-2xl overflow-hidden bg-slate-950 flex items-center justify-center">
+                <canvas id="cropCanvas" width="260" height="260" class="cursor-grab active:cursor-grabbing"></canvas>
+                <div class="simple-crop-circle-mask absolute inset-0 pointer-events-none rounded-full border-2 border-white/80 shadow-[0_0_0_9999px_rgba(15,23,42,0.6)]"></div>
             </div>
 
-            <div class="simple-crop-zoom-row">
-                <span class="zoom-label">Zoom:</span>
-                <input type="range" id="zoomSlider" min="0.5" max="3" step="0.05" value="1" class="simple-zoom-slider" aria-label="Atur zoom foto">
+            <div class="simple-crop-zoom-row flex items-center justify-center gap-3 mb-5">
+                <span class="text-xs font-semibold text-slate-500">Zoom:</span>
+                <input type="range" id="zoomSlider" min="0.5" max="3" step="0.05" value="1" class="w-48 accent-blue-600 cursor-pointer" aria-label="Atur zoom foto">
             </div>
 
-            <div class="simple-crop-actions">
-                <button type="button" class="btn-simple-cancel" id="cancelCropBtn">Batal</button>
-                <button type="button" class="btn-simple-apply" id="applyCropBtn">Gunakan Foto</button>
+            <div class="simple-crop-actions flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+                <button type="button" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer" id="cancelCropBtn">Batal</button>
+                <button type="button" class="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-xs transition-colors cursor-pointer" id="applyCropBtn">Gunakan Foto</button>
             </div>
         </div>
     </div>
@@ -266,192 +298,10 @@
 
         const cropped = outCanvas.toDataURL('image/jpeg', 0.9);
         avatarBase64Input.value = cropped;
-        formAvatarPreview.innerHTML = `<img src="${cropped}" alt="Foto profil baru" class="avatar-image">`;
-        cropStatusBadge.style.display = 'inline-block';
+        formAvatarPreview.innerHTML = `<img src="${cropped}" alt="Foto profil baru" class="w-full h-full object-cover">`;
+        cropStatusBadge.style.display = 'inline-flex';
         closeModal();
     });
 })();
 </script>
 @endpush
-
-<style>
-    .profile-edit-panel { width: 100%; padding: 30px; margin-top: 10px; }
-    .password-edit-panel { margin-top: 24px; }
-    .student-learning-fields { margin-top: 20px; }
-    .optional-label { color: #64748b; font-size: 11px; }
-    .form-textarea { min-height: 100px; resize: vertical; font: inherit; }
-    .profile-avatar-row {
-        display: grid;
-        grid-template-columns: auto 1fr;
-        gap: 20px;
-        align-items: center;
-        margin: 20px 0;
-    }
-    .avatar-preview-box { display: flex; justify-content: center; }
-    .avatar-preview {
-        width: 90px;
-        height: 90px;
-        border-radius: 50%;
-        overflow: hidden;
-        border: 2px solid #cbd5e1;
-        background: #f8fafc;
-        display: grid;
-        place-items: center;
-    }
-    .avatar-preview img, .avatar-image {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        border-radius: 50%;
-    }
-    .avatar-preview-placeholder { font-size: 28px; font-weight: 700; color: #2563eb; }
-    .section-sublabel { font-size: 13px; font-weight: 700; color: #1e293b; text-transform: uppercase; letter-spacing: 0.5px; }
-    .upload-hint { font-size: 13px; color: #64748b; margin: 4px 0 12px; line-height: 1.5; }
-    .upload-button-group { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-    .upload-file-hidden { display: none; }
-    .btn-choose-photo {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 9px 18px;
-        background: #2563eb;
-        color: #fff;
-        border-radius: 8px;
-        border: none;
-        font-size: 13px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: background 0.15s ease;
-    }
-    .btn-choose-photo:hover { background: #1d4ed8; }
-    .crop-status-badge {
-        padding: 6px 12px;
-        background: #dcfce7;
-        color: #166534;
-        border-radius: 6px;
-        font-size: 12px;
-        font-weight: 600;
-    }
-    .upload-help { display: block; font-size: 12px; color: #94a3b8; margin-top: 8px; }
-    .upload-field-error { display: block; font-size: 12px; color: #dc2626; margin-top: 4px; }
-    .form-divider { height: 1px; background: #e2e8f0; margin: 24px 0; }
-    .form-grid { display: grid; gap: 18px; }
-    .form-group label { display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px; }
-    .form-input {
-        width: 100%;
-        padding: 10px 14px;
-        border: 1px solid #cbd5e1;
-        border-radius: 8px;
-        font-size: 14px;
-        color: #0f172a;
-        transition: border-color 0.15s ease, box-shadow 0.15s ease;
-        box-sizing: border-box;
-    }
-    .form-input:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15); }
-    .form-input.is-invalid { border-color: #ef4444; }
-    .form-error { display: block; font-size: 12px; color: #dc2626; margin-top: 4px; }
-    .form-actions { display: flex; align-items: center; gap: 14px; margin-top: 26px; }
-    .form-cancel-link { font-size: 14px; color: #64748b; text-decoration: none; padding: 10px 16px; border-radius: 8px; }
-    .form-cancel-link:hover { background: #f1f5f9; color: #0f172a; }
-
-    /* MODAL CROP SEDERHANA */
-    .simple-crop-backdrop {
-        position: fixed;
-        inset: 0;
-        z-index: 9999;
-        background: rgba(15, 23, 42, 0.6);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 16px;
-    }
-    .simple-crop-card {
-        background: #fff;
-        border-radius: 14px;
-        width: 100%;
-        max-width: 330px;
-        box-shadow: 0 16px 30px rgba(0, 0, 0, 0.2);
-        padding: 20px;
-        text-align: center;
-    }
-    .simple-crop-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 8px;
-    }
-    .simple-crop-header h3 { font-size: 16px; font-weight: 700; color: #0f172a; margin: 0; }
-    .simple-crop-close {
-        background: none;
-        border: none;
-        font-size: 22px;
-        color: #94a3b8;
-        cursor: pointer;
-        padding: 0;
-    }
-    .simple-crop-instructions { font-size: 12px; color: #64748b; margin: 0 0 16px; }
-    .simple-crop-canvas-container {
-        position: relative;
-        width: 260px;
-        height: 260px;
-        margin: 0 auto 16px;
-        border-radius: 10px;
-        overflow: hidden;
-        background: #f1f5f9;
-        border: 1px solid #e2e8f0;
-    }
-    #cropCanvas {
-        display: block;
-        width: 260px;
-        height: 260px;
-        cursor: grab;
-    }
-    #cropCanvas:active { cursor: grabbing; }
-    .simple-crop-circle-mask {
-        position: absolute;
-        inset: 0;
-        pointer-events: none;
-        border-radius: 50%;
-        border: 2px dashed #2563eb;
-        box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.45);
-    }
-    .simple-crop-zoom-row {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin-bottom: 18px;
-        font-size: 12px;
-        color: #475569;
-    }
-    .simple-zoom-slider {
-        flex: 1;
-        accent-color: #2563eb;
-        cursor: pointer;
-    }
-    .simple-crop-actions {
-        display: flex;
-        justify-content: flex-end;
-        gap: 10px;
-    }
-    .btn-simple-cancel {
-        padding: 8px 14px;
-        border: 1px solid #cbd5e1;
-        background: #fff;
-        color: #475569;
-        border-radius: 6px;
-        font-size: 13px;
-        font-weight: 600;
-        cursor: pointer;
-    }
-    .btn-simple-apply {
-        padding: 8px 16px;
-        border: none;
-        background: #2563eb;
-        color: #fff;
-        border-radius: 6px;
-        font-size: 13px;
-        font-weight: 600;
-        cursor: pointer;
-    }
-    .btn-simple-apply:hover { background: #1d4ed8; }
-</style>
