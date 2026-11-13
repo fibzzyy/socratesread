@@ -177,11 +177,17 @@ TEXT;
         }
         $this->assertTrue($hasEvaluasiQuiz, 'Generated quiz must include Bloom C5 Mengevaluasi questions.');
 
-        // 3. Penyaringan opsi kuis yang tidak masuk akal
+        // 3. Penyaringan opsi kuis yang tidak masuk akal & anti-bocor
         $this->assertFalse($processor->isPlausibleQuizOption('Balai Pustaka (2017)', 'Bahasa pemersatu bangsa'));
         $this->assertFalse($processor->isPlausibleQuizOption('Alwi, H., &', 'Bahasa pemersatu bangsa'));
+        $this->assertFalse($processor->isPlausibleQuizOption('& ilmu pengetahuan', 'Bahasa pemersatu bangsa'));
+        $this->assertFalse($processor->isPlausibleQuizOption('dan kebudayaan', 'Bahasa pemersatu bangsa'));
+        $this->assertFalse($processor->isPlausibleQuizOption('Pernyataan penting dalam', 'Bahasa pemersatu bangsa'));
         $this->assertFalse($processor->isPlausibleQuizOption('Kalimat panjang tentang teknologi jaringan informasi', 'Pasal 36'));
         $this->assertTrue($processor->isPlausibleQuizOption('Pasal 32', 'Pasal 36'));
+        $this->assertFalse($processor->isPlausibleQuizOption('Sarana komunikasi resmi', 'Sarana komunikasi resmi', 'Analisis peran sarana komunikasi resmi menurut materi!'));
+        $this->assertTrue($processor->isQuestionLeakingAnswer('Analisis fungsi bahasa sebagai sarana komunikasi resmi!', 'sarana komunikasi resmi'));
+        $this->assertFalse($processor->isQuestionLeakingAnswer('Analisis fungsi utama bahasa Indonesia menurut materi!', 'Sebagai sarana komunikasi resmi'));
 
         // 4. Pemeriksaan otomatis Q<->A memperbaiki kunci jawaban yang salah arah / label mentah dari AI
         $repaired = $processor->verifyAndRepairEssayPair(

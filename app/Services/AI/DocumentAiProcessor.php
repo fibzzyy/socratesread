@@ -2616,34 +2616,49 @@ INSTRUCTIONS;
                 'question' => $promptByConcept,
                 'correct' => $condensedCoreOption,
                 'distractors' => ! empty($conceptDistractors) ? $conceptDistractors : $otherOptionPool,
-                'explanation' => "Pembahasan: Mengenai konsep \"{$concept}\", materi memaparkan bahwa {$sentence}",
+                'explanation' => "Pembahasan: Evaluasi materi mengenai konsep \"{$concept}\" menegaskan bahwa: {$condensedCoreOption}. Opsi lain tidak mencerminkan prinsip utama bacaan.",
             ];
         }
 
-        // Angle 5 (C4 Menganalisis & C5 Mengevaluasi): Gagasan Inti Terkondensasi (tanpa menyalin kalimat mentah)
-        $topicFocus = $this->condenseSentenceToTopic($sentence, 7);
-        $words = preg_split('/\s+/u', $sentence) ?: [];
-        $splitAt = max(3, intdiv(count($words), 2));
-        $tail = $this->condenseClauseToOption(ucfirst(rtrim(implode(' ', array_slice($words, $splitAt)), '.')));
-        if (mb_strlen($tail) >= 12) {
-            $candidates[] = [
-                'bloom_level' => 'C4',
-                'question' => "Analisis penjelasan yang paling sesuai mengenai \"{$topicFocus}\"!",
-                'correct' => $tail,
-                'distractors' => $condensedOptionPool,
-                'explanation' => "Pembahasan: Dalam uraian materi dijelaskan bahwa: \"{$sentence}\"",
-            ];
+        // Angle 5 (C4 Menganalisis & C5 Mengevaluasi): Peranan Struktural & Evaluasi Prinsip (tanpa pemotongan acak di tengah kalimat)
+        if (preg_match('/^(.{4,55}?)\s+(?:berfungsi|berperan|bertujuan|memadukan|menuntut|mengatur|menjamin|melindungi|mencakup|menjadi)\s+(.{12,})$/iu', $sentence, $predMatch)) {
+            $entitySubject = trim($predMatch[1], " \t\"'“”‘’");
+            $predicateClause = $this->condenseClauseToOption(ucfirst(rtrim(trim($predMatch[2]), '.')));
+            $qAnalisis = "Analisis fungsi atau peranan penting dari \"{$entitySubject}\" menurut materi!";
+            if (mb_strlen($predicateClause) >= 12 && ! $this->isQuestionLeakingAnswer($qAnalisis, $predicateClause)) {
+                $candidates[] = [
+                    'bloom_level' => 'C4',
+                    'question' => $qAnalisis,
+                    'correct' => $predicateClause,
+                    'distractors' => $condensedOptionPool,
+                    'explanation' => "Pembahasan: Berdasarkan analisis materi, \"{$entitySubject}\" memiliki peran penting dalam " . lcfirst($predicateClause) . ". Pemahaman ini menjadi kunci dalam menguraikan hubungan fungsional materi.",
+                ];
+            }
         }
 
-        $candidates[] = [
-            'bloom_level' => 'C5',
-            'question' => "Evaluasi kesimpulan manakah yang paling tepat menilai gagasan tentang \"{$topicFocus}\"?",
-            'correct' => $condensedCoreOption,
-            'distractors' => $otherOptionPool,
-            'explanation' => "Pembahasan: Fakta yang paling tepat menggambarkan pembahasan tersebut adalah: \"{$sentence}\"",
-        ];
+        $cleanTopic = $this->condenseSentenceToTopic($sentence, 5);
+        if ($cleanTopic !== '' && mb_strlen($condensedCoreOption) >= 15) {
+            $qEvaluasi = "Evaluasi kesimpulan manakah yang paling tepat menilai gagasan tentang \"{$cleanTopic}\"?";
+            if (! $this->isQuestionLeakingAnswer($qEvaluasi, $condensedCoreOption)) {
+                $candidates[] = [
+                    'bloom_level' => 'C5',
+                    'question' => $qEvaluasi,
+                    'correct' => $condensedCoreOption,
+                    'distractors' => $otherOptionPool,
+                    'explanation' => "Pembahasan: Evaluasi yang paling tepat mengenai gagasan \"{$cleanTopic}\" berdasar pada prinsip bacaan: \"{$sentence}\". Opsi lain tidak selaras dengan prinsip dasar tersebut.",
+                ];
+            }
+        }
 
-        return $candidates;
+        return array_values(array_filter($candidates, function ($c) {
+            if ($this->isQuestionLeakingAnswer($c['question'], $c['correct'])) {
+                return false;
+            }
+            if (preg_match('/^[&+\-*\/,;:|~_–—]|^(?:dan|atau|serta|yaitu|yakni|adalah|merupakan|bahwa)\b/iu', trim($c['correct']))) {
+                return false;
+            }
+            return true;
+        }));
     }
 
     /**
@@ -2890,7 +2905,9 @@ INSTRUCTIONS;
     private function condenseClauseToOption(string $text, int $maxChars = 115): string
     {
         $clean = trim(preg_replace('/\s+/u', ' ', str_replace(['→', '->'], ', ', strip_tags($text))) ?? '');
-        $clean = trim(preg_replace('/^(?:Kedudukan|Fungsi(?:\s+utama)?|Prinsip|Landasan)\s*:\s*/iu', '', $clean) ?? $clean);
+        $clean = trim(preg_replace('/^(?:Kedudukan|Fungsi(?:\s+utama)?|Prinsip|Landasan|Ciri(?:\s+utama)?)\s*:\s*/iu', '', $clean) ?? $clean);
+        $clean = preg_replace('/^[&+\-*\/,;:|~_–—\s]+|[&+\-*\/,;:|~_–—\s]+$/u', '', $clean) ?? $clean;
+        $clean = preg_replace('/^(?:dan|atau|serta|yaitu|yakni|adalah|merupakan|bahwa|sehingga|karena|dengan demikian)\s+/iu', '', $clean) ?? $clean;
         $clean = rtrim(trim($clean, " \t\n\r\0\x0B\"'“”‘’"), '.');
 
         if ($clean === '') {
@@ -2914,6 +2931,37 @@ INSTRUCTIONS;
         $lastSpace = mb_strrpos($cut, ' ');
 
         return rtrim(($lastSpace !== false ? mb_substr($cut, 0, $lastSpace) : $cut), '.,;: ') . '';
+    }
+
+    /**
+     * Memeriksa apakah pokok soal secara terang-terangan membocorkan isi pilihan jawaban.
+     */
+    public function isQuestionLeakingAnswer(string $question, string $answer): bool
+    {
+        $qLower = mb_strtolower($question);
+        $aLower = mb_strtolower(trim($answer));
+        if ($aLower === '' || mb_strlen($aLower) < 4) {
+            return false;
+        }
+        if (str_contains($qLower, $aLower)) {
+            return true;
+        }
+        $aWords = array_filter(
+            preg_split('/\s+/u', preg_replace('/[^\p{L}\p{N}\s]/u', '', $aLower)) ?: [],
+            fn ($w) => mb_strlen($w) >= 4 && ! in_array($w, ['yang', 'pada', 'untuk', 'dengan', 'dalam', 'adalah', 'akan', 'atau', 'serta', 'oleh', 'dari', 'sebagai', 'mengenai', 'tentang', 'konsep', 'materi'], true)
+        );
+        if (count($aWords) >= 2) {
+            $hits = 0;
+            foreach ($aWords as $w) {
+                if (str_contains($qLower, $w)) {
+                    $hits++;
+                }
+            }
+            if (($hits / count($aWords)) >= 0.7) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -3090,8 +3138,24 @@ INSTRUCTIONS;
         }
 
         // Tolak potongan kalimat/daftar pustaka/perintah kode/ujung kalimat menggantung
-        if (preg_match('/(?:[&,:;]$|\b(?:dan|atau|yang|sehingga|karena|adalah|merupakan)$|\(\d{4}\)|Balai\s+Pustaka|Raja\s+Grafindo|ctrl\s*\+\s*x|#mkdir)/iu', $c)) {
+        if (preg_match('/(?:[&,:;]$|\b(?:dan|atau|yang|sehingga|karena|adalah|merupakan|dengan|pada|dalam|ke|dari|untuk)$|\(\d{4}\)|Balai\s+Pustaka|Raja\s+Grafindo|ctrl\s*\+\s*x|#mkdir)/iu', $c)) {
             return false;
+        }
+
+        // Tolak jika diawali simbol, tanda sambung, atau konjungsi menggantung (misal: "& ilmu pengetahuan", "dan kebudayaan")
+        if (preg_match('/^[&+\-*\/,;:|~_–—]|^(?:dan|atau|serta|yaitu|yakni|adalah|merupakan|bahwa|sehingga|karena|dengan demikian)\b/iu', $c)) {
+            return false;
+        }
+
+        // Anti-Bocor: Tolak jika pilihan jawaban tertulis atau dibocorkan di dalam batang soal
+        if ($question !== '') {
+            $qLower = mb_strtolower($question);
+            if (mb_strlen($cLower) >= 6 && str_contains($qLower, $cLower)) {
+                return false;
+            }
+            if (mb_strlen($corrLower) >= 6 && str_contains($qLower, $corrLower)) {
+                return false;
+            }
         }
 
         // Tolak jika salah satu berisi persis opsi yang lain (bocor jawaban atau duplikat makna persis)
