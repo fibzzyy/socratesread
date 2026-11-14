@@ -751,6 +751,24 @@ INSTRUCTIONS;
 
         if (count($toInsert) < $needed) {
             $poolTarget = min(50, max($targetCount, $existingCount + $needed + 5));
+            $structuredItems = $this->generateStructuredKnowledgeQuiz($document->body, $document->title, $document->category, $poolTarget);
+            if (! empty($structuredItems)) {
+                foreach ($structuredItems as $item) {
+                    $qKey = mb_strtolower(trim((string) ($item['question'] ?? '')));
+                    if ($qKey === '' || isset($usedQuestionKeys[$qKey])) {
+                        continue;
+                    }
+                    $usedQuestionKeys[$qKey] = true;
+                    $toInsert[] = $item;
+                    if (count($toInsert) >= $needed) {
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (count($toInsert) < $needed) {
+            $poolTarget = min(50, max($targetCount, $existingCount + $needed + 5));
             $heuristics = $this->generateHeuristicQuizQuestions($document->body, $document->title, $document->category, $poolTarget);
 
             foreach ($heuristics as $item) {
@@ -1086,13 +1104,74 @@ INSTRUCTIONS;
             ], $ktiChallenges);
         }
 
-        // Domain 4: Teks Laporan Hasil Observasi / Wayang / Museum (LHO / BS)
+        // Domain 4b: Menganalisis Kebahasaan Teks Laporan Hasil Observasi (BS2 / Afiksasi / Verba & Nomina / Kalimat Definisi & Deskripsi)
         if (
-            str_contains($bodyLower, 'laporan hasil observasi')
-            || str_contains($titleLower, 'laporan hasil observasi')
-            || str_contains($bodyLower, 'wayang purwa')
-            || (str_contains($bodyLower, 'observasi') && str_contains($bodyLower, 'wayang'))
-            || (str_contains($titleLower, 'bs') && str_contains($bodyLower, 'observasi'))
+            (
+                (str_contains($bodyLower, 'kebahasaan') || str_contains($titleLower, 'kebahasaan'))
+                && (str_contains($bodyLower, 'afiksasi') || str_contains($bodyLower, 'nomina') || str_contains($bodyLower, 'verba') || str_contains($bodyLower, 'kata dasar') || str_contains($bodyLower, 'kata bentukan'))
+            )
+            || (str_contains($bodyLower, 'afiksasi') && (str_contains($bodyLower, 'imbuhan') || str_contains($bodyLower, 'nomina') || str_contains($bodyLower, 'verba')))
+            || (str_contains($titleLower, 'bs2') && (str_contains($bodyLower, 'kebahasaan') || str_contains($bodyLower, 'verba') || str_contains($bodyLower, 'nomina')))
+        ) {
+            $kebahasaanChallenges = [
+                [
+                    'bloom' => 'C3',
+                    'difficulty' => 'easy',
+                    'question' => 'Analisis perbedaan mendasar antara "kata" sebagai satuan bebas terkecil dan "frasa" sebagai kelompok kata nonpredikatif dalam analisis teks laporan hasil observasi, serta jelaskan mengapa frasa nomina menduduki fungsi subjek atau objek!',
+                    'rubric' => 'Kata merupakan morfem bebas atau satuan bahasa terkecil yang dapat berdiri sendiri. Sebaliknya, frasa adalah gabungan dua kata atau lebih yang bersifat nonpredikatif (tidak melampaui batas fungsi) sehingga hanya menduduki satu fungsi sintaksis dalam kalimat. Frasa nomina berintikan kata benda sehingga berfungsi mengisi slot subjek atau objek untuk menamai entitas yang diobservasi secara spesifik.',
+                    'reference_excerpt' => 'Kata berbentuk morfem atau morfem bebas, yaitu satuan bahasa terkecil yang bersifat bebas. Frasa merupakan gabungan beberapa unsur namun tidak melebihi batas fungsi. Selain itu, frasa merupakan kelompok kata yang nonpredikatif.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'difficulty' => 'medium',
+                    'question' => 'Bandingkan pembentukan dan fungsi sintaksis antara Frasa Nomina dengan Frasa Verba dalam menyajikan laporan hasil observasi: bagaimana perpaduan keduanya membentuk pernyataan faktual yang lugas?',
+                    'rubric' => 'Frasa nomina berpusat pada nomina (misalnya "seni pertunjukan wayang kulit") dan berfungsi menjelaskan entitas atau objek observasi sebagai subjek atau objek. Sementara itu, frasa verba berpusat pada verba (misalnya "sudah membagi secara teratur" atau "telah menetapkan") dan menduduki fungsi predikat untuk menyatakan keadaan atau aksi. Perpaduan keduanya menciptakan proposisi faktual yang gramatikal, terukur, dan objektif.',
+                    'reference_excerpt' => 'Jenis kata dan kelompok kata (frasa) yang dominan digunakan dalam sebuah teks laporan hasil observasi adalah verba (kata kerja) dan nomina (kata benda).',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'difficulty' => 'medium',
+                    'question' => 'Telaah bagaimana proses afiksasi dapat mengubah kelas kata dasar dari verba menjadi nomina atau sebaliknya (seperti kata "minum" menjadi "minuman" atau "takut" menjadi "menakutkan"), serta analisis dampaknya terhadap ketepatan makna dalam teks laporan hasil observasi!',
+                    'rubric' => 'Afiksasi adalah penambahan imbuhan pada kata dasar yang mengubah kategori gramatikal dan maknanya, seperti sufiks "-an" pada verba "minum" yang mengubahnya menjadi nomina "minuman", atau imbuhan "me(N)-kan" pada kata dasar "takut" menjadi verba "menakutkan". Ketepatan pengimbuhan ini sangat krusial dalam laporan observasi agar tidak terjadi kerancuan peran gramatikal antara tindakan (verba) dan objek hasil (nomina).',
+                    'reference_excerpt' => 'Kata yang mendapat proses pengimbuhan dapat berubah jenis. Misalnya, kata berjenis verba dapat berubah menjadi nomina jika mendapat imbuhan. Contoh, kata "minum" (verba) mendapat imbuhan "-an" menjadi "minuman" (nomina).',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'difficulty' => 'hard',
+                    'question' => 'Evaluasi perbedaan prinsipil antara "Kalimat Definisi" dengan "Kalimat Deskripsi" dalam teks laporan hasil observasi, serta analisislah konsekuensi logis apabila sebuah laporan ilmiah tidak menyertakan kalimat definisi pada awal pembahasannya!',
+                    'rubric' => 'Kalimat definisi merumuskan batasan konseptual objek menggunakan verba relasional (adalah, merupakan, yaitu) untuk memberikan kerangka klasifikasi umum. Sebaliknya, kalimat deskripsi memaparkan rincian fisik, sifat, dan perilaku objek secara indrawi. Jika kalimat definisi ditiadakan pada bagian awal, pembaca akan kehilangan acuan klasifikasi pokok sehingga rincian deskripsi berikutnya menjadi kabur dan kehilangan dasar hierarki ilmiah.',
+                    'reference_excerpt' => 'Setiap teks memiliki unsur kebahasaan yang berbeda-beda, demikian pula dengan teks laporan hasil observasi yang didominasi oleh kalimat definisi dan kalimat deskripsi.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'difficulty' => 'hard',
+                    'question' => 'Di era informasi digital saat banyak tulisan menggunakan bahasa santai dan kesalahan afiksasi meluas di media sosial, evaluasi mengapa keterampilan menganalisis kebahasaan dan membenahi kesalahan berbahasa menjadi benteng penting bagi integritas penulisan laporan ilmiah siswa!',
+                    'rubric' => 'Keterampilan menganalisis kebahasaan melatih ketelitian logis siswa dalam menerapkan kaidah morfologi dan sintaksis baku. Membenahi kesalahan berbahasa (seperti pleonasme, kerancuan imbuhan, dan kalimat tidak efektif) menjaga objektivitas dan kredibilitas laporan observasi, sehingga data ilmiah terhindar dari distorsi persepsi dan informasi bias akibat penggunaan bahasa yang serampangan di ruang digital.',
+                    'reference_excerpt' => 'Setelah mempelajari materi ini, kamu diharapkan mampu: menganalisis kebahasaan teks laporan hasil observasi dan membenahi kesalahan berbahasa dalam teks laporan hasil observasi.',
+                ],
+            ];
+
+            return array_map(fn ($item) => [
+                'type' => 'essay',
+                'question' => $item['question'],
+                'context' => null,
+                'rubric' => $item['rubric'],
+                'reference_excerpt' => $item['reference_excerpt'],
+                'difficulty' => $item['difficulty'],
+                'difficulty_weight' => TeacherChallenge::weightForDifficulty($item['difficulty']),
+            ], $kebahasaanChallenges);
+        }
+
+        // Domain 4a: Teks Laporan Hasil Observasi — Teks Wayang (BS)
+        if (
+            (
+                (str_contains($bodyLower, 'wayang purwa') || str_contains($bodyLower, 'wayang suket') || str_contains($bodyLower, 'wayang motekar'))
+                || (str_contains($bodyLower, 'wayang') && str_contains($bodyLower, 'unesco'))
+                || (str_contains($titleLower, 'bs') && ! str_contains($titleLower, 'bs2') && str_contains($bodyLower, 'wayang'))
+            )
+            && ! str_contains($bodyLower, 'badui')
+            && ! str_contains($bodyLower, 'baduy')
+            && ! str_contains($bodyLower, 'afiksasi')
         ) {
             $lhoChallenges = [
                 [
@@ -1145,7 +1224,8 @@ INSTRUCTIONS;
 
         // Domain 5: Matematika — Eksponen & Sifat-Sifat Perpangkatan
         if (
-            (str_contains($bodyLower, 'eksponen') || str_contains($titleLower, 'eksponen') || str_contains($titleLower, 'mtk') || (isset($category) && str_contains(mb_strtolower($category), 'matematika')))
+            ! (str_contains($bodyLower, 'barisan') && (str_contains($bodyLower, 'aritmetika') || str_contains($bodyLower, 'geometri')))
+            && (str_contains($bodyLower, 'eksponen') || str_contains($titleLower, 'eksponen') || (str_contains($titleLower, 'mtk') && ! str_contains($bodyLower, 'barisan')))
             && (str_contains($bodyLower, 'pangkat') || str_contains($bodyLower, 'perkalian berulang') || str_contains($bodyLower, 'sifat-sifat eksponen') || str_contains($bodyLower, 'fungsi eksponensial'))
         ) {
             $mtkChallenges = [
@@ -2422,10 +2502,7 @@ INSTRUCTIONS;
                 ],
             ];
             $items = $tbbPool;
-        }
-
-        // Domain 2: Ringkasan, Rangkuman, & Ikhtisar (RRI)
-        if (str_contains($bodyLower, 'ringkasan') && (str_contains($bodyLower, 'rangkuman') || str_contains($bodyLower, 'ikhtisar'))) {
+        } elseif (str_contains($bodyLower, 'ringkasan') && (str_contains($bodyLower, 'rangkuman') || str_contains($bodyLower, 'ikhtisar'))) {
             $rriPool = [
                 [
                     'bloom' => 'C2',
@@ -2633,10 +2710,7 @@ INSTRUCTIONS;
                 ],
             ];
             $items = $rriPool;
-        }
-
-        // Domain 3: Karya Tulis Ilmiah (KTI)
-        if (
+        } elseif (
             str_contains($bodyLower, 'karya tulis ilmiah')
             || str_contains($titleLower, 'karya tulis ilmiah')
             || (str_contains($bodyLower, 'karya ilmiah') && str_contains($bodyLower, 'metode ilmiah'))
@@ -2754,15 +2828,246 @@ INSTRUCTIONS;
                 ],
             ];
             $items = $ktiPool;
-        }
-
-        // Domain 4: Teks Laporan Hasil Observasi / Wayang / Museum (BS)
-        if (
-            str_contains($bodyLower, 'laporan hasil observasi')
-            || str_contains($titleLower, 'laporan hasil observasi')
-            || str_contains($bodyLower, 'wayang purwa')
-            || (str_contains($bodyLower, 'observasi') && str_contains($bodyLower, 'wayang'))
-            || (str_contains($titleLower, 'bs') && str_contains($bodyLower, 'observasi'))
+        } elseif (
+            (
+                (str_contains($bodyLower, 'kebahasaan') || str_contains($titleLower, 'kebahasaan'))
+                && (str_contains($bodyLower, 'afiksasi') || str_contains($bodyLower, 'nomina') || str_contains($bodyLower, 'verba') || str_contains($bodyLower, 'kata dasar') || str_contains($bodyLower, 'kata bentukan'))
+            )
+            || (str_contains($bodyLower, 'afiksasi') && (str_contains($bodyLower, 'imbuhan') || str_contains($bodyLower, 'nomina') || str_contains($bodyLower, 'verba')))
+            || (str_contains($titleLower, 'bs2') && (str_contains($bodyLower, 'kebahasaan') || str_contains($bodyLower, 'verba') || str_contains($bodyLower, 'nomina')))
+        ) {
+            $kebahasaanPool = [
+                [
+                    'bloom' => 'C1',
+                    'question' => 'Jenis kata dan kelompok kata (frasa) apakah yang paling dominan digunakan dalam teks laporan hasil observasi?',
+                    'correct' => 'Verba (kata kerja) dan nomina (kata benda)',
+                    'distractors' => [
+                        'Adjektiva (kata sifat) dan adverbia waktu',
+                        'Pronomina persona dan konjungsi antarkalimat',
+                        'Interjeksi (kata seru) dan partikel penegas',
+                    ],
+                    'explanation' => 'Teks laporan hasil observasi berfokus memaparkan klasifikasi objek (nomina) dan perilaku atau keadaan objek (verba).',
+                ],
+                [
+                    'bloom' => 'C1',
+                    'question' => 'Apa yang dimaksud dengan "kata dasar" dalam kaidah pembentukan kata bahasa Indonesia?',
+                    'correct' => 'Kata yang belum mendapat imbuhan (afiksasi), pemajemukan, atau pengulangan (reduplikasi)',
+                    'distractors' => [
+                        'Kata yang terdiri atas lebih dari satu morfem terikat',
+                        'Kata yang hanya boleh digunakan dalam ragam bahasa lisan santai',
+                        'Kata turunan serapan dari bahasa asing yang belum diindonesiakan',
+                    ],
+                    'explanation' => 'Kata dasar adalah morfem bebas murni yang belum mengalami proses morfologis seperti afiksasi atau reduplikasi.',
+                ],
+                [
+                    'bloom' => 'C2',
+                    'question' => 'Karakteristik fundamental yang membedakan antara "kata" dan "frasa" dalam tata bahasa adalah...',
+                    'correct' => 'Frasa merupakan gabungan kata nonpredikatif yang menduduki satu fungsi kalimat, sedangkan kata adalah satuan bebas terkecil',
+                    'distractors' => [
+                        'Frasa selalu memiliki subjek dan predikat sendiri secara utuh',
+                        'Kata selalu terdiri dari minimal dua morfem terikat',
+                        'Frasa tidak memiliki makna leksikal sama sekali sebelum diuraikan',
+                    ],
+                    'explanation' => 'Frasa adalah kelompok kata yang tidak melampaui batas fungsi (nonpredikatif), artinya hanya menempati satu slot fungsi sintaksis.',
+                ],
+                [
+                    'bloom' => 'C2',
+                    'question' => 'Mengapa frasa dalam tata kalimat dikategorikan sebagai kelompok kata yang bersifat "nonpredikatif"?',
+                    'correct' => 'Karena hubungan antarunsur di dalam frasa tidak membentuk kesatuan Subjek dan Predikat tersendiri',
+                    'distractors' => [
+                        'Karena frasa tidak diperbolehkan memuat kata kerja sama sekali',
+                        'Karena frasa hanya boleh diletakkan pada posisi akhir kalimat',
+                        'Karena frasa tidak memiliki arti gramatikal dalam paragraf',
+                    ],
+                    'explanation' => 'Sifat nonpredikatif bermakna gabungan kata tersebut hanya mengisi satu fungsi (misal Subjek saja atau Predikat saja), bukan hubungan S-P.',
+                ],
+                [
+                    'bloom' => 'C2',
+                    'question' => 'Manakah di antara pilihan berikut yang merupakan contoh "frasa nomina" dalam teks laporan hasil observasi?',
+                    'correct' => 'seni pertunjukan yang telah ditetapkan sebagai warisan budaya asli Indonesia',
+                    'distractors' => [
+                        'sudah membagi secara teratur dan sistematis',
+                        'mengembangkan variasi media modern secara berkala',
+                        'sangat menakutkan bagi mangsanya di alam liar',
+                    ],
+                    'explanation' => 'Kelompok kata tersebut berintikan nomina "seni pertunjukan" dengan penjelas pewatas panjang, sehingga berstatus frasa nomina.',
+                ],
+                [
+                    'bloom' => 'C2',
+                    'question' => 'Manakah pasangan yang paling tepat menunjukkan relasi antara "kata dasar" dan "kata bentukan" hasil afiksasi?',
+                    'correct' => 'takut (kata dasar) $\rightarrow$ menakutkan (kata bentukan)',
+                    'distractors' => [
+                        'minuman (kata dasar) $\rightarrow$ minum (kata bentukan)',
+                        'berasal (kata dasar) $\rightarrow$ asal (kata bentukan)',
+                        'penelitian (kata dasar) $\rightarrow$ teliti (kata bentukan)',
+                    ],
+                    'explanation' => '"Takut" adalah bentuk asal/dasar, sedangkan "menakutkan" adalah kata bentukan hasil imbuhan me(N)-kan.',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Proses afiksasi dapat mengubah kelas kata. Contoh perubahan dari kata berjenis verba menjadi nomina melalui pengimbuhan yang tepat adalah...',
+                    'correct' => 'minum (verba) mendapat imbuhan -an menjadi minuman (nomina)',
+                    'distractors' => [
+                        'susu (nomina) mendapat imbuhan me(N)-i menjadi menyusui (verba)',
+                        'asal (nomina) mendapat imbuhan be(R)- menjadi berasal (verba)',
+                        'gigit (verba) mendapat imbuhan me(N)- menjadi menggigit (verba)',
+                    ],
+                    'explanation' => 'Kata "minum" berkategori verba (tindakan), penambahan sufiks -an mengubahnya menjadi "minuman" yang berkategori nomina (benda).',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Kelompok imbuhan manakah yang secara konsisten berfungsi membentuk kata berjenis nomina (kata benda) dari kata dasar?',
+                    'correct' => 'pe(N)-, pe(R)-, -an, dan ke-...-an',
+                    'distractors' => [
+                        'me(N)-, be(R)-, dan di-',
+                        'ter-, se-, dan per-...-kan',
+                        'me(N)-kan dan memper-...-i',
+                    ],
+                    'explanation' => 'Afiks pembentuk nomina mencakup prefiks pe(N)-, pe(R)-, sufiks -an, dan konfiks ke-...-an / pe(N)-...-an.',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Analisislah proses afiksasi pada kata "kemampuan": apa jenis imbuhan dan kata dasar pembentuknya?',
+                    'correct' => 'Konfiks ke-...-an dengan kata dasar "mampu" (membentuk jenis nomina)',
+                    'distractors' => [
+                        'Prefiks ke- dengan kata dasar "mampuan" (verba)',
+                        'Sufiks -an dengan kata dasar "kemampu" (adjektiva)',
+                        'Infiks -em- dengan kata dasar "kampuan" (nomina)',
+                    ],
+                    'explanation' => 'Kata "kemampuan" terbentuk dari kata dasar "mampu" yang dilekatkan konfiks pembentuk nomina "ke-...-an".',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Analisislah proses afiksasi pada kata "pertunjukan": apa unsur afiks dan kata dasar yang membentuk kata tersebut?',
+                    'correct' => 'Konfiks pe(R)-...-an melekat pada kata dasar "tunjuk" menghasilkan kelas nomina',
+                    'distractors' => [
+                        'Awalan per- melekat pada kata bentukan "tunjukan"',
+                        'Akhiran -an melekat pada verba "pertunjuk"',
+                        'Sisipan -er- melekat pada nomina "petunjukan"',
+                    ],
+                    'explanation' => 'Kata "pertunjukan" dibentuk dari konfiks pe(R)-...-an yang digabungkan dengan kata dasar "tunjuk" untuk membentuk nomina (tontonan/karya).',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Berdasarkan materi kebahasaan, kata "disebut", "menyusui", dan "menggigit" dikelompokkan ke dalam jenis kata yang sama, yaitu...',
+                    'correct' => 'Verba (kata kerja) karena dibentuk oleh imbuhan pembentuk verba (di-, me(N)-i, me(N)-)',
+                    'distractors' => [
+                        'Nomina (kata benda) karena menyatakan nama objek konkret observasi',
+                        'Adjektiva (kata sifat) karena menerangkan kualitas rasa objek',
+                        'Adverbia (kata keterangan) karena menjelaskan frekuensi peristiwa',
+                    ],
+                    'explanation' => 'Ketiga kata tersebut merupakan kata kerja aktif dan pasif yang dibentuk oleh prefiks verbal di- dan me(N)-.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Perhatikan kalimat berikut: "Laporan hasil observasi adalah teks yang menyajikan informasi faktual mengenai suatu objek berdasarkan pengamatan langsung." Kalimat tersebut diklasifikasikan sebagai...',
+                    'correct' => 'Kalimat definisi, karena menggunakan verba perelasional "adalah" untuk merumuskan batasan konsep objek',
+                    'distractors' => [
+                        'Kalimat deskripsi, karena memaparkan ukuran fisik objek secara detail',
+                        'Kalimat eksposisi persuasif, karena membujuk pembaca agar melakukan observasi',
+                        'Kalimat narasi imajinatif, karena mengisahkan riwayat hidup pengamat',
+                    ],
+                    'explanation' => 'Kalimat definisi ditandai oleh kopula/verba relasional (adalah, merupakan, yaitu) yang menerangkan esensi atau batasan objek.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Perhatikan kalimat berikut: "Wayang golek memiliki bentuk boneka kayu tiga dimensi dengan busana kain batik bermotif khas." Kalimat tersebut tergolong sebagai...',
+                    'correct' => 'Kalimat deskripsi, karena memaparkan sifat fisik, bentuk, dan karakteristik indrawi objek secara konkret',
+                    'distractors' => [
+                        'Kalimat definisi, karena menjelaskan pengertian umum wayang secara filosofis',
+                        'Kalimat klasifikasi formal, karena mengelompokkan ragam kesenian tradisional',
+                        'Kalimat opini subjektif, karena memuat selera pribadi pembuat boneka',
+                    ],
+                    'explanation' => 'Kalimat deskripsi menyajikan ciri-ciri fisik atau rincian bagian objek yang dapat ditangkap oleh pancaindra.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Apa perbedaan mendasar antara "frasa verba" dan "frasa nomina" dalam struktur kalimat teks laporan hasil observasi?',
+                    'correct' => 'Frasa nomina berintikan kata benda dan lazim menduduki subjek/objek, sedangkan frasa verba berintikan kata kerja dan menduduki predikat',
+                    'distractors' => [
+                        'Frasa nomina selalu memuat anak kalimat, sedangkan frasa verba tidak dapat diperluas',
+                        'Frasa nomina hanya berada di paragraf pembuka, sedangkan frasa verba hanya di bagian penutup',
+                        'Frasa verba wajib diawali kata seru, sedangkan frasa nomina wajib diakhiri partikel',
+                    ],
+                    'explanation' => 'Frasa nomina berpusat pada kata benda (fungsi S/O/Pel), sedangkan frasa verba berpusat pada kata kerja (mengisi fungsi Predikat).',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Pada analisis kebahasaan teks laporan hasil observasi, manakah kalimat di bawah ini yang memuat "frasa verba"?',
+                    'correct' => 'Para peneliti telah mengembangkan metode klasifikasi baru yang lebih efisien.',
+                    'distractors' => [
+                        'Seni wayang kulit purwa warisan leluhur nusantara.',
+                        'Museum budaya daerah dengan koleksi bersejarah zaman kerajaan.',
+                        'Sebuah mahakarya sastra bernilai peradaban tinggi.',
+                    ],
+                    'explanation' => '"Telah mengembangkan" adalah frasa verba (adverbia aspek "telah" + verba inti "mengembangkan") yang menduduki predikat.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Dalam membenahi kesalahan berbahasa pada teks laporan hasil observasi, manakah kalimat yang paling memenuhi standar kebakuan dan keefektifan kalimat ilmiah?',
+                    'correct' => 'Koleksi museum tersebut diklasifikasikan berdasarkan usia pembuatan dan bahan dasarnya.',
+                    'distractors' => [
+                        'Di dalam museum itu daripada koleksinya sangat amat antik sekali.',
+                        'Bagi yang berkunjung ke museum harus daripada mematuhi aturan pengelola.',
+                        'Museum itu mana yang memiliki banyak senjata kuno di ruangan belakang.',
+                    ],
+                    'explanation' => 'Kalimat pilihan benar bebas dari kata mubazir/pleonasme, menggunakan verba pasif yang tepat ("diklasifikasikan"), dan taat struktur baku S-P-K.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'question' => 'Seorang siswa menulis kalimat: "Harimau sumatra merupakan hewan karnivora yang bulunya berwarna loreng oranye kehitaman." Mengapa kalimat tersebut memadukan ciri definisi sekaligus deskripsi?',
+                    'correct' => 'Klausa "merupakan hewan karnivora" adalah definisi konseptual, sedangkan "bulunya berwarna loreng" adalah deskripsi fisik indrawi',
+                    'distractors' => [
+                        'Kalimat tersebut rancu karena kaidah bahasa melarang penggabungan definisi dan deskripsi dalam satu kalimat majemuk',
+                        'Seluruh bagian kalimat tersebut murni hanya merupakan kalimat definisi nominal',
+                        'Seluruh kalimat tersebut murni kalimat ekspresif yang tidak memiliki nilai fakta empiris',
+                    ],
+                    'explanation' => 'Kalimat memadukan klausul definisi inti ("merupakan hewan karnivora") dengan anak kalimat yang mendeskripsikan sifat fisik objek secara faktual.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'question' => 'Mengapa ketepatan afiksasi sangat krusial dalam teks laporan hasil observasi, seperti membedakan antara "penelitian" (nomina) dan "meneliti" (verba)?',
+                    'correct' => 'Karena kesalahan imbuhan dapat mengaburkan fungsi sintaksis kalimat (subjek vs predikat) serta memicu pergeseran makna ilmiah',
+                    'distractors' => [
+                        'Karena teks observasi melarang keras penggunaan kata bentukan apa pun',
+                        'Karena pembaca hanya menilai keindahan rima kalimat tanpa memperhatikan makna kata',
+                        'Karena imbuhan hanya berfungsi sebagai penghias tulisan agar kalimat tampak panjang',
+                    ],
+                    'explanation' => 'Afiksasi menentukan kategori gramatikal; menukar nomina dengan verba merusak struktur fungsi S-P-O dan menimbulkan kerancuan ilmiah.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'question' => 'Evaluasi kalimat berikut: "Menurut pengamatan kami, wayang sangat amat indah sekali dan tidak tertandingi oleh seni mana pun." Mengapa kalimat ini harus dibenahi dalam teks laporan hasil observasi ilmiah?',
+                    'correct' => 'Mengandung pleonasme ("sangat amat ... sekali") dan opini subjektif emosional yang melanggar prinsip objektivitas ilmiah',
+                    'distractors' => [
+                        'Karena tidak memuat istilah bahasa asing yang rumit bagi pembaca awam',
+                        'Karena menggunakan huruf kapital pada awal kalimat laporan pengamatan',
+                        'Karena menyebutkan objek wayang yang sudah diakui oleh lembaga internasional',
+                    ],
+                    'explanation' => 'Teks LHO wajib objektif dan lugas; frasa hiperbolis dan tumpang tindih ("sangat amat indah sekali") melanggar kaidah kebahasaan baku dan objektif.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'question' => 'Manakah rumusan perbaikan yang paling tepat dan ilmiah untuk menggantikan kalimat tidak baku: "Pohon kelapa banyak gunanya bagi kehidupan orang-orang"?',
+                    'correct' => 'Pohon kelapa memiliki beragam manfaat fungsional bagi pemenuhan kebutuhan manusia.',
+                    'distractors' => [
+                        'Pohon kelapa ada punya banyak kegunaan untuk orang-orang semua.',
+                        'Kelapa itu banyak amat manfaatnya buat masyarakat sekitaran.',
+                        'Bagi orang-orang pohon kelapa itu sungguh sangat berguna sekali.',
+                    ],
+                    'explanation' => 'Kalimat perbaikan menggunakan diksi baku lugas ("beragam manfaat fungsional", "pemenuhan kebutuhan manusia") dengan susunan gramatikal yang efektif.',
+                ],
+            ];
+            $items = $kebahasaanPool;
+        } elseif (
+            (
+                (str_contains($bodyLower, 'wayang purwa') || str_contains($bodyLower, 'wayang suket') || str_contains($bodyLower, 'wayang motekar'))
+                || (str_contains($bodyLower, 'wayang') && str_contains($bodyLower, 'unesco'))
+                || (str_contains($titleLower, 'bs') && ! str_contains($titleLower, 'bs2') && str_contains($bodyLower, 'wayang'))
+            )
+            && ! str_contains($bodyLower, 'badui')
+            && ! str_contains($bodyLower, 'baduy')
+            && ! str_contains($bodyLower, 'afiksasi')
         ) {
             $lhoPool = [
                 [
@@ -2873,11 +3178,9 @@ INSTRUCTIONS;
                 ],
             ];
             $items = $lhoPool;
-        }
-
-        // Domain 5: Matematika — Eksponen, Sifat Perpangkatan, & Fungsi Eksponensial
-        if (
-            (str_contains($bodyLower, 'eksponen') || str_contains($titleLower, 'eksponen') || str_contains($titleLower, 'mtk') || (isset($category) && str_contains(mb_strtolower($category), 'matematika')))
+        } elseif (
+            ! (str_contains($bodyLower, 'barisan') && (str_contains($bodyLower, 'aritmetika') || str_contains($bodyLower, 'geometri')))
+            && (str_contains($bodyLower, 'eksponen') || str_contains($titleLower, 'eksponen') || (str_contains($titleLower, 'mtk') && ! str_contains($bodyLower, 'barisan')))
             && (str_contains($bodyLower, 'pangkat') || str_contains($bodyLower, 'perkalian berulang') || str_contains($bodyLower, 'sifat-sifat eksponen') || str_contains($bodyLower, 'akar') || str_contains($bodyLower, 'fungsi eksponensial'))
         ) {
             $mtkPool = [
@@ -2965,10 +3268,7 @@ INSTRUCTIONS;
                 ],
             ];
             $items = $mtkPool;
-        }
-
-        // Domain 6: Matematika — Barisan dan Deret Aritmetika & Geometri (Kelas 10)
-        if (
+        } elseif (
             (str_contains($bodyLower, 'barisan') && (str_contains($bodyLower, 'aritmetika') || str_contains($bodyLower, 'deret') || str_contains($bodyLower, 'geometri') || str_contains($bodyLower, 'pola bilangan')))
             || (str_contains($titleLower, 'barisan') || str_contains($titleLower, 'deret') || (isset($category) && str_contains(mb_strtolower($category), 'matematika') && (str_contains($bodyLower, 'suku ke-n') || str_contains($bodyLower, 'aritmetika'))))
         ) {

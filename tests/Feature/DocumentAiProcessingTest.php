@@ -333,4 +333,68 @@ TEXT;
         $this->assertEquals(50, $longDoc->maxRecommendedQuizQuestions());
         $this->assertEquals(20, $longDoc->idealRecommendedQuizQuestions());
     }
+
+    public function test_domain_4a_wayang_and_domain_4b_kebahasaan_separation_without_cross_contamination(): void
+    {
+        $processor = app(\App\Services\AI\DocumentAiProcessor::class);
+
+        $wayangText = <<<'TEXT'
+Kamu pasti pernah mendapat tugas membuat teks laporan hasil observasi atau pengamatan.
+Wayang adalah seni pertunjukan yang telah ditetapkan sebagai warisan budaya asli Indonesia.
+UNESCO menetapkan wayang sebagai pertunjukan bayangan boneka tersohor dari Indonesia.
+Para wali di Jawa sudah membagi wayang menjadi tiga: wayang kulit di timur, wayang wong di Jawa Tengah, dan wayang golek di Jawa Barat.
+Wayang purwa terdiri atas beberapa gaya atau gagrak. Ada juga wayang suket dan wayang motekar.
+TEXT;
+
+        $kebahasaanText = <<<'TEXT'
+C. Menganalisis Kebahasaan Teks Laporan Hasil Observasi
+Setelah mempelajari materi ini, kamu diharapkan mampu menganalisis kebahasaan teks laporan hasil observasi dan membenahi kesalahan berbahasa.
+Jenis kata dan kelompok kata (frasa) yang dominan digunakan dalam teks laporan hasil observasi adalah verba (kata kerja) dan nomina (kata benda).
+Kata berbentuk morfem bebas, yaitu satuan bahasa terkecil yang bersifat bebas. Frasa merupakan gabungan beberapa unsur namun nonpredikatif.
+Afiksasi: kata dasar dapat berubah jenis jika mendapat imbuhan, misalnya kata minum (verba) mendapat imbuhan -an menjadi minuman (nomina).
+Kata dasar berubah menjadi verba jika mendapat me(N)-, be(R)-, di-, ter-.
+TEXT;
+
+        $unrelatedLhoText = <<<'TEXT'
+Teks laporan hasil observasi tentang ekosistem terumbu karang di perairan tropis Indonesia.
+Terumbu karang merupakan sekumpulan hewan karang yang bersimbiosis dengan zooxanthellae.
+Struktur terumbu karang membentuk habitat penting bagi ribuan spesies ikan dan biota laut lainnya.
+TEXT;
+
+        // 1. Wayang Text
+        $wayangQuiz = $processor->generateQuizQuestions($wayangText, 'BS', 'Bahasa Indonesia', 10);
+        $this->assertNotEmpty($wayangQuiz);
+        $this->assertTrue(str_contains(mb_strtolower($wayangQuiz[0]['question']), 'wayang'));
+
+        $wayangTc = $processor->generateStructuredTeacherChallenges($wayangText, 'BS', 'Bahasa Indonesia');
+        $this->assertNotNull($wayangTc);
+        $hasWayangChallenge = false;
+        foreach ($wayangTc as $tc) {
+            if (str_contains(mb_strtolower($tc['question']), 'wayang')) {
+                $hasWayangChallenge = true;
+            }
+        }
+        $this->assertTrue($hasWayangChallenge);
+
+        // 2. Kebahasaan Text (BS2)
+        $kebahasaanQuiz = $processor->generateQuizQuestions($kebahasaanText, 'BS2', 'Bahasa Indonesia', 10);
+        $this->assertNotEmpty($kebahasaanQuiz);
+        $this->assertFalse(str_contains(mb_strtolower($kebahasaanQuiz[0]['question']), 'wayang'));
+        $this->assertTrue(
+            str_contains(mb_strtolower($kebahasaanQuiz[0]['question']), 'verba')
+            || str_contains(mb_strtolower($kebahasaanQuiz[0]['question']), 'frasa')
+            || str_contains(mb_strtolower($kebahasaanQuiz[0]['question']), 'kebahasaan')
+        );
+
+        $kebahasaanTc = $processor->generateStructuredTeacherChallenges($kebahasaanText, 'BS2', 'Bahasa Indonesia');
+        $this->assertNotNull($kebahasaanTc);
+        foreach ($kebahasaanTc as $tc) {
+            $this->assertFalse(str_contains(mb_strtolower($tc['question']), 'unesco'), 'Kebahasaan challenges must not contain wayang UNESCO references');
+            $this->assertFalse(str_contains(mb_strtolower($tc['question']), 'wayang golek'));
+        }
+
+        // 3. Unrelated LHO Text
+        $unrelatedTc = $processor->generateStructuredTeacherChallenges($unrelatedLhoText, 'LHO Karang', 'Bahasa Indonesia');
+        $this->assertNull($unrelatedTc, 'Unrelated LHO should not trigger wayang or kebahasaan structured challenges');
+    }
 }
