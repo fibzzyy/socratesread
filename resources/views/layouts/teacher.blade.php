@@ -31,6 +31,7 @@
                 <a class="nav-link {{ request()->routeIs('teacher.dashboard') ? 'is-active' : '' }}" href="{{ route('teacher.dashboard') }}" @if(request()->routeIs('teacher.dashboard')) aria-current="page" @endif><x-icon name="layout-dashboard"/><span>Ringkasan</span></a>
                 <a class="nav-link {{ request()->routeIs('teacher.classrooms*') ? 'is-active' : '' }}" href="{{ route('teacher.classrooms') }}" @if(request()->routeIs('teacher.classrooms*')) aria-current="page" @endif><x-icon name="users"/><span>Kelas saya</span></a>
                 <a class="nav-link {{ request()->routeIs('teacher.documents*') ? 'is-active' : '' }}" href="{{ route('teacher.documents') }}" @if(request()->routeIs('teacher.documents*')) aria-current="page" @endif><x-icon name="book-open-text"/><span>Kelola bacaan</span></a>
+                <a class="nav-link {{ request()->routeIs('teacher.reports*') ? 'is-active' : '' }}" href="{{ route('teacher.reports') }}" @if(request()->routeIs('teacher.reports*')) aria-current="page" @endif><x-icon name="clipboard-check"/><span>Rekap & Laporan</span></a>
             </nav>
             <div class="sidebar-spacer"></div>
         </aside>

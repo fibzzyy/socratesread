@@ -18,6 +18,7 @@ use App\Http\Controllers\Teacher\DocumentController;
 use App\Http\Controllers\Teacher\ClassroomController;
 use App\Http\Controllers\Teacher\ExportController;
 use App\Http\Controllers\Teacher\StudentDetailController;
+use App\Http\Controllers\Teacher\ReportController;
 use App\Http\Controllers\Teacher\TeacherChallengeController;
 use App\Http\Controllers\Teacher\DashboardController as TeacherDashboardController;
 use Illuminate\Support\Facades\Route;
@@ -102,6 +103,8 @@ Route::middleware(['auth', 'role:teacher'])->prefix('teacher')->name('teacher.')
     Route::patch('/documents/{document}/quiz-duration', [DocumentController::class, 'updateQuizDuration'])->whereNumber('document')->name('documents.quiz_duration');
     Route::patch('/documents/{document}/body', [DocumentController::class, 'updateBody'])->whereNumber('document')->name('documents.update_body');
     Route::delete('/documents/{document}', [DocumentController::class, 'destroy'])->whereNumber('document')->name('documents.destroy');
+    Route::get('/reports', [ReportController::class, 'index'])->name('reports');
+    Route::get('/reports/export-excel', [ReportController::class, 'exportExcel'])->name('reports.export_excel');
     Route::get('/documents/{document}/challenges', [TeacherChallengeController::class, 'index'])->whereNumber('document')->name('documents.challenges.index');
     Route::get('/documents/{document}/challenges/suggestions', [TeacherChallengeController::class, 'suggestions'])->whereNumber('document')->name('documents.challenges.suggestions');
     Route::post('/documents/{document}/challenges/analyze', [TeacherChallengeController::class, 'analyze'])->whereNumber('document')->name('documents.challenges.analyze');
