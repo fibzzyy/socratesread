@@ -46,7 +46,7 @@ class ClassroomEnrollmentTest extends TestCase
         $this->actingAs($student)
             ->from(route('dashboard'))
             ->post(route('classrooms.join'), ['join_code' => 'TUTUP123'])
-            ->assertRedirect(route('dashboard'))
+            ->assertRedirect(route('classrooms.index'))
             ->assertSessionHasErrors('join_code');
 
         $this->assertDatabaseCount('classroom_memberships', 0);
