@@ -62,10 +62,11 @@ class DocumentAiProcessor
     }
 
     /**
-     * Membangun konteks representatif seluruh bagian materi (awal, tengah, hingga akhir)
-     * agar tidak pernah hanya menganalisis bagian awal dokumen.
+     * Membangun konteks representatif seluruh bagian materi (awal, tengah, hingga akhir).
+     * Jika materi lebih panjang dari $maxChars, seluruh paragraf dipadatkan secara berurutan
+     * sehingga AI tetap membaca isi materi dari awal sampai akhir tanpa bagian yang terlewat.
      */
-    public function buildFullCoverageContext(string $body, int $maxChars = 15000): string
+    public function buildFullCoverageContext(string $body, int $maxChars = 18000): string
     {
         $clean = trim($body);
         $len = mb_strlen($clean);
@@ -73,21 +74,46 @@ class DocumentAiProcessor
             return $clean;
         }
 
-        $segments = 5;
-        $chunkSize = intdiv($maxChars - 120, $segments);
-        $parts = [];
-        for ($i = 0; $i < $segments; $i++) {
-            if ($i === 0) {
-                $start = 0;
-            } elseif ($i === $segments - 1) {
-                $start = max(0, $len - $chunkSize);
-            } else {
-                $start = max(0, intdiv($i * ($len - $chunkSize), $segments - 1));
+        $paragraphs = array_values(array_filter(
+            preg_split('/\R{2,}/u', $clean) ?: [],
+            fn (string $p): bool => trim($p) !== ''
+        ));
+
+        if (count($paragraphs) <= 2) {
+            $segments = 8;
+            $chunkSize = max(400, intdiv($maxChars - 160, $segments));
+            $parts = [];
+            for ($i = 0; $i < $segments; $i++) {
+                $start = $i === ($segments - 1)
+                    ? max(0, $len - $chunkSize)
+                    : max(0, intdiv($i * ($len - $chunkSize), max(1, $segments - 1)));
+                $parts[] = '[BAGIAN ' . ($i + 1) . "/{$segments}]\n" . mb_substr($clean, $start, $chunkSize);
             }
-            $parts[] = "[BAGIAN " . ($i + 1) . "/{$segments}]\n" . mb_substr($clean, $start, $chunkSize);
+
+            return implode("\n\n...\n\n", $parts);
         }
 
-        return implode("\n\n...\n\n", $parts);
+        $totalParagraphs = count($paragraphs);
+        $perParaBudget = max(160, intdiv($maxChars - ($totalParagraphs * 18), $totalParagraphs));
+        $parts = [];
+        $currentLen = 0;
+
+        foreach ($paragraphs as $idx => $para) {
+            $pTrim = trim(preg_replace('/\s+/u', ' ', $para) ?? $para);
+            if (mb_strlen($pTrim) > $perParaBudget) {
+                $headLen = (int) floor($perParaBudget * 0.65);
+                $tailLen = max(40, $perParaBudget - $headLen - 5);
+                $pTrim = mb_substr($pTrim, 0, $headLen) . ' ... ' . mb_substr($pTrim, -$tailLen);
+            }
+            $block = '[Paragraf ' . ($idx + 1) . "] {$pTrim}";
+            if ($currentLen + mb_strlen($block) + 2 > $maxChars) {
+                break;
+            }
+            $parts[] = $block;
+            $currentLen += mb_strlen($block) + 2;
+        }
+
+        return implode("\n\n", $parts);
     }
 
     /**
@@ -100,11 +126,11 @@ class DocumentAiProcessor
      */
     protected function processWithAi(string $formattedBody, string $title, ?string $category = null): ?array
     {
-        $sampleText = $this->buildFullCoverageContext($formattedBody, 14000);
+        $sampleText = $this->buildFullCoverageContext($formattedBody, 18000);
 
         $instructions = <<<INSTRUCTIONS
-Kamu adalah Kurator Literasi & Asesor Berpikir Kritis SocratesRead AI.
-Tugasmu adalah menganalisis KESELURUHAN isi materi bacaan guru (dari bagian awal, inti konsep, hingga akhir) dan menghasilkan JSON yang akurat, mendalam, serta mengasah logika kritis siswa.
+Kamu adalah Kurator Literasi & Asesor Berpikir Kritis Taksonomi Bloom SocratesRead AI.
+Tugasmu adalah membaca KESELURUHAN isi materi bacaan (dari paragraf awal hingga penutup) lalu menyusun soal esai & kuis yang valid, kritis, serta kunci jawaban akurat.
 
 Format output WAJIB HANYA berupa JSON valid tanpa teks lain:
 {
@@ -112,37 +138,35 @@ Format output WAJIB HANYA berupa JSON valid tanpa teks lain:
   "excerpt": "Ringkasan intisari materi 2-3 kalimat yang padat dan jelas...",
   "questions": [
     {
-      "s": "Memahami gagasan",
+      "s": "C4 Menganalisis",
       "d": "easy",
-      "q": "Pertanyaan esai langsung dan kritis (TANPA awalan klise 'Berdasarkan teks materi...')",
+      "q": "Pertanyaan memakai kata kerja operasional Bloom (C1-C5) dan TIDAK menyalin paragraf utuh",
       "c": "Konteks singkat atau fokus pemikiran yang membantu siswa mengarahkan jawaban",
-      "h": "Kunci jawaban model berparafrase alami (bahasa Anda sendiri yang rapi, objektif, dan bebas sapaan 'anda/silahkan/gambar di bawah') yang akurat menjawab pertanyaan sesuai pembahasan materi",
-      "r": "Kutipan kalimat asli dari materi yang menjadi bukti langsung kunci jawaban"
+      "h": "Kunci jawaban model berparafrase rapi (diambil dari paragraf yang benar-benar menjawab 'q', 100% langsung menjawab setiap poin pertanyaan)",
+      "r": "Kutipan kalimat asli dari paragraf materi yang menjadi bukti langsung kunci jawaban"
     }
   ],
   "quiz_questions": [
     {
-      "q": "Pertanyaan pilihan ganda yang menguji pemahaman, analisis, atau penerapan isi materi?",
-      "a": "Pilihan A",
-      "b": "Pilihan B",
-      "c": "Pilihan C",
-      "d": "Pilihan D",
+      "q": "Pertanyaan PG dengan kata kerja Bloom (C1 Mengingat, C2 Memahami, C3 Menerapkan, C4 Menganalisis, C5 Mengevaluasi) tanpa menyalin paragraf utuh?",
+      "a": "Pilihan A (ringkas, sejenis, masuk akal)",
+      "b": "Pilihan B (ringkas, sejenis, masuk akal)",
+      "c": "Pilihan C (ringkas, sejenis, masuk akal)",
+      "d": "Pilihan D (ringkas, sejenis, masuk akal)",
       "k": "A",
-      "e": "Penjelasan lengkap MENGAPA jawaban tersebut benar berdasarkan konsep/fakta materi, bukan sekadar menyalin judul sub-bab."
+      "e": "Penjelasan lengkap MENGAPA pilihan tersebut benar berdasarkan paragraf sumber di materi."
     }
   ]
 }
 
 ATURAN KETAT:
-1. questions: Wajib 5 butir esai kritis berjenjang Taksonomi Bloom (mencakup level d: "easy", "medium", "hard").
-   - DILARANG mengawali pertanyaan dengan "Berdasarkan teks materi..." atau "Menurut bacaan di atas...". Langsung tanyakan inti konsep, hubungan, atau analisis kasusnya!
-   - Field "c" (konteks) berdiri sendiri sebagai panduan di bawah soal, jangan dimasukkan ke "q".
-   - Field "h" (kunci jawaban) WAJIB ditulis sebagai parafrase yang rapi dan natural dengan bahasa Anda sendiri (bukan menyalin mentah kalimat tutorial/PDF atau memuat frasa "seperti gambar di bawah") namun 100% akurat sesuai pembahasan materi dan utuh menjawab "q".
-2. quiz_questions: Wajib 10 butir pilihan ganda yang tersebar dari awal, tengah, hingga akhir materi.
-   - Uji daya nalar, analisis konsep, hubungan sebab-akibat, fungsi, dan fakta penting.
-   - DILARANG membuat soal dari daftar tujuan pembelajaran (seperti "Menjelaskan pengertian...") atau daftar pustaka.
-   - Field "e" (Pembahasan Kunci Jawaban) WAJIB menjelaskan alasan kebenaran kunci jawaban secara jelas dan edukatif (2-3 kalimat), BUKAN sekadar menulis "Kalimat lengkap berbunyi...".
-3. Kunci 'k' adalah tepat satu huruf: A, B, C, atau D. Keempat opsi (a,b,c,d) harus unik dan pengecohnya masuk akal.
+1. questions: Wajib 5 butir esai berjenjang Taksonomi Bloom C1 sampai C5 (urutan: C1/C2 Mengingat-Memahami [easy], C2 Memahami [easy], C3 Menerapkan [medium], C4 Menganalisis [medium], C5 Mengevaluasi [hard]).
+   - Gunakan kata kerja Bloom tepat (Identifikasi/Jelaskan/Terapkan/Analisis/Evaluasi) dan DILARANG menyalin paragraf utuh sebagai soal maupun mengawali dengan "Berdasarkan teks materi...".
+   - Field "h" (kunci jawaban) WAJIB bersumber dari paragraf yang benar-benar menjawab "q", diparafrase rapi dan langsung menjawab inti pertanyaan secara lengkap.
+2. quiz_questions: Wajib 10 butir pilihan ganda yang tersebar merata (awal–akhir bacaan) dan mencakup tingkat Bloom C1 sampai C5 (termasuk minimal 2 soal C5 Mengevaluasi).
+   - Soal TIDAK boleh menyalin paragraf/kalimat utuh; opsi jawaban harus ringkas (bukan potongan acak/daftar pustaka/topik lain) dan seluruh pengecoh harus masuk akal serta satu kategori dengan kunci jawaban.
+   - DILARANG membuat soal dari tujuan pembelajaran ("Menjelaskan pengertian...") atau daftar pustaka.
+3. Kunci 'k' adalah tepat satu huruf: A, B, C, atau D.
 INSTRUCTIONS;
 
         $messages = [
@@ -189,13 +213,21 @@ INSTRUCTIONS;
                     $diff = $defaultDifficulties[$seq] ?? 'medium';
                 }
 
+                $validatedEssay = $this->verifyAndRepairEssayPair(
+                    $prompt,
+                    (string) ($q['h'] ?? $q['hint'] ?? ''),
+                    (string) ($q['r'] ?? $q['reference_excerpt'] ?? ''),
+                    $formattedBody,
+                    $title
+                );
+
                 $questions[] = [
                     'sequence' => $seq,
                     'skill' => (string) ($q['s'] ?? $q['skill'] ?? $defaultEssaySkills[$seq] ?? 'Menjelaskan alasan'),
                     'prompt' => $prompt,
                     'context' => (string) ($q['c'] ?? $q['context'] ?? 'Uraikan konsep inti beserta contoh atau alasan logisnya.'),
-                    'hint' => (string) ($q['h'] ?? $q['hint'] ?? 'Jelaskan definisi/konsep inti dan keterkaitannya secara runtut.'),
-                    'reference_excerpt' => (string) ($q['r'] ?? $q['reference_excerpt'] ?? ''),
+                    'hint' => $validatedEssay['answer_key'],
+                    'reference_excerpt' => $validatedEssay['reference_excerpt'],
                     'difficulty' => $diff,
                 ];
                 if ($seq >= 5) {
@@ -246,14 +278,20 @@ INSTRUCTIONS;
                     $correctKey = 'A';
                 }
 
-                $quizQuestions[] = [
+                $rawQuizItem = [
                     'sequence' => $seq,
                     'question' => $qText,
                     'options' => $options,
                     'correct_answer' => $correctKey,
                     'explanation' => (string) ($qq['e'] ?? $qq['explanation'] ?? 'Pembahasan berdasarkan konsep utama dalam materi.'),
                 ];
-                if ($seq >= 10) {
+                $sanitized = $this->sanitizeQuizQuestionItem($rawQuizItem, $formattedBody);
+                if ($sanitized === null) {
+                    continue;
+                }
+                $sanitized['sequence'] = count($quizQuestions) + 1;
+                $quizQuestions[] = $sanitized;
+                if (count($quizQuestions) >= 10) {
                     break;
                 }
             }
@@ -291,27 +329,33 @@ INSTRUCTIONS;
         if ($this->languageModel->isConfigured()) {
             @set_time_limit(180);
             try {
-                $sampleText = $this->buildFullCoverageContext($formattedBody, 15000);
+                $sampleText = $this->buildFullCoverageContext($formattedBody, 18000);
                 $instructions = <<<INSTRUCTIONS
-Kamu adalah Perancang Soal Berpikir Kritis SocratesRead AI.
-Tugasmu: analisis KESELURUHAN materi secara mendalam lalu buat tepat 5 rekomendasi soal ESAI untuk Tantangan Guru yang benar-benar menguji pemahaman kritis dan daya pikir siswa.
+Kamu adalah Perancang Soal Berpikir Kritis Taksonomi Bloom (C1–C5) SocratesRead AI.
+Tugasmu: baca KESELURUHAN isi materi dari paragraf awal hingga akhir, lalu buat tepat 5 rekomendasi soal ESAI yang mengikuti kata kerja operasional Taksonomi Bloom C1 sampai C5 dan menguji penalaran kritis siswa.
 
 Format output WAJIB HANYA berupa JSON array valid:
 [
   {
+    "bloom_level": "C1",
     "difficulty": "easy",
-    "question": "Pertanyaan kritis dan langsung tentang inti materi (tanpa awalan 'Berdasarkan teks materi...' dan tanpa Konteks terpisah)",
-    "rubric": "Kunci jawaban model berparafrase rapi yang LANGSUNG, LENGKAP, dan EKSPLISIT menjawab seluruh poin yang ditanyakan pada 'question' berdasarkan isi materi (bukan kutipan terpotong atau kalimat instruksi editor yang tidak nyambung)",
-    "reference_excerpt": "Kutipan kalimat asli paling tepat dari materi yang menjadi bukti langsung kunci jawaban"
+    "question": "Pertanyaan memakai templat kata kerja Bloom yang tepat, TIDAK menyalin paragraf utuh, dan tanpa awalan 'Berdasarkan teks materi...'",
+    "rubric": "Kunci jawaban model berparafrase rapi yang diambil dari paragraf sumber yang BENAR-BENAR menjawab seluruh poin pada 'question'",
+    "reference_excerpt": "Kutipan kalimat asli dari paragraf sumber yang menjadi bukti langsung kunci jawaban"
   }
 ]
 
 ATURAN WAJIB:
-1. Buat tepat 5 soal dengan distribusi level kesulitan: 1–2 "easy" (pemahaman konsep/definisi esensial), 2 "medium" (analisis fungsi, alasan, perbandingan, hubungan sebab-akibat), 1–2 "hard" (mekanisme operasional, studi kasus, evaluasi kritis, atau strategi penerapan nyata).
-2. DILARANG memakai frasa canggung seperti "Berdasarkan teks materi...", "Menurut bacaan di atas...", atau menambahkan label "Konteks:". Jangan pernah menyertakan field konteks terpisah.
-3. DILARANG mengambil butir tujuan pembelajaran (seperti "Menjelaskan pengertian...") atau daftar pustaka sebagai soal atau jawaban.
-4. KESESUAIAN SOAL & KUNCI JAWABAN WAJIB 100%: Jika "question" menanyakan fungsi dan gagasan utama, maka "rubric" HARUS langsung menerangkan fungsi dan gagasan utama tersebut secara jelas dengan parafrase yang rapi. Jika menanyakan alasan ("Mengapa..."), "rubric" WAJIB menjelaskan penyebab serta solusinya sesuai materi.
-5. Field "reference_excerpt" WAJIB berupa kutipan kalimat asli dari materi yang tepat mendukung "question" & "rubric" (bukan bagian acak atau tombol keluar editor seperti ctrl+x kecuali soal memang menanyakan cara keluar editor).
+1. WAJIB BERJENJANG TAKSONOMI BLOOM C1–C5: Gunakan kata kerja operasional Bloom yang tepat pada setiap nomor:
+   - Soal 1 — C1/C2 (Mengingat & Memahami, "easy"): Identifikasi & jelaskan gagasan inti serta alasan batasannya.
+   - Soal 2 — C2/C3 (Memahami & Menerapkan, "medium"): Bandingkan atau jelaskan penerapan konsep/kedudukan pada konteks nyata.
+   - Soal 3 — C4 (Menganalisis, "medium"): Analisis unsur, perbedaan, landasan aturan, atau keterkaitan sebab-akibat.
+   - Soal 4 — C3/C4 (Menerapkan & Menganalisis Kasus, "hard"): Terapkan konsep untuk memulihkan atau memecahkan masalah di sekolah/masyarakat.
+   - Soal 5 — C5 (Mengevaluasi, "hard"): Wajib menggunakan kata kerja Mengevaluasi/Nilai/Kritisi konsekuensi jangka panjang atau dilema di era digital/masyarakat.
+2. DILARANG MENYALIN PARAGRAF UTUH KE SOAL: Soal harus ringkas, berfokus pada konsep patokan yang jelas (DILARANG memakai singkatan samar seperti "topik TBB"), dan tidak mengulang kalimat panjang mentah dari bacaan.
+3. KUNCI DARI PARAGRAF PENJAWAB: Pastikan "rubric" benar-benar menjawab apa yang ditanyakan pada "question" (bukan sekadar ringkasan acak, label "Kedudukan: ...", atau daftar tujuan pembelajaran/pustaka).
+4. DILARANG memakai frasa canggung seperti "Berdasarkan teks materi...", "Menurut bacaan di atas...", atau menambahkan field "context".
+5. Field "reference_excerpt" WAJIB berupa kutipan kalimat asli dari paragraf sumber yang tepat mendukung "question" & "rubric".
 6. Keluarkan HANYA JSON array tanpa markdown/komentar lain.
 INSTRUCTIONS;
 
@@ -337,6 +381,13 @@ INSTRUCTIONS;
                         if ($q === '' || $rubric === '') {
                             continue;
                         }
+                        $validated = $this->verifyAndRepairEssayPair(
+                            $q,
+                            $rubric,
+                            trim((string) ($item['reference_excerpt'] ?? $item['r'] ?? '')),
+                            $formattedBody,
+                            $title
+                        );
                         $diff = strtolower(trim((string) ($item['difficulty'] ?? 'medium')));
                         if (! in_array($diff, ['easy', 'medium', 'hard'], true)) {
                             $diff = 'medium';
@@ -345,8 +396,8 @@ INSTRUCTIONS;
                             'type' => 'essay',
                             'question' => $q,
                             'context' => null,
-                            'rubric' => $rubric,
-                            'reference_excerpt' => trim((string) ($item['reference_excerpt'] ?? $item['r'] ?? '')),
+                            'rubric' => $validated['answer_key'],
+                            'reference_excerpt' => $validated['reference_excerpt'],
                             'difficulty' => $diff,
                             'difficulty_weight' => TeacherChallenge::weightForDifficulty($diff),
                         ];
@@ -705,30 +756,34 @@ INSTRUCTIONS;
     public function generateQuizQuestionsWithAi(string $body, string $title, ?string $category = null, int $count = 10, int $timeout = 60): ?array
     {
         $cleaned = $this->cleanText($body);
-        $sampleText = $this->buildFullCoverageContext($cleaned, 15000);
+        $sampleText = $this->buildFullCoverageContext($cleaned, 18000);
 
         $instructions = <<<INSTRUCTIONS
-Kamu adalah Kurator Literasi & Pembuat Soal Kritis SocratesRead AI.
-Buat {$count} Soal Pilihan Ganda yang menguji pemahaman mendalam, logika berpikir kritis, hubungan sebab-akibat, serta fakta konseptual dari KESELURUHAN isi materi bacaan (awal, tengah, hingga akhir) dalam format JSON array:
+Kamu adalah Kurator Literasi & Perancang Soal Taksonomi Bloom (C1–C5) SocratesRead AI.
+Baca KESELURUHAN isi materi dari paragraf awal hingga akhir lalu buat {$count} Soal Pilihan Ganda berjenjang Taksonomi Bloom C1 sampai C5 dalam format JSON array:
 [
   {
-    "q": "Pertanyaan analitis atau konseptual langsung tentang isi materi?",
-    "a": "Pilihan A",
-    "b": "Pilihan B",
-    "c": "Pilihan C",
-    "d": "Pilihan D",
+    "bloom": "C4",
+    "q": "Pertanyaan memakai kata kerja Bloom C1-C5 yang TIDAK menyalin paragraf utuh?",
+    "a": "Pilihan A (ringkas & masuk akal)",
+    "b": "Pilihan B (ringkas & masuk akal)",
+    "c": "Pilihan C (ringkas & masuk akal)",
+    "d": "Pilihan D (ringkas & masuk akal)",
     "k": "A",
-    "e": "Penjelasan lengkap MENGAPA pilihan tersebut benar dan bagaimana konsep tersebut dijelaskan dalam materi (2-3 kalimat informatif)."
+    "e": "Penjelasan lengkap MENGAPA pilihan tersebut benar berdasarkan paragraf sumber yang menjawab pertanyaan."
   }
 ]
 ATURAN WAJIB:
-1. Wajib {$count} butir soal tersebar merata dari seluruh bagian materi.
-2. Setiap soal harus menguji daya pikir & pemahaman materi (definisi konseptual, perbandingan, fungsi, mekanisme kerja, dasar hukum/pasal, tujuan, implikasi, atau penerapan kasus).
-3. DILARANG membuat soal dari daftar tujuan pembelajaran (seperti "Menjelaskan pengertian...") atau daftar pustaka.
-4. DILARANG membuat soal rumpang mekanis atau pembahasan yang hanya menyalin ulang kalimat singkat (seperti "Kalimat lengkap dalam materi berbunyi: ...").
-5. Field "e" (Pembahasan Kunci Jawaban) HARUS jelas menerangkan alasan kunci jawaban benar agar membantu siswa belajar, baik saat jawabannya benar maupun salah.
-6. Keempat opsi (a, b, c, d) wajib unik dan logis dengan tepat 1 kunci benar ('k': A, B, C, atau D).
-7. Keluarkan HANYA JSON array tanpa teks lain.
+1. Wajib {$count} butir soal tersebar merata dari seluruh paragraf materi dan mencakup tingkat Bloom C1 sampai C5:
+   - C1 Mengingat (identifikasi fakta/dasar hukum/konsep tepat),
+   - C2 Memahami (jelaskan makna, fungsi, atau perbedaan inti),
+   - C3 Menerapkan (pilih penerapan tepat pada situasi nyata),
+   - C4 Menganalisis (analisis sebab-akibat, komponen, atau perbandingan),
+   - C5 Mengevaluasi (minimal 2 soal: evaluasi ketepatan keputusan, kritisi kekeliruan, atau nilai dampak).
+2. DILARANG menyalin paragraf utuh ke dalam soal maupun menaruh kalimat utuh panjang mentah sebagai opsi pilihan.
+3. Field "e" (Pembahasan) HARUS menjelaskan alasan kunci jawaban benar berdasarkan paragraf yang benar-benar menjawab soal tersebut (BUKAN daftar tujuan pembelajaran, daftar pustaka, atau kutipan asal).
+4. Keempat opsi (a, b, c, d) wajib unik, setipe (misal semua berupa pasal, semua berupa konsep/tindakan), serta seluruh pengecohnya masuk akal sesuai topik bacaan.
+5. Keluarkan HANYA JSON array tanpa teks lain.
 INSTRUCTIONS;
 
         $messages = [
@@ -762,7 +817,7 @@ INSTRUCTIONS;
                 $correctKey = 'A';
             }
 
-            $results[] = [
+            $rawItem = [
                 'sequence' => $seq,
                 'question' => $qText,
                 'options' => [
@@ -774,7 +829,13 @@ INSTRUCTIONS;
                 'correct_answer' => $correctKey,
                 'explanation' => trim((string) ($item['e'] ?? $item['explanation'] ?? 'Sesuai dengan konsep yang dijelaskan dalam materi bacaan.')),
             ];
-            if ($seq >= $count) {
+            $sanitized = $this->sanitizeQuizQuestionItem($rawItem, $cleaned);
+            if ($sanitized === null) {
+                continue;
+            }
+            $sanitized['sequence'] = count($results) + 1;
+            $results[] = $sanitized;
+            if (count($results) >= $count) {
                 break;
             }
         }
@@ -808,6 +869,7 @@ INSTRUCTIONS;
             'cleaned_body' => $body,
             'excerpt' => $this->generateHeuristicExcerpt($body, $title),
             'questions' => $this->generateHeuristicSocraticQuestions($body, $title, $category),
+            'teacher_challenges' => $this->generateHeuristicTeacherChallengeSuggestions($body, $title, $category),
             'quiz_questions' => $this->generateHeuristicQuizQuestions($body, $title, $category, 10),
         ];
     }
@@ -986,10 +1048,22 @@ INSTRUCTIONS;
             return mb_strlen($s) > 65 ? mb_substr($s, 0, 62) . '...' : $s;
         };
 
+        $pickVariation = static function (string $seed, array $variants): string {
+            $list = array_values(array_filter($variants, fn ($v) => is_string($v) && $v !== ''));
+            if (empty($list)) {
+                return '';
+            }
+            $hash = (int) sprintf('%u', crc32($seed));
+
+            return $list[$hash % count($list)];
+        };
+
+        $q1Subject = '';
+
         // 1. Pengertian & Konsep Utama (Easy)
         $s1 = $pickSentence(
             fn (string $s, int $idx) => ! preg_match('/^(?:contoh|sehingga|oleh karena itu|dengan demikian)\b/iu', $s)
-                && (preg_match('/\b(?:adalah|merupakan|yaitu|didefinisikan|memakai AI|berbasis|konsep)\b/iu', $s) || $idx === ($isSocratic && $total > 6 ? 1 : 0)),
+                && ((preg_match('/\b(?:adalah|merupakan|yaitu|didefinisikan|memakai AI|berbasis|konsep)\b/iu', $s) && $idx <= 1) || $idx === ($isSocratic && $total > 6 ? 1 : 0)),
             $isSocratic && $total > 6 ? 1 : 0
         );
         $s1Follow = null;
@@ -1010,9 +1084,20 @@ INSTRUCTIONS;
             if (preg_match('/^(.{4,60}?)\s+(?:adalah|merupakan|yaitu|didefinisikan sebagai)\s+(.+)$/iu', $s1, $m) && ! preg_match('/^(?:contoh|kata)\b/iu', trim($m[1]))) {
                 $subj = $cleanSubject($m[1]);
                 $q1Subject = $subj;
-                $q1Prompt = $isSocratic
-                    ? "Mengapa gagasan \"{$subj}\" menjadi landasan penting dalam pembahasan ini, dan nilai inti apa yang dibawanya?"
-                    : "Apa yang dimaksud dengan {$subj}, dan gagasan pokok apa yang dijelaskan di dalamnya?";
+                if ($isSocratic) {
+                    $q1Prompt = "Mengapa gagasan \"{$subj}\" menjadi landasan penting dalam pembahasan ini, dan nilai inti apa yang dibawanya?";
+                } else {
+                    $hasPurpose = (bool) preg_match('/\b(?:tujuan(?:nya)?|untuk|guna|agar)\b/iu', $s1);
+                    $q1Prompt = $pickVariation($title . '|q1|' . $subj, $hasPurpose ? [
+                        "Mengapa penyusunan {$subj} menuntut pemenuhan kaidah intinya agar tujuan utamanya dapat tercapai secara utuh?",
+                        "Analisis logika di balik aturan {$subj}, dan mengapa unsur pokoknya tidak boleh diabaikan saat mengolah bacaan!",
+                        "Mengapa pendekatan {$subj} efektif mencapai tujuannya dibandingkan sekadar memotong isi bacaan secara acak?",
+                    ] : [
+                        "Mengapa konsep {$subj} menuntut keterpaduan seluruh unsur utamanya secara bersamaan, bukan mengandalkan satu aspek saja?",
+                        "Analisis gagasan mendasar {$subj} dan mengapa pendekatan terpadu tersebut krusial bagi konteks yang dibahas!",
+                        "Mengapa {$subj} memosisikan unsur-unsur pembentuknya agar saling melengkapi dalam kehidupan berbangsa maupun belajar?",
+                    ]);
+                }
             } elseif (
                 preg_match('/\b(Sub-?Domain|VirtualHost|SocratesRead|Mangrove|Trigatra)\b/iu', $s1, $tm)
                 && preg_match('/\b(?:menghemat|berfungsi|fungsi|tujuan|untuk|guna|agar|sehingga|memadukan|ditambahkan)\b/iu', $q1Ref)
@@ -1022,18 +1107,24 @@ INSTRUCTIONS;
                 $q1Role = 'function_overview';
                 $q1Prompt = $isSocratic
                     ? "Mengapa penggunaan {$subj} diperlukan dalam permasalahan yang diangkat materi ini? Jelaskan alasan logisnya!"
-                    : "Apa fungsi dan gagasan utama penggunaan {$subj} sebagaimana dijelaskan pada awal materi?";
+                    : "Mengapa fungsi dan gagasan utama penggunaan {$subj} dinilai lebih efisien daripada pendekatan konvensional dalam memecahkan kendala di materi?";
             } elseif (preg_match('/\b(Target\s+[^,.]{6,45}|Algoritma\s+RSA[^,.]{0,20}|Enkripsi\s+[^,.]{4,35}|Arsitektur\s+[^,.]{4,35})\b/iu', $s1, $tm2)) {
                 $subj = trim(preg_replace('/\s+(?:yang|pada|di|dalam|untuk)$/iu', '', trim($tm2[1])) ?? trim($tm2[1]));
                 $q1Subject = $subj;
                 $q1Role = 'concept_summary';
                 $q1Prompt = $isSocratic
                     ? "Mengapa gagasan mengenai \"{$subj}\" pada awal materi menjadi poin penting untuk diperhatikan?"
-                    : "Apa gagasan utama yang dijelaskan terkait \"{$subj}\" pada bagian awal materi?";
+                    : $pickVariation($title . '|q1t|' . $subj, [
+                        "Mengapa gagasan mengenai \"{$subj}\" menjadi poin kritis sejak awal materi, dan dampak apa yang dituju olehnya?",
+                        "Analisis mengapa pembahasan tentang \"{$subj}\" krusial dipahami sebelum melangkah ke bagian materi berikutnya!",
+                    ]);
             } else {
                 $q1Prompt = $isSocratic
                     ? "Menurut penalaran Anda, mengapa gagasan pokok pada pembukaan materi \"{$title}\" krusial untuk dipahami?"
-                    : "Jelaskan konsep utama yang dipaparkan pada bagian awal materi \"{$title}\"!";
+                    : $pickVariation($title . '|q1g', [
+                        "Jelaskan konsep utama yang dipaparkan pada bagian awal materi \"{$title}\"!",
+                        "Gagasan inti apa yang dibangun pada pembukaan materi \"{$title}\"?",
+                    ]);
             }
             $q1Answer = $this->paraphraseAnswerFromSource($q1Ref, $q1Role, $title, $q1Prompt, $q1Subject);
             $q1Context = $isSocratic
@@ -1048,11 +1139,25 @@ INSTRUCTIONS;
             $q1Context = "Uraikan gagasan inti dari materi.";
         }
 
+        // Patokan nama topik yang jelas dari isi materi (pakai subjek konsep jika judul hanya singkatan yang cocok, mis. TBB -> Trigatra Bangun Bahasa)
+        $cleanTitle = trim($title);
+        $topicLabel = $cleanTitle;
+        if (mb_strlen($cleanTitle) <= 6) {
+            if ($q1Subject !== '' && preg_match_all('/\b(\p{L})/u', $q1Subject, $initials)) {
+                $acronym = mb_strtoupper(implode('', $initials[1]));
+                $topicLabel = str_starts_with($acronym, mb_strtoupper($cleanTitle))
+                    ? $q1Subject
+                    : 'bacaan ini';
+            } else {
+                $topicLabel = 'bacaan ini';
+            }
+        }
+
         // 2. Fungsi & Peranan Utama (Medium)
         $s2 = $pickSentence(
             fn (string $s) => ! preg_match('/^(?:contoh|sehingga|oleh karena itu|dengan demikian|dan|atau)\b/iu', $s)
                 && str_word_count($s) >= 7
-                && preg_match('/\b(?:keluar\s+adalah\s+sama|membuat\s+virtualhost|fungsi|peran|tujuan|kedudukan|menghemat|mengisi|mengganti|virtualhost|melindungi|bertujuan|dirancang|memastikan|meminimalkan)\b/iu', $s),
+                && preg_match('/\b(?:keluar\s+adalah\s+sama|membuat\s+virtualhost|fungsi(?:nya)?|peran(?:annya)?|tujuan(?:nya)?|kedudukan|menghemat|mengisi|mengganti|virtualhost|melindungi|bertujuan|dirancang|memastikan|meminimalkan|dampak(?:nya)?)\b/iu', $s),
             min($isSocratic && $total > 5 ? 2 : 1, max(0, $total - 1))
         );
         if ($s2 !== null) {
@@ -1061,25 +1166,57 @@ INSTRUCTIONS;
             if (preg_match('/^(.{4,60}?)\s+(?:memiliki|berfungsi|berperan|bertujuan|adalah|merupakan|memerlukan|mengubah)\s+/iu', $s2, $m) && ! preg_match('/^(?:contoh|kata|jika|setelah|akan tetapi)\b/iu', trim($m[1]))) {
                 $subj2 = $cleanSubject($m[1]);
                 $q2Subject = $subj2;
-                $q2Prompt = $isSocratic
-                    ? "Apa dampak atau perubahan nyata yang dihasilkan oleh peran {$subj2} menurut uraian materi?"
-                    : "Apa peran atau tujuan utama {$subj2}, dan mengapa hal tersebut penting dalam materi ini?";
+                if ($isSocratic) {
+                    $q2Prompt = "Apa dampak atau perubahan nyata yang dihasilkan oleh peran {$subj2} menurut uraian materi?";
+                } elseif (preg_match('/\b(?:adalah|merupakan)\b/iu', $s2) && $q1Subject !== '' && strcasecmp($q1Subject, $subj2) !== 0) {
+                    $q2Prompt = $pickVariation($title . '|q2c|' . $subj2, [
+                        "Mengapa dalam menyusun {$subj2} penulis diperbolehkan mengubah urutan ide dari teks asli—berbeda dengan {$q1Subject}—dan batas kritis apa yang tetap harus dijaga?",
+                        "Bandingkan pendekatan {$subj2} dengan {$q1Subject}: dalam kebutuhan belajar seperti apa {$subj2} jauh lebih tepat dipakai?",
+                        "Analisis mengapa {$subj2} lebih menekankan penyeleksian inti gagasan lintas bagian dibanding mempertahankan alur {$q1Subject}!",
+                    ]);
+                } else {
+                    $q2Prompt = $pickVariation($title . '|q2|' . $subj2, [
+                        "Mengapa peran {$subj2} menjadi penentu efektivitas dalam materi ini, dan hambatan apa yang muncul bila fungsi tersebut diabaikan?",
+                        "Evaluasi hubungan antara peran utama {$subj2} dan persoalan nyata yang dijawab dalam materi ini!",
+                        "Bagaimana cara kerja {$subj2} menyelesaikan masalah utama materi dibanding jika tidak diterapkan?",
+                    ]);
+                }
             } elseif (preg_match('/\b(virtualhost|keluar\s+adalah\s+sama|sub-?domain|menumbuhkan|pelestarian|komunikasi|Agile\s+Scrum|purwarupa\s*\(MVP\)|MVP)\b/iu', $s2, $tm)) {
                 $topic2 = stripos($tm[1], 'keluar') !== false || stripos($s2, 'virtualhost') !== false ? 'VirtualHost' : $tm[1];
                 $q2Subject = $topic2;
                 $q2Role = 'reason';
                 $q2Prompt = $isSocratic
                     ? "Bagaimana solusi terkait \"{$topic2}\" membuktikan efektivitasnya dalam menyelesaikan kendala yang dibahas?"
-                    : "Mengapa mekanisme terkait \"{$topic2}\" diperlukan, dan bagaimana perannya menyelesaikan masalah dalam materi?";
+                    : "Mengapa mekanisme terkait \"{$topic2}\" diperlukan, dan masalah apa yang muncul apabila langkah tersebut dilewati?";
+            } elseif (preg_match('/^(Kedudukan|Fungsi|Peran|Landasan|Syarat|Prinsip)\s*:\s*(.+)$/iu', $s2, $lbl)) {
+                $lblText = mb_strtolower($lbl[1]);
+                $lblBody = rtrim(trim(str_replace(' & ', ' dan ', $lbl[2])), '.');
+                $lblBodyClean = trim(preg_replace('/\s*\([^)]*\)/u', '', $lblBody) ?? $lblBody);
+                $lblAnchor = preg_match('/\b(?:Pasal\s*36|bahasa\s+nasional)\b/iu', $s2)
+                    ? 'Bahasa Indonesia'
+                    : (preg_match('/\b(?:Pasal\s*32|kebudayaan\s+nasional)\b/iu', $s2)
+                        ? 'Bahasa Daerah'
+                        : $topicLabel);
+                $q2Subject = $lblAnchor;
+                $q2Role = 'reason';
+                $q2Prompt = $isSocratic
+                    ? "Mengapa {$lblAnchor} memiliki {$lblText} sebagai {$lblBodyClean} dalam {$topicLabel}, dan apa konsekuensinya bila diabaikan?"
+                    : $pickVariation($topicLabel . '|q2lbl|' . $lblText, [
+                        "Mengapa {$lblAnchor} harus memiliki {$lblText} resmi sebagai {$lblBodyClean} dalam kerangka {$topicLabel}, dan ketimpangan apa yang terjadi di ruang publik atau sekolah jika posisi ini tergeser?",
+                        "Analisis pentingnya {$lblText} {$lblAnchor} ({$lblBodyClean}) dalam {$topicLabel}, serta bagaimana ketegasan aturan tersebut mengarahkan sikap berbahasa di lingkungan sekitar!",
+                    ]);
             } elseif (preg_match('/\bTujuan\s*:\s*/iu', $s2)) {
                 $q2Role = 'purpose';
                 $q2Prompt = $isSocratic
-                    ? "Mengapa tujuan utama perancangan dalam materi \"{$title}\" penting untuk dicapai?"
-                    : "Apa tujuan utama yang ingin dicapai dalam materi \"{$title}\", dan manfaat apa yang diberikannya?";
+                    ? "Mengapa tujuan utama perancangan dalam materi \"{$topicLabel}\" penting untuk dicapai?"
+                    : "Mengapa tujuan utama dalam pembahasan {$topicLabel} menuntut pendekatan tersebut, dan dampak nyata apa yang diberikannya bagi pengguna?";
             } else {
                 $q2Prompt = $isSocratic
-                    ? "Bukti dan alasan apa yang menunjukkan bahwa mekanisme pada materi \"{$title}\" berhasil menjawab permasalahan?"
-                    : "Apa fungsi dan manfaat utama dari mekanisme yang dijelaskan dalam materi \"{$title}\"?";
+                    ? "Bukti dan alasan apa yang menunjukkan bahwa mekanisme pada {$topicLabel} berhasil menjawab permasalahan?"
+                    : $pickVariation($topicLabel . '|q2g|' . substr($s2, 0, 20), [
+                        "Analisis alasan di balik pendekatan yang dijelaskan dalam {$topicLabel}, serta konsekuensi nyatanya bila tidak diterapkan secara tepat!",
+                        "Mengapa mekanisme pada bagian ini krusial dalam memahami persoalan yang dibahas pada {$topicLabel}?",
+                    ]);
             }
             $q2Ref = rtrim($s2, '.') . '.';
             $q2Answer = $this->paraphraseAnswerFromSource($q2Ref, $q2Role, $title, $q2Prompt, $q2Subject);
@@ -1108,32 +1245,78 @@ INSTRUCTIONS;
             $q3Ref = implode(' · ', array_map(fn ($k, $v) => "{$k} = {$v}", array_keys($kvBlocks), $kvBlocks));
             $q3Context = "Sebutkan perbedaan fungsi tiap komponen atau parameter tersebut dengan kata-kata sendiri.";
         } else {
+            $isNearDupQ1 = fn (string $s): bool => $q1Subject !== ''
+                && (bool) preg_match('/^' . preg_quote($q1Subject, '/') . '\s+(?:adalah|merupakan)\b/iu', trim($s))
+                && ! preg_match('/\b(?:pasal|uud|sites-availeble|a2ensite|apache|enkripsi|RSA)\b/iu', $s);
             $s3 = $pickSentence(
                 fn (string $s) => ! preg_match('/^(?:contoh|sehingga|oleh karena itu)\b/iu', $s)
-                    && str_word_count($s) >= 8
-                    && preg_match('/\b(?:komponen|aspek|unsur|pasal|uud|terdiri|mencakup|spesifikasi|algoritma|modul|standar|arsitektur|konfigurasi|sites-availeble|a2ensite|apache)\b/iu', $s),
+                    && ! $isNearDupQ1($s)
+                    && str_word_count($s) >= 7
+                    && preg_match('/\b(?:komponen|aspek|unsur|pasal|uud|kebudayaan\s+nasional|dilindungi|terdiri|mencakup|spesifikasi|algoritma|modul|standar|arsitektur|konfigurasi|sites-availeble|a2ensite|apache|struktur|subjektif|objektif|perbedaan|tafsiran)\b/iu', $s),
                 min($isSocratic && $total > 5 ? 3 : 2, max(0, $total - 1))
             );
             if ($s3 !== null) {
                 $q3Subject = '';
-                if (preg_match('/^(.{4,60}?)\s+(?:memerlukan|mencakup|terdiri|dilindungi|berfungsi|adalah|merupakan)\s+/iu', $s3, $m) && ! preg_match('/^(?:contoh|kata|jika|setelah)\b/iu', trim($m[1]))) {
+                $q3Role = 'component';
+                $isTechSentence = (bool) preg_match('/\b(?:apache|virtualhost|sites-availeble|a2ensite|enkripsi|RSA|algoritma|modul|server|jaringan|basis\s+data|protokol|konfigurasi|komputasi)\b/iu', $s3);
+                $isLegalSentence = (bool) preg_match('/\b(?:pasal|uud|undang|hukum|kebijakan|negara|dilindungi|kebudayaan\s+nasional)\b/iu', $s3);
+                if (preg_match('/^(Kedudukan|Landasan|Dasar|Fungsi|Peran)\s*:\s*(.+)$/iu', $s3, $lbl3)) {
+                    $q3Anchor = preg_match('/\b(?:Pasal\s*32|kebudayaan\s+nasional)\b/iu', $s3)
+                        ? 'Bahasa Daerah'
+                        : (preg_match('/\b(?:Pasal\s*36|bahasa\s+nasional)\b/iu', $s3)
+                            ? 'Bahasa Indonesia'
+                            : $topicLabel);
+                    $q3Subject = $q3Anchor;
+                    $q3Role = 'reason';
+                    $q3Prompt = $isSocratic
+                        ? "Mengapa pelindungan terhadap {$q3Anchor} menjadi penentu keseimbangan budaya dalam {$topicLabel}?"
+                        : $pickVariation($topicLabel . '|q3lbl|' . $q3Anchor, [
+                            "Mengapa pelindungan konstitusional terhadap {$q3Anchor} dalam {$topicLabel} menjadi hal mendesak, dan ancaman sosial-budaya apa yang timbul apabila generasi muda meninggalkannya?",
+                            "Evaluasi mengapa {$q3Anchor} harus dijamin posisinya oleh aturan dalam {$topicLabel}, serta peran kritisnya bagi keberagaman di lingkungan masyarakat!",
+                        ]);
+                } elseif (preg_match('/^(.{4,60}?)\s+(?:memerlukan|mencakup|terdiri|dilindungi|berfungsi|adalah|merupakan)\s+/iu', $s3, $m) && ! preg_match('/^(?:contoh|kata|jika|setelah)\b/iu', trim($m[1]))) {
                     $subj3 = $cleanSubject($m[1]);
                     $q3Subject = $subj3;
-                    $q3Prompt = $isSocratic
-                        ? "Mengapa {$subj3} membutuhkan elemen atau spesifikasi tersebut agar sistem berjalan selaras?"
-                        : "Komponen, aturan, atau spesifikasi apa saja yang terkait dengan {$subj3}, dan apa fungsinya?";
+                    if ($isSocratic) {
+                        $q3Prompt = "Mengapa {$subj3} membutuhkan elemen atau spesifikasi tersebut agar sistem berjalan selaras?";
+                    } elseif ($isTechSentence) {
+                        $q3Prompt = $pickVariation($title . '|q3t|' . $subj3, [
+                            "Mengapa {$subj3} mewajibkan aturan atau spesifikasi teknis tersebut, dan kegagalan sistem apa yang terjadi jika tidak dipenuhi?",
+                            "Analisis bagaimana keterkaitan komponen pada {$subj3} menjamin kestabilan dan ketepatan hasil pada sistem!",
+                        ]);
+                    } elseif ($isLegalSentence) {
+                        $q3Prompt = $pickVariation($topicLabel . '|q3l|' . $subj3, [
+                            "Mengapa pelindungan aturan terhadap {$subj3} dalam {$topicLabel} menjadi hal mendesak, dan dampak sosial-budaya apa yang terjadi bila masyarakat mengabaikannya?",
+                            "Evaluasi bagaimana ketentuan dasar yang mengatur {$subj3} menguji kesadaran warga untuk menjaga keseimbangan antara identitas lokal dan tuntutan zaman!",
+                        ]);
+                    } elseif ($q1Subject !== '' && strcasecmp($q1Subject, $subj3) === 0) {
+                        $q3Prompt = $pickVariation($topicLabel . '|q3s|' . $subj3, [
+                            "Mengapa pilar-pilar kunci dalam {$subj3} wajib dijalankan secara seimbang, dan apa risiko ketimpangannya bagi masyarakat bila salah satu pilar terabaikan?",
+                            "Evaluasi keterkaitan antarunsur dalam {$subj3}: mengapa hilangnya satu pilar dapat mengganggu keutuhan sistem yang diharapkan?",
+                        ]);
+                    } else {
+                        $baseRef = $q1Subject !== '' ? $q1Subject : $topicLabel;
+                        $q3Prompt = $pickVariation($topicLabel . '|q3n|' . $subj3, [
+                            "Berbeda dari penyajian objektif seperti {$baseRef}, mengapa {$subj3} justru mengizinkan sudut pandang dan tafsiran pribadi penulis—dan batas kritis apa yang harus dijaga agar tetap bertanggung jawab?",
+                            "Evaluasi kelebihan sekaligus tantangan penggunaan {$subj3} yang bebas struktur: dalam situasi tugas belajar seperti apa bentuk subjektif ini jauh lebih relevan dipakai?",
+                            "Bagaimana kelonggaran struktur dan ruang tafsiran pada {$subj3} menuntut siswa lebih kritis menilai kualitas sebuah bacaan di sekolah?",
+                        ]);
+                    }
                 } elseif (preg_match('/\b(virtualhost|apache|sites-availeble|a2ensite|portal|mail\.yahoo\.com|pasal \d+|RSA \d+-bit)\b/iu', $s3, $tm3)) {
                     $q3Subject = $tm3[1];
                     $q3Prompt = $isSocratic
                         ? "Apa signifikansi teknis dari pengaturan \"{$tm3[1]}\" terhadap kesesuaian hasil konfigurasi dalam materi?"
-                        : "Bagaimana peran atau penerapan teknis terkait \"{$tm3[1]}\" sesuai isi materi?";
+                        : "Mengapa pengaturan atau ketentuan terkait \"{$tm3[1]}\" krusial dijalankan dengan tepat, dan apa akibatnya bagi keseluruhan sistem jika keliru?";
                 } else {
                     $q3Prompt = $isSocratic
                         ? "Simpulan apa yang dapat ditarik mengenai keterkaitan antarunsur atau aturan utama dalam materi \"{$title}\"?"
-                        : "Unsur, aturan, atau spesifikasi kunci apa yang membangun konsep pada materi \"{$title}\", dan bagaimana keterkaitannya?";
+                        : $pickVariation($title . '|q3g', [
+                            "Ciri dan batasan kritis apa yang membedakan pembahasan utama dalam materi \"{$topicLabel}\", serta bagaimana implikasinya saat diterapkan?",
+                            "Analisis mengapa unsur-unsur kunci pada \"{$topicLabel}\" saling bergantung, bukan berdiri sendiri!",
+                        ]);
                 }
                 $q3Ref = rtrim($s3, '.') . '.';
-                $q3Answer = $this->paraphraseAnswerFromSource($q3Ref, 'component', $title, $q3Prompt, $q3Subject);
+                $q3Answer = $this->paraphraseAnswerFromSource($q3Ref, $q3Role, $title, $q3Prompt, $q3Subject);
                 $q3Context = $isSocratic
                     ? "Bandingkan atau simpulkan hubungan antarkomponen berdasarkan bukti bacaan."
                     : "Identifikasi elemen, aturan hukum/pasal, atau spesifikasi teknis yang mendukungnya.";
@@ -1147,12 +1330,12 @@ INSTRUCTIONS;
             }
         }
 
-        // 4. Cara Kerja & Mekanisme / Prosedur (Hard)
+        // 4. Cara Kerja & Mekanisme / Prosedur / Dampak (Hard)
         $s4 = $pickSentence(
             fn (string $s, int $idx) => $idx >= intdiv($total, 4)
                 && str_word_count($s) >= 8
                 && ! preg_match('/^(?:sehingga|contoh)\b/iu', $s)
-                && preg_match('/\b(?:perintah|langkah|pertama|aktifkan|salin|edit|prinsip|mengutamakan|melestarikan|menguasai|mekanisme|pengujian|mengakibatkan|memicu|menjamin|menghindari|gamifikasi|alokasi|kapasitas|pemetaan|dasbor|anti-mencontek)\b/iu', $s),
+                && preg_match('/\b(?:perintah|langkah|pertama|aktifkan|salin|edit|prinsip|mengutamakan|melestarikan|menguasai|mekanisme|pengujian|mengakibatkan|memicu|menjamin|menghindari|gamifikasi|alokasi|kapasitas|pemetaan|dasbor|anti-mencontek|dampak|perkembangan|penyalahgunaan|kecanduan|keseimbangan|berpengaruh)\b/iu', $s),
             min(max(0, intdiv($total, 2) + ($isSocratic ? 1 : 0)), max(0, $total - 1)),
             false
         );
@@ -1161,23 +1344,43 @@ INSTRUCTIONS;
             if (preg_match('/\b(perintah|konfigurasi|folder|aktifkan|a2ensite|apache|service|salin)\b/iu', $s4)) {
                 $q4Prompt = $isSocratic
                     ? "Mengapa urutan eksekusi atau langkah konfigurasi pada tahap ini krusial, dan risiko apa jika dilewati?"
-                    : "Bagaimana langkah prosedur atau perintah konfigurasi yang dijelaskan dalam materi, dan mengapa tahap tersebut perlu dijalankan?";
+                    : "Mengapa urutan langkah konfigurasi atau perintah pada tahap ini wajib dijalankan secara tepat, dan gangguan apa yang muncul jika dilewati?";
             } elseif (preg_match('/\b(prinsip|mengutamakan|melestarikan|menguasai)\b/iu', $s4)) {
                 $q4Prompt = $isSocratic
                     ? "Apa risiko ketimpangan yang terjadi apabila prinsip kerja tersebut diabaikan?"
-                    : "Bagaimana prinsip kerja atau kaidah utama tersebut dijalankan agar tercipta keseimbangan yang diharapkan?";
+                    : $pickVariation($topicLabel . '|q4pr|' . substr($s4, 0, 20), [
+                        "Jika di lingkungan sekolah atau media sosial penggunaan bahasa asing mulai menggeser Bahasa Indonesia dan bahasa daerah, bagaimana penerapan prinsip {$topicLabel} seharusnya memulihkan keseimbangan tersebut?",
+                        "Mengapa prinsip {$topicLabel} menuntut ketiga pilar dijalankan beriringan alih-alih memilih salah satu saja, dan dampak kritis apa yang muncul jika keseimbangannya timpang?",
+                    ]);
             } elseif (preg_match('/\b(alokasi|kapasitas|penyimpanan|terabita|kuota|ruang)\b/iu', $s4)) {
                 $q4Prompt = $isSocratic
                     ? "Berdasarkan fakta kapasitas dan sumber daya pada bacaan, keputusan evaluasi apa yang perlu diambil?"
-                    : "Bagaimana kondisi alokasi kapasitas atau pemanfaatan sumber daya komputasi awan yang dipaparkan, dan apa fakta pentingnya?";
+                    : "Evaluasi kondisi alokasi kapasitas atau sumber daya yang dipaparkan pada materi, serta konsekuensinya jika melebihi batas yang tersedia!";
             } elseif (preg_match('/\b(permainan|gamifikasi|boss battle|anti-mencontek|dasbor)\b/iu', $s4)) {
                 $q4Prompt = $isSocratic
                     ? "Mengapa mekanisme gamifikasi atau kontrol kualitas tersebut efektif menjaga keterlibatan dan kejujuran belajar?"
-                    : "Bagaimana mekanisme pendukung (seperti gamifikasi atau kontrol pemahaman) bekerja mempertahankan keterlibatan pengguna dalam materi?";
+                    : "Mengapa mekanisme pendukung (seperti gamifikasi atau kontrol kejujuran belajar) dirancang demikian untuk mengubah cara siswa memahami bacaan?";
+            } elseif (preg_match('/\b(dampak|perkembangan|teknologi|penyalahgunaan|kecanduan|kemudahan)\b/iu', $s4)) {
+                $q4Role = 'cause_effect';
+                $hasNegativeImpact = (bool) preg_match('/\b(risiko|negatif|penyalahgunaan|kecanduan|buruk|bahaya)\b/iu', $s4);
+                $q4Prompt = $isSocratic
+                    ? "Mengapa perkembangan tersebut memunculkan dampak nyata bagi pengguna, dan bagaimana analisis sebab-akibatnya?"
+                    : ($hasNegativeImpact
+                        ? $pickVariation($topicLabel . '|q4dn|' . substr($s4, 0, 20), [
+                            "Analisis hubungan sebab-akibat antara kemudahan akses dan penyalahgunaan yang terjadi di lingkungan digital, serta mengapa kendali diri sangat menentukan!",
+                            "Mengapa dampak negatif perkembangan tersebut mudah menjebak pengguna muda, dan langkah pencegahan kritis apa yang perlu dibiasakan?",
+                        ])
+                        : $pickVariation($topicLabel . '|q4dp|' . substr($s4, 0, 20), [
+                            "Mengapa kemudahan komunikasi dan akses informasi dari kemajuan teknologi informasi tetap menuntut daya pilih kritis siswa agar tidak sekadar menerima informasi mentah?",
+                            "Analisis mengapa dampak positif akses informasi pada contoh bacaan harus diimbangi sikap selektif dalam kegiatan belajar di masyarakat!",
+                        ]));
             } else {
                 $q4Prompt = $isSocratic
-                    ? "Analisis hubungan sebab-akibat yang terjadi pada mekanisme inti dalam materi \"{$title}\" beserta implikasi kritisnya!"
-                    : "Bagaimana mekanisme kerja atau hubungan sebab-akibat utama yang dijelaskan dalam materi \"{$title}\", dan apa hasilnya?";
+                    ? "Analisis hubungan sebab-akibat yang terjadi pada mekanisme inti dalam materi \"{$topicLabel}\" beserta implikasi kritisnya!"
+                    : $pickVariation($topicLabel . '|q4g', [
+                        "Analisis hubungan sebab-akibat pada mekanisme utama {$topicLabel}, serta konsekuensi nyata yang muncul apabila satu tahap terganggu!",
+                        "Mengapa keterkaitan faktor pada {$topicLabel} menghasilkan dampak tersebut dalam situasi nyata?",
+                    ]);
             }
             $q4Ref = rtrim($s4, '.') . '.';
             $q4Answer = $this->paraphraseAnswerFromSource($q4Ref, $q4Role, $title, $q4Prompt);
@@ -1187,7 +1390,7 @@ INSTRUCTIONS;
         } else {
             $q4Prompt = $isSocratic
                 ? "Mengapa ketelitian prosedural pada materi \"{$title}\" menentukan keberhasilan hasilnya?"
-                : "Bagaimana mekanisme kerja atau alur penerapan konsep dalam materi \"{$title}\"?";
+                : "Mengapa alur penerapan konsep dalam materi \"{$topicLabel}\" harus dijalankan secara runtut agar hasilnya akurat?";
             $q4Answer = $q2Answer;
             $q4Ref = $q2Ref;
             $q4Context = "Uraikan alur mekanisme atau sebab-akibatnya.";
@@ -1196,24 +1399,38 @@ INSTRUCTIONS;
         // 5. Manfaat, Troubleshooting, & Penerapan Praktis (Hard)
         $s5 = $pickSentence(
             fn (string $s, int $idx) => $idx >= intdiv($total * 2, 3)
-                && preg_match('/\b(?:jika tidak|restart|tekan f5|periksa|contoh penggunaan|era digital|strategi|menjaga|meningkatkan|efisiensi|latensi|penerapan|indeks|mengubah AI|pelatih berpikir)\b/iu', $s),
+                && preg_match('/\b(?:jika tidak|restart|tekan f5|periksa|contoh penggunaan|era digital|strategi|menjaga|meningkatkan|efisiensi|latensi|penerapan|indeks|mengubah AI|pelatih berpikir|kesadaran|tanggung jawab|berpengaruh|manfaat|kehidupan|moral|etika)\b/iu', $s),
             max(0, $total - ($isSocratic && $total > 2 ? 2 : 1))
         );
         if ($s5 !== null) {
             if (preg_match('/\b(jika tidak bisa|restart|tekan f5|periksa konfigurasi)\b/iu', $s5)) {
                 $q5Prompt = $isSocratic
-                    ? "Jika layanan tidak menampilkan perubahan baru saat diuji, bagaimana alur diagnostik terbaik yang paling masuk akal berdasarkan materi?"
-                    : "Apa langkah pemecahan masalah (troubleshooting) yang harus dilakukan jika sistem belum berjalan atau tampilan tidak berubah saat diuji?";
+                    ? "Evaluasi alur diagnostik terbaik yang paling masuk akal berdasarkan materi jika layanan tidak menampilkan perubahan baru!"
+                    : "Evaluasi langkah diagnostik mana yang harus didahulukan ketika konfigurasi sudah disimpan tetapi tampilan layanan belum berubah saat diuji di browser!";
                 $q5Role = 'troubleshooting';
+            } elseif (preg_match('/\b(kesadaran|tanggung jawab|moral|etika)\b/iu', $s5)) {
+                $q5Prompt = $isSocratic
+                    ? "Evaluasi mengapa refleksi kesadaran etis menjadi penentu keberhasilan penerapan materi ini di kehidupan nyata!"
+                    : $pickVariation($topicLabel . '|q5m|' . substr($s5, 0, 20), [
+                        "Evaluasi mengapa kemudahan akses informasi tanpa kesadaran dan tanggung jawab moral justru dapat merugikan lingkungan belajar maupun kehidupan bermasyarakat!",
+                        "Evaluasi alasan logis mengapa pemanfaatan teknologi informasi tetap bergantung pada kesadaran etis serta tanggung jawab moral penggunanya!",
+                    ]);
+                $q5Role = 'application';
             } elseif (preg_match('/\b(era digital|strategi|menjaga|rusak|penerapan|contoh penggunaan)\b/iu', $s5)) {
                 $q5Prompt = $isSocratic
-                    ? "Jika dihadapkan pada tantangan praktik masa kini, refleksi strategi apa yang paling efektif untuk menjaga keutuhan konsep materi ini?"
-                    : "Bagaimana bentuk penerapan nyata atau strategi menjaga keberhasilan konsep ini dalam praktik maupun tantangan modern?";
+                    ? "Evaluasi strategi yang paling efektif untuk menjaga keutuhan konsep materi ini di tengah tantangan praktik masa kini!"
+                    : $pickVariation($topicLabel . '|q5a|' . substr($s5, 0, 20), [
+                        "Evaluasi tantangan nyata di era digital apabila siswa tidak menguasai kemampuan dalam {$topicLabel} secara kritis untuk menjaga identitas lokal dan nasional!",
+                        "Evaluasi dampak kritis di lingkungan pendidikan maupun pergaulan global jika generasi muda di era digital abai terhadap tuntutan penguasaan dalam {$topicLabel}!",
+                    ]);
                 $q5Role = 'application';
             } else {
                 $q5Prompt = $isSocratic
-                    ? "Refleksi atau penerapan praktis apa yang paling relevan diambil dari kesimpulan materi \"{$title}\" untuk konteks nyata?"
-                    : "Apa kesimpulan dampak serta penerapan praktis yang dapat diambil dari bagian akhir materi \"{$title}\"?";
+                    ? "Evaluasi simpulan dan penerapan praktis paling relevan dari akhir materi \"{$title}\" untuk konteks nyata!"
+                    : $pickVariation($title . '|q5c', [
+                        "Evaluasi dampak jangka panjang yang muncul apabila simpulan utama dari {$topicLabel} diterapkan atau justru diabaikan di lingkungan nyata!",
+                        "Evaluasi implikasi kritis dari bagian akhir {$topicLabel} terhadap pengambilan keputusan pengguna di keseharian!",
+                    ]);
                 $q5Role = 'conclusion';
             }
             $q5Ref = rtrim($s5, '.') . '.';
@@ -1223,8 +1440,8 @@ INSTRUCTIONS;
                 : "Berikan penjelasan solusi konkret atau contoh penerapan yang selaras dengan fakta pada akhir materi.";
         } else {
             $q5Prompt = $isSocratic
-                ? "Bagaimana Anda merefleksikan manfaat utama materi \"{$title}\" pada situasi nyata?"
-                : "Bagaimana penerapan nyata dan manfaat utama materi \"{$title}\" dalam praktik?";
+                ? "Evaluasi manfaat utama materi \"{$title}\" apabila diterapkan pada situasi nyata!"
+                : "Evaluasi penerapan nyata serta manfaat utama materi \"{$topicLabel}\" dalam praktik!";
             $q5Answer = $q2Answer;
             $q5Ref = $q2Ref;
             $q5Context = "Rancang penerapan konkret berdasarkan isi bacaan.";
@@ -1234,6 +1451,7 @@ INSTRUCTIONS;
             [
                 'sequence' => 1,
                 'skill' => 'Pengertian & Konsep Utama',
+                'bloom_level' => 'C2',
                 'prompt' => $q1Prompt,
                 'context' => $q1Context,
                 'hint' => $q1Answer,
@@ -1243,6 +1461,7 @@ INSTRUCTIONS;
             [
                 'sequence' => 2,
                 'skill' => 'Fungsi & Peranan Utama',
+                'bloom_level' => 'C3',
                 'prompt' => $q2Prompt,
                 'context' => $q2Context,
                 'hint' => $q2Answer,
@@ -1252,6 +1471,7 @@ INSTRUCTIONS;
             [
                 'sequence' => 3,
                 'skill' => 'Karakteristik & Komponen Kunci',
+                'bloom_level' => 'C4',
                 'prompt' => $q3Prompt,
                 'context' => $q3Context,
                 'hint' => $q3Answer,
@@ -1261,6 +1481,7 @@ INSTRUCTIONS;
             [
                 'sequence' => 4,
                 'skill' => 'Cara Kerja & Mekanisme',
+                'bloom_level' => 'C4',
                 'prompt' => $q4Prompt,
                 'context' => $q4Context,
                 'hint' => $q4Answer,
@@ -1270,6 +1491,7 @@ INSTRUCTIONS;
             [
                 'sequence' => 5,
                 'skill' => 'Manfaat & Penerapan Praktis',
+                'bloom_level' => 'C5',
                 'prompt' => $q5Prompt,
                 'context' => $q5Context,
                 'hint' => $q5Answer,
@@ -1281,7 +1503,7 @@ INSTRUCTIONS;
 
     /**
      * Algoritma pendamping offline untuk menyarankan kunci jawaban esai paling sesuai
-     * saat guru mengetik pertanyaan manual, memakai penyamaan semantik + intent pertanyaan.
+     * saat guru mengetik pertanyaan manual, memakai penyamaan kata utuh + paragraf sumber + intent.
      *
      * @return array{recommended_answer: string, reference_excerpt: string, difficulty: string, difficulty_weight: int}
      */
@@ -1291,24 +1513,28 @@ INSTRUCTIONS;
         $sentences = $this->extractSubstantiveSentences($body, $title);
         $blocks = $this->extractSectionBlocksForSearch($body, $title);
         $kvBlocks = $this->extractKeyValuePairs($body);
+        $paragraphs = array_values(array_filter(
+            preg_split('/\R{2,}/u', trim($body)) ?: [],
+            fn (string $p): bool => mb_strlen(trim($p)) >= 25
+        ));
 
         // Deteksi intent pertanyaan
         $qLower = mb_strtolower($cleanQuestion);
         $intent = 'general';
         if (preg_match('/\b(?:pengertian|apa yang dimaksud|definisi|arti|konsep|maksud dari|siapa|kapan|di mana)\b/iu', $cleanQuestion)) {
             $intent = 'definition';
-        } elseif (preg_match('/\b(?:mengapa|kenapa|sebab|alasan|dampak|akibat)\b/iu', $cleanQuestion)) {
+        } elseif (preg_match('/\b(?:mengapa|kenapa|sebab|alasan|dampak|akibat|evaluasi|nilai)\b/iu', $cleanQuestion)) {
             $intent = 'reason';
         } elseif (preg_match('/\b(?:fungsi|peran|manfaat|kegunaan|kedudukan|tujuan)\b/iu', $cleanQuestion)) {
             $intent = 'function';
-        } elseif (preg_match('/\b(?:bagaimana|langkah|cara|prosedur|perintah|strategi|prinsip)\b/iu', $cleanQuestion)) {
+        } elseif (preg_match('/\b(?:bagaimana|langkah|cara|prosedur|perintah|strategi|prinsip|terapkan)\b/iu', $cleanQuestion)) {
             $intent = 'procedure';
         } elseif (preg_match('/\b(?:contoh|sebutkan|apa saja|macam|jenis|aspek|komponen|unsur)\b/iu', $cleanQuestion)) {
             $intent = 'example';
         }
 
         // Bersihkan frasa tanya umum agar fokus pencarian menyasar konsep inti yang ditanya guru
-        $focusQuery = preg_replace('/\b(?:yang\s+(?:kamu|anda|kalian)\s+ketahui|menurut\s+(?:kamu|anda|pendapatmu|materi)|sejauh\s+pemahamanmu|coba\s+jelaskan|jelaskan(?:\s+secara\s+singkat)?|apa\s+yang\s+dimaksud(?:\s+dengan)?|apa\s+pengertian(?:\s+dari)?|apakah\s+pengertian|apa\s+fungsi(?:\s+dari)?|mengapa|kenapa|bagaimana|sebutkan|uraikan)\b/iu', ' ', $cleanQuestion) ?? $cleanQuestion;
+        $focusQuery = preg_replace('/\b(?:yang\s+(?:kamu|anda|kalian)\s+ketahui|menurut\s+(?:kamu|anda|pendapatmu|materi)|sejauh\s+pemahamanmu|coba\s+jelaskan|jelaskan(?:\s+secara\s+singkat)?|evaluasi|analisis|bandingkan|terapkan|apa\s+yang\s+dimaksud(?:\s+dengan)?|apa\s+pengertian(?:\s+dari)?|apakah\s+pengertian|apa\s+fungsi(?:\s+dari)?|mengapa|kenapa|bagaimana|sebutkan|uraikan)\b/iu', ' ', $cleanQuestion) ?? $cleanQuestion;
         $focusQuery = trim(preg_replace('/[?.,!]+/u', ' ', $focusQuery) ?? '');
         if (mb_strlen($focusQuery) < 3) {
             $focusQuery = $cleanQuestion;
@@ -1316,15 +1542,37 @@ INSTRUCTIONS;
 
         $qKeywords = $this->similarity->extractKeywords($focusQuery);
         $rawTerms = array_values(array_unique(array_filter(
-            preg_split('/[^a-z0-9]+/u', mb_strtolower($focusQuery)) ?: [],
+            preg_split('/[^\p{L}\p{N}]+/u', mb_strtolower($focusQuery)) ?: [],
             fn (string $w) => mb_strlen($w) >= 3 && ! in_array($w, ['yang', 'dan', 'dari', 'pada', 'atau', 'dengan', 'untuk', 'dalam', 'tentang', 'apa', 'apakah'], true)
         )));
 
         $titleTerms = array_values(array_unique(array_filter(
-            preg_split('/[^a-z0-9]+/u', mb_strtolower($title)) ?: [],
+            preg_split('/[^\p{L}\p{N}]+/u', mb_strtolower($title)) ?: [],
             fn (string $w) => mb_strlen($w) >= 3
         )));
         $specificTerms = array_values(array_diff($rawTerms, $titleTerms));
+
+        // Evaluasi skor relevansi setiap paragraf agar kalimat dari paragraf yang benar-benar menjawab mendapat prioritas tinggi
+        $bestParagraphText = '';
+        $bestParaScore = 0.0;
+        foreach ($paragraphs as $para) {
+            $pScore = 0.0;
+            $pConceptMap = $this->similarity->expandConceptMap($this->similarity->extractKeywords($para), $para);
+            foreach ($specificTerms as $term) {
+                if ($this->containsWholeWordTerm($para, $term) || $this->similarity->tokenMatchesConceptMap($term, $pConceptMap, $para)) {
+                    $pScore += 3.0;
+                }
+            }
+            foreach ($qKeywords as $kw) {
+                if ($this->similarity->tokenMatchesConceptMap($kw, $pConceptMap, $para)) {
+                    $pScore += in_array($kw, $titleTerms, true) ? 1.0 : 2.0;
+                }
+            }
+            if ($pScore > $bestParaScore) {
+                $bestParaScore = $pScore;
+                $bestParagraphText = $para;
+            }
+        }
 
         // Gabungkan kandidat kalimat & blok terstruktur
         $candidates = [];
@@ -1340,17 +1588,18 @@ INSTRUCTIONS;
         }
 
         $scored = [];
-        $asksAboutExit = str_contains($qLower, 'ctrl') || str_contains($qLower, 'keluar') || str_contains($qLower, 'simpan');
+        $asksAboutExit = $this->containsWholeWordTerm($cleanQuestion, 'ctrl')
+            || $this->containsWholeWordTerm($cleanQuestion, 'keluar')
+            || $this->containsWholeWordTerm($cleanQuestion, 'simpan');
 
         foreach ($candidates as $cand) {
             $text = $cand['text'];
-            $tLower = mb_strtolower($text);
             $conceptMap = $this->similarity->expandConceptMap($this->similarity->extractKeywords($text), $text);
 
             $score = 0.0;
-            // Cocokkan istilah spesifik (non-judul) lebih berat agar pertanyaan spesifik langsung mengarah ke subtopiknya
+            // Cocokkan istilah spesifik (non-judul) per KATA UTUH agar pencarian akurat
             foreach ($specificTerms as $term) {
-                if (str_contains($tLower, $term) || $this->similarity->tokenMatchesConceptMap($term, $conceptMap, $text)) {
+                if ($this->containsWholeWordTerm($text, $term) || $this->similarity->tokenMatchesConceptMap($term, $conceptMap, $text)) {
                     $score += 3.5;
                 }
             }
@@ -1360,17 +1609,22 @@ INSTRUCTIONS;
                 }
             }
             foreach ($rawTerms as $term) {
-                if (str_contains($tLower, $term)) {
+                if ($this->containsWholeWordTerm($text, $term)) {
                     $score += 2.0;
                 }
             }
 
-            // Bonus frasa berturut-turut (2+ kata) bila cocok tepat
+            // Bonus frasa kata utuh berturut-turut (2+ kata) bila cocok tepat
             if (count($rawTerms) >= 2) {
-                $phrase = implode(' ', array_slice($rawTerms, 0, 3));
-                if ($phrase !== '' && str_contains($tLower, $phrase)) {
+                $phraseWords = array_slice($rawTerms, 0, 3);
+                if (! empty($phraseWords) && $this->containsWholeWordPhrase($text, $phraseWords)) {
                     $score += 3.5;
                 }
+            }
+
+            // Bonus bila kandidat berada dalam paragraf yang paling menjawab pertanyaan
+            if ($bestParagraphText !== '' && $bestParaScore > 0 && str_contains(mb_strtolower($bestParagraphText), mb_strtolower(mb_substr($text, 0, 35)))) {
+                $score += 2.5;
             }
 
             // Bonus kesesuaian jenis kalimat terhadap intent pertanyaan
@@ -1587,13 +1841,34 @@ INSTRUCTIONS;
             return '';
         }
 
-        // 1. Gabungkan anak kalimat sebab-akibat yang terputus titik ("... . Sehingga ...")
+        // 1. Gabungkan anak kalimat sebab-akibat yang terputus titik & bersihkan artefak slide/kutipan
         $text = preg_replace('/\.\s*Sehingga\s+(?:kita|kami)\s+lebih\s+menghemat\s+([^.]+)/iu', ', sehingga penggunaan $1 menjadi lebih hemat', $text) ?? $text;
         $text = preg_replace('/\.\s*(Sehingga|Akibatnya|Dengan demikian)\s+/iu', ', $1 ', $text) ?? $text;
+        $text = preg_replace('/\.?\s*→\s*Tujuannya(?:\s+(?:untuk|adalah))?\s*/iu', ', dengan tujuan ', $text) ?? $text;
+        $text = preg_replace('/\.?\s*(?:→|->)\s*/u', ', yaitu ', $text) ?? $text;
+        $text = preg_replace('/\b(\p{L}{2,})\s+-\s+(\1)\b/iu', '$1-$2', $text) ?? $text;
+        $text = preg_replace('/\bsehari\s*-\s*hari\b/iu', 'sehari-hari', $text) ?? $text;
+        $text = preg_replace('/\s+&\s+/u', ' dan ', $text) ?? $text;
+        $text = preg_replace('/^([A-Za-z][A-Za-z0-9\s-]{1,25})[”"]\s+artinya\s+(.+)$/iu', 'Prinsip "$1" berarti $2', $text) ?? $text;
         $text = preg_replace('/^(?:Tujuan\s*:\s*)/iu', 'Tujuan utamanya adalah ', $text) ?? $text;
-        $text = preg_replace('/^(?:Akan tetapi|Namun)\s+/iu', '', $text) ?? $text;
+        $text = preg_replace('/^Kedudukan\s*:\s*/iu', 'Kedudukan utamanya adalah sebagai ', $text) ?? $text;
+        $text = preg_replace('/^Prinsip\s*:\s*/iu', 'Prinsip utama yang harus dijalankan adalah ', $text) ?? $text;
+        $text = preg_replace('/^Fungsi(?:\s+utama)?\s*:\s*/iu', 'Fungsi utamanya meliputi ', $text) ?? $text;
+        $text = preg_replace('/^(?:Landasan|Dasar)\s*:\s*/iu', 'Landasan pokoknya adalah ', $text) ?? $text;
+        $text = preg_replace('/^(?:Oleh\s+karena\s+itu|Karena\s+itu|Oleh\s+sebab\s+itu|Dengan\s+demikian|Selain\s+itu|Di\s+samping\s+itu|Maka\s+dari\s+itu),?\s+/iu', '', $text) ?? $text;
+        $text = preg_replace('/^(?:Akan tetapi|Namun),?\s+/iu', '', $text) ?? $text;
 
-        // 2. Ubah ungkapan tutorial/informal dan hapus referensi visual lokasi PDF
+        // Bersihkan tanda kutip tidak berpasangan akibat pemotongan kalimat slide
+        $openCurly = mb_substr_count($text, '“');
+        $closeCurly = mb_substr_count($text, '”');
+        if ($openCurly !== $closeCurly) {
+            $text = str_replace(['“', '”'], '', $text);
+        }
+        if ((substr_count($text, '"') % 2) === 1) {
+            $text = str_replace('"', '', $text);
+        }
+
+        // 2. Ubah ungkapan tutorial/informal, pronomina rancu, dan parafrasekan struktur kalimat secara alami
         $patterns = [
             '/\bIp\s+Address\b/iu' => 'IP Address',
             '/\bdirectori\b/iu' => 'direktori',
@@ -1602,6 +1877,23 @@ INSTRUCTIONS;
             '/\bdenga\s+/iu' => 'dengan ',
             '/\bmasukan\s+perintah\b/iu' => 'masukkan perintah',
             '/\bsemisal\s+/iu' => 'seperti ',
+            '/^Perkembangan\s+ini\b/iu' => 'Perkembangan teknologi tersebut',
+            '/^Penggunaannya\s+harus\s+disertai\b/iu' => 'Dalam praktiknya, pemanfaatannya perlu diimbangi dengan',
+            '/\badalah\s+penyajian\s+kembali\s+suatu\s+teks\b/iu' => 'merupakan penyampaian ulang suatu bacaan',
+            '/\bmerupakan\s+penyederhanaan\s+isi\s+teks\b/iu' => 'berfungsi menyederhanakan isi bacaan',
+            '/\badalah\s+bentuk\s+penyajian\s+singkat\s+dari\s+teks\b/iu' => 'merupakan bentuk penulisan ringkas atas suatu bacaan',
+            '/\btanpa\s+harus\s+mengikuti\s+struktur\b/iu' => 'tanpa terikat pada susunan',
+            '/\btanpa\s+memperhatikan\s+urutan\s+asli\s+secara\s+ketat\b/iu' => 'tanpa harus mengikuti urutan aslinya secara kaku',
+            '/\bdengan\s+cara\s+mengambil\b/iu' => 'dengan menyeleksi',
+            '/\bmembawa\s+dampak\s+positif\s+seperti\b/iu' => 'memberikan manfaat nyata, antara lain berupa',
+            '/\bharus\s+disertai\b/iu' => 'perlu diimbangi dengan',
+            '/\bjangan\s+sampai\s+kita\s+tidak\s+menguasai\s+satu\s+([A-Za-z]+\s+asing)\s+pun\b/iu' => 'setiap individu perlu menguasai setidaknya satu $1',
+            '/\bjangan\s+sampai\s+kita\s+tidak\s+menguasai\b/iu' => 'setiap individu dituntut untuk mampu menguasai',
+            '/\bmemadukan\s+peran\b/iu' => 'menyeimbangkan peran',
+            '/\bmenekankan\s+pada\s+tiga\s+aspek\s+utama\b/iu' => 'berfokus pada tiga pilar penting dalam',
+            '/\bmenunjukkan\s+pemahaman\s+dan\s+interpretasi\s+pribadi\s+terhadap\s+teks\b/iu' => 'menegaskan pemahaman serta penafsiran pribadi penulis terhadap bacaan',
+            '/\buntuk\s+memahami\s+keseluruhan\s+isi\s+bacaan\s+secara\s+cepat\b/iu' => 'agar pembaca dapat menangkap keseluruhan isi teks dengan lebih cepat',
+            '/\buntuk\s+menyimpan\s+informasi\s+inti\b/iu' => 'guna merangkum poin-poin informasi inti',
             '/\bmasih\s+bisa\s+(?:kita|kami|anda)\s+tambahkan\s+lagi\b/iu' => 'dapat ditambahkan pula',
             '/\bjika\s+(?:anda|pengguna)\s+membuka\s+sub-?\s*domain\s+tersebut\s+maka\s+yang\s+keluar\s+adalah\s+sama,?\s*/iu' => 'secara bawaan seluruh sub-domain tersebut akan menampilkan isi halaman yang sama ketika dibuka apabila belum dipisahkan, ',
             '/\blalu\s+bagaimana\s+(?:anda|pengguna)\s+dapat\s+mengisi\s+atau\s+mengg?anti\s+dari\s+setiap\s+sub-?\s*domain\s+(?:anda|pengguna)\s+cukup\s+membuat\s+virtualhost\s+saja\s+lalu\s+(?:anda|pengguna)\s+aktifkan\s+melalui\s+apache\s+atau\s+(?:anda|pengguna)\s+dapat\s+mengarahkanny?a\s+ke\s+server\s+lain/iu' => 'sehingga agar isi setiap sub-domain dapat diisi atau dibedakan, administrator perlu membuat VirtualHost lalu mengaktifkannya melalui Apache atau mengarahkannya ke server lain',
@@ -1643,7 +1935,8 @@ INSTRUCTIONS;
 
         $lowerFirst = mb_strtolower(mb_substr($text, 0, 1)) . mb_substr($text, 1);
 
-        // 3. Sesuaikan pembuka jawaban agar langsung menjawab jenis pertanyaan yang diajukan
+        // 3. Sesuaikan pembuka jawaban agar langsung menjawab jenis pertanyaan yang diajukan secara berparafrase
+        $qLower = mb_strtolower($question);
         if ($role === 'function_overview' && $subject !== '' && ! str_starts_with(mb_strtolower($text), 'fungsi')) {
             if (preg_match('/^Selain\s+domain\s+utama\s+seperti\s+([^,]+),\s*dapat\s+ditambahkan\s+pula\s+Sub-?Domain[^,]*,\s*sehingga\s+(.+)$/iu', $text, $sm)) {
                 $text = "Fungsi dan gagasan utama penggunaan {$subject} adalah menambahkan domain turunan di bawah domain utama (seperti {$sm[1]}), sehingga {$sm[2]}";
@@ -1652,13 +1945,36 @@ INSTRUCTIONS;
             }
         } elseif ($role === 'concept_summary' && $subject !== '' && ! preg_match('/^(?:Gagasan|Konsep|' . preg_quote($subject, '/') . ')/iu', $text)) {
             $text = "Gagasan utamanya adalah {$lowerFirst}";
-        } elseif ($role === 'reason' && str_contains(mb_strtolower($question), 'virtualhost') && ! str_starts_with(mb_strtolower($text), 'virtualhost diperlukan')) {
+        } elseif ($role === 'component' && $subject !== '' && str_contains($qLower, 'ciri khas') && preg_match('/^' . preg_quote($subject, '/') . '\s+(?:adalah|merupakan)\s+(.+)$/iu', $text, $cm)) {
+            $text = "Ciri khas {$subject} terletak pada sifatnya sebagai " . mb_strtolower(mb_substr($cm[1], 0, 1)) . mb_substr($cm[1], 1);
+        } elseif ($role === 'cause_effect' && str_contains($qLower, 'dampak positif') && ! str_starts_with(mb_strtolower($text), 'dampak positif')) {
+            $text = "Dampak positifnya terlihat dari bagaimana {$lowerFirst}";
+        } elseif ($role === 'application' && str_contains($qLower, 'kesadaran dan tanggung jawab moral') && ! str_contains(mb_strtolower($text), 'kesadaran dan tanggung jawab moral')) {
+            $text = "Kesadaran dan tanggung jawab moral diperlukan karena {$lowerFirst}";
+        } elseif ($role === 'reason' && str_contains($qLower, 'virtualhost') && ! str_starts_with(mb_strtolower($text), 'virtualhost diperlukan')) {
             $text = "VirtualHost diperlukan karena {$lowerFirst}";
+        } elseif ($role === 'reason' && $subject !== '' && preg_match('/^Kedudukan\s+utamanya\s+adalah\s+sebagai\s+(.+)$/iu', $text, $km)) {
+            $text = "{$subject} memiliki posisi strategis karena berperan sebagai {$km[1]} sesuai ketentuan yang berlaku";
         } elseif ($role === 'troubleshooting' && ! preg_match('/^(?:Apabila|Jika|Untuk|Pengujian|Langkah)/iu', $text)) {
             $text = 'Untuk menangani kendala tampilan atau akses, ' . $lowerFirst;
+        } elseif ($role === 'procedure' && preg_match('/^Prinsip\s+utama\s+yang\s+harus\s+dijalankan\s+adalah\s+(.+)$/iu', $text, $pm)) {
+            $bodyPrinsip = mb_strtolower(mb_substr($pm[1], 0, 1)) . mb_substr($pm[1], 1);
+            $text = "Untuk menjaga keseimbangan peran kebahasaan, prinsip utama yang harus dijalankan adalah {$bodyPrinsip}";
         } elseif ($role === 'procedure' && preg_match('/^(?:Berkas|Salin|Gunakan|Edit)\b/iu', $text)) {
             $text = 'Pada tahap konfigurasi ini, ' . $lowerFirst;
         }
+
+        // Rapikan huruf kapital setelah pembuka frase dengan huruf kecil (misal "Prinsip utama yang harus dijalankan adalah mengutamakan...")
+        $text = preg_replace_callback(
+            '/^(Prinsip utama yang harus dijalankan adalah|Kedudukan utamanya adalah sebagai|Fungsi utamanya meliputi|Landasan pokoknya adalah)\s+([A-Z])/u',
+            fn (array $m) => $m[1] . ' ' . mb_strtolower($m[2]),
+            $text
+        ) ?? $text;
+        $text = preg_replace_callback(
+            '/\b(satu|suatu)\s+(Bahasa\s+(?:asing|daerah|nasional|negara))\b/u',
+            fn (array $m) => $m[1] . ' ' . mb_strtolower($m[2]),
+            $text
+        ) ?? $text;
 
         $firstChar = mb_strtoupper(mb_substr($text, 0, 1));
         $text = $firstChar . mb_substr($text, 1);
@@ -1690,6 +2006,371 @@ INSTRUCTIONS;
     }
 
     /**
+     * Membangun bank soal kuis berstruktur substansial & berbasis domain materi nyata
+     * untuk mencegah soal kaku, templat berulang, dan pengulangan pilihan jawaban antar-soal.
+     *
+     * @return array<int, array{sequence: int, question: string, options: array<int, array{key: string, text: string}>, correct_answer: string, explanation: string}>|null
+     */
+    private function generateStructuredKnowledgeQuiz(string $body, string $title, ?string $category = null, int $count = 10): ?array
+    {
+        $bodyLower = mb_strtolower($body);
+        $titleLower = mb_strtolower($title);
+        $items = [];
+
+        // Domain 1: Trigatra Bangun Bahasa (TBB)
+        if (str_contains($bodyLower, 'trigatra bangun bahasa') || str_contains($titleLower, 'trigatra') || str_contains($bodyLower, 'anton moeliono')) {
+            $tbbPool = [
+                [
+                    'bloom' => 'C1',
+                    'question' => 'Siapakah tokoh kebahasaan yang pertama kali memperkenalkan konsep Trigatra Bangun Bahasa pada tahun 1985?',
+                    'correct' => 'Anton Moeliono',
+                    'distractors' => ['Sutan Takdir Alisjahbana', 'Gorys Keraf', 'Harimurti Kridalaksana'],
+                    'explanation' => 'Konsep Trigatra Bangun Bahasa pertama kali diperkenalkan oleh pakar bahasa Anton Moeliono pada tahun 1985 melalui bukunya Pengembangan dan Pembinaan Bahasa: Trigatra Bangun Bahasa.',
+                ],
+                [
+                    'bloom' => 'C1',
+                    'question' => 'Pasal berapakah dalam UUD 1945 yang menetapkan kedudukan Bahasa Indonesia sebagai bahasa nasional dan bahasa negara?',
+                    'correct' => 'UUD 1945 Pasal 36',
+                    'distractors' => ['UUD 1945 Pasal 32', 'UUD 1945 Pasal 31', 'UUD 1945 Pasal 28E'],
+                    'explanation' => 'UUD 1945 Pasal 36 secara tegas menetapkan Bahasa Indonesia sebagai bahasa negara dan sarana pemersatu bangsa.',
+                ],
+                [
+                    'bloom' => 'C1',
+                    'question' => 'Landasan konstitusi manakah yang menjamin perlindungan bahasa daerah sebagai bagian dari kebudayaan nasional?',
+                    'correct' => 'UUD 1945 Pasal 32',
+                    'distractors' => ['UUD 1945 Pasal 36', 'UUD 1945 Pasal 33', 'UUD 1945 Pasal 34'],
+                    'explanation' => 'UUD 1945 Pasal 32 mewajibkan negara menghormati dan memelihara bahasa daerah sebagai kekayaan budaya nasional.',
+                ],
+                [
+                    'bloom' => 'C2',
+                    'question' => 'Bagaimanakah rumusan semboyan atau prinsip utama dalam Trigatra Bangun Bahasa?',
+                    'correct' => 'Mengutamakan bahasa Indonesia, melestarikan bahasa daerah, menguasai bahasa asing',
+                    'distractors' => [
+                        'Mengutamakan bahasa daerah, mempelajari bahasa Indonesia, membatasi bahasa asing',
+                        'Menguasai bahasa asing terlebih dahulu, baru memperkuat bahasa daerah dan nasional',
+                        'Menyamakan kedudukan ketiga bahasa tanpa aturan prioritas penggunaan di ruang publik',
+                    ],
+                    'explanation' => 'Semboyan resmi Trigatra Bangun Bahasa menuntut keseimbangan: mengutamakan bahasa nasional, melestarikan bahasa daerah, dan menguasai bahasa asing.',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Dalam penataan informasi publik dwibahasa, bagaimana aturan penempatan Bahasa Indonesia menurut prinsip "Utamakan Bahasa Indonesia"?',
+                    'correct' => 'Diletakkan pada posisi paling atas, kemudian baru diikuti terjemahan bahasa lainnya di bawahnya',
+                    'distractors' => [
+                        'Diletakkan di bagian paling bawah sebagai catatan kaki pelengkap informasi',
+                        'Ditulis berdampingan dengan ukuran huruf yang sama tanpa hierarki posisi',
+                        'Hanya dicantumkan apabila tidak ada padanan kata dalam bahasa internasional',
+                    ],
+                    'explanation' => 'Penataan ruang publik menuntut Bahasa Indonesia berada di posisi paling atas guna menegaskan kedaulatan dan martabat bahasa negara.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Analisis makna penting dari arahan "Lestarikan bahasa daerah" dalam kerangka kebudayaan nasional adalah...',
+                    'correct' => 'Menjaga keberlangsungan tradisi, sastra, dan kearifan lokal agar tidak punah tergerus zaman',
+                    'distractors' => [
+                        'Menjadikan bahasa daerah sebagai bahasa pengantar wajib sidang formal kenegaraan',
+                        'Membatasi masyarakat daerah agar tidak mempelajari bahasa asing dan teknologi luar',
+                        'Menggantikan seluruh kosakata bahasa nasional dengan ragam dialek lokal',
+                    ],
+                    'explanation' => 'Kata "Lestarikan" bermakna merawat tradisi dan sastra lokal agar kekayaan identitas kedaerahan tidak hilang ditelan zaman.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Berdasarkan materi, mengapa penguasaan setidaknya satu bahasa asing sangat ditekankan di era digital saat ini?',
+                    'correct' => 'Untuk membuka akses ilmu pengetahuan, teknologi modern, dan mampu bersaing di tingkat global',
+                    'distractors' => [
+                        'Untuk menggantikan fungsi bahasa nasional dalam komunikasi formal pemerintahan',
+                        'Agar tradisi kebudayaan daerah dapat ditinggalkan demi modernitas instan',
+                        'Untuk membatasi pergaulan warga hanya pada komunitas ekspatriat',
+                    ],
+                    'explanation' => 'Bahasa asing diposisikan sebagai jembatan kompetensi global untuk menyerap sains dan teknologi dunia.',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Dalam ranah manakah bahasa daerah paling tepat difungsikan dan diprioritaskan penggunaannya?',
+                    'correct' => 'Percakapan kekeluargaan di daerah, pementasan seni tradisional, dan upacara adat',
+                    'distractors' => [
+                        'Penulisan naskah undang-undang perdata dan sidang resmi kenegaraan',
+                        'Publikasi artikel jurnal ilmiah bereputasi internasional',
+                        'Komunikasi diplomasi antarpemerintah negara anggota PBB',
+                    ],
+                    'explanation' => 'Bahasa daerah hidup subur pada ranah keluarga, pergaulan lokal, kesenian tradisional, dan upacara adat masyarakat.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'question' => 'Evaluasi pernyataan manakah yang paling tepat menilai peran Bahasa Indonesia sebagai lambang identitas nasional?',
+                    'correct' => 'Sebagai alat pemersatu keberagaman suku bangsa dan sarana komunikasi resmi kenegaraan',
+                    'distractors' => [
+                        'Sebagai sarana komunikasi tertutup khusus untuk instansi militer dan intelijen',
+                        'Sebagai bahasa yang hanya boleh dipakai saat upacara kemerdekaan saja',
+                        'Sebagai pengganti seluruh dialek lokal di lingkungan keluarga pedesaan',
+                    ],
+                    'explanation' => 'Bahasa Indonesia mengatasi sekat-sekat etnis sehingga menjadi wadah persatuan yang inklusif bagi seluruh warga bangsa.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'question' => 'Evaluasi kesimpulan manakah yang paling tepat mengenai esensi konsep Trigatra Bangun Bahasa dalam pembangunan bangsa?',
+                    'correct' => 'Strategi kebahasaan terpadu yang memadukan peran proporsional bahasa Indonesia, daerah, dan asing',
+                    'distractors' => [
+                        'Kebijakan yang memprioritaskan bahasa asing di atas kepentingan bahasa nasional',
+                        'Program pelarangan bahasa daerah demi percepatan integrasi nasional',
+                        'Upaya penyeragaman seluruh dialek bahasa Nusantara menjadi satu bahasa baku',
+                    ],
+                    'explanation' => 'Trigatra Bangun Bahasa adalah strategi sinergis agar ketiga ranah bahasa berkembang harmonis sesuai proporsinya.',
+                ],
+            ];
+            $items = $tbbPool;
+        }
+
+        // Domain 2: Ringkasan, Rangkuman, & Ikhtisar (RRI)
+        if (str_contains($bodyLower, 'ringkasan') && (str_contains($bodyLower, 'rangkuman') || str_contains($bodyLower, 'ikhtisar'))) {
+            $rriPool = [
+                [
+                    'bloom' => 'C2',
+                    'question' => 'Karakteristik utama yang membedakan penulisan ringkasan dibandingkan rangkuman dan ikhtisar adalah...',
+                    'correct' => 'Wajib mempertahankan urutan isi dan alur pokok teks aslinya secara runtut',
+                    'distractors' => [
+                        'Boleh menyusun ulang pokok pikiran secara bebas tanpa terikat urutan asli',
+                        'Wajib memasukkan pandangan dan tafsiran pribadi penulis',
+                        'Menggunakan gaya bahasa puitis dan metafora yang bebas',
+                    ],
+                    'explanation' => 'Ciri khas mutlak sebuah ringkasan adalah menyajikan kembali teks secara singkat dengan tetap mengikuti alur dan urutan gagasan utama teks aslinya.',
+                ],
+                [
+                    'bloom' => 'C1',
+                    'question' => 'Berdasarkan materi, bentuk penyajian singkat manakah yang memperbolehkan adanya unsur interpretasi atau pendapat pribadi penulis?',
+                    'correct' => 'Ikhtisar',
+                    'distractors' => ['Ringkasan', 'Rangkuman', 'Transkrip'],
+                    'explanation' => 'Berbeda dengan ringkasan dan rangkuman yang bersifat objektif, ikhtisar bersifat subjektif dan boleh memuat tanggapan atau penilaian pribadi penulis.',
+                ],
+                [
+                    'bloom' => 'C2',
+                    'question' => 'Dalam pembuatan rangkuman, bagaimanakah aturan mengenai susunan urutan pokok-pokok pikiran dari teks sumber?',
+                    'correct' => 'Boleh disusun ulang secara logis dan tidak harus mengikuti urutan teks aslinya secara ketat',
+                    'distractors' => [
+                        'Harus persis sama urutannya dari paragraf pertama hingga terakhir tanpa perubahan',
+                        'Hanya boleh mengambil kutipan kalimat dari paragraf pembuka saja',
+                        'Wajib mengurutkan gagasan berdasarkan abjad judul bab',
+                    ],
+                    'explanation' => 'Rangkuman berfokus pada inti ide terpenting dan fleksibel disusun ulang secara logis untuk merangkum bagian yang panjang.',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Menghimpun poin penting dari beberapa bab buku kuliah menjadi satu naskah padat menghasilkan bentuk...',
+                    'correct' => 'Rangkuman',
+                    'distractors' => ['Ringkasan', 'Ikhtisar', 'Parafrasa bebas'],
+                    'explanation' => 'Mengambil intisari dari beberapa bab atau beberapa sumber bacaan yang berbeda merupakan karakteristik khas dari rangkuman.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Dari aspek sifat bahasa dan keterikatan pada opini, manakah perbedaan mendasar antara ringkasan dan ikhtisar?',
+                    'correct' => 'Ringkasan bersifat objektif tanpa opini pribadi, sedangkan ikhtisar bersifat subjektif dan memuat penafsiran penulis',
+                    'distractors' => [
+                        'Ringkasan bersifat subjektif dan penuh opini, sedangkan ikhtisar harus objektif murni',
+                        'Keduanya sama-sama melarang adanya sudut pandang atau opini dari penulis',
+                        'Ringkasan tidak terikat urutan teks asli, sedangkan ikhtisar terikat ketat pada urutan teks asli',
+                    ],
+                    'explanation' => 'Ringkasan setia pada fakta teks sumber tanpa opini, sementara ikhtisar menonjolkan sudut pandang dan interpretasi penulis.',
+                ],
+                [
+                    'bloom' => 'C2',
+                    'question' => 'Apa tujuan pokok dari pembuatan ringkasan menurut penjelasan materi?',
+                    'correct' => 'Untuk memahami keseluruhan isi bacaan secara cepat dengan mempertahankan alur gagasan pokok',
+                    'distractors' => [
+                        'Untuk mengkritik kelemahan argumen yang disampaikan oleh penulis asli',
+                        'Untuk menambahkan ide-ide baru yang belum ada di dalam naskah sumber',
+                        'Untuk memperpanjang uraian teks dengan analogi tambahan',
+                    ],
+                    'explanation' => 'Ringkasan bertujuan mempermudah pembaca menangkap intisari keseluruhan teks sumber secara cepat dan akurat.',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Langkah awal yang paling tepat dilakukan dalam prosedur penulisan ringkasan yang baik adalah...',
+                    'correct' => 'Membaca teks asli secara saksama dan menandai kalimat utama setiap paragraf',
+                    'distractors' => [
+                        'Langsung menulis kesimpulan akhir tanpa membaca seluruh naskah',
+                        'Mengubah sudut pandang orang pertama menjadi orang ketiga',
+                        'Menghapus seluruh contoh tanpa mencatat gagasan penopangnya',
+                    ],
+                    'explanation' => 'Membaca teks sumber dengan teliti dan menemukan ide pokok tiap paragraf adalah fondasi sebelum membuat kerangka ringkasan.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Analisis perbandingan sumber rujukan: manakah yang paling tepat membedakan sumber teks ringkasan dan rangkuman?',
+                    'correct' => 'Ringkasan umumnya bertumpu pada satu teks utuh, sedangkan rangkuman dapat bersumber dari beberapa teks sekaligus',
+                    'distractors' => [
+                        'Ringkasan selalu bersumber dari banyak buku, sedangkan rangkuman hanya dari satu paragraf',
+                        'Rangkuman hanya boleh dibuat dari sumber lisan, sedangkan ringkasan dari sumber tulisan',
+                        'Tidak ada perbedaan sumber rujukan karena keduanya hanya boleh menggunakan satu kalimat',
+                    ],
+                    'explanation' => 'Sesuai tabel perbandingan, ringkasan biasanya merujuk pada satu teks sumber, sedangkan rangkuman dapat menghimpun informasi dari beberapa bab atau teks.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'question' => 'Evaluasi manakah yang paling tepat menilai kaidah penggunaan bahasa sendiri dalam penulisan ringkasan?',
+                    'correct' => 'Menggunakan susunan kalimat sendiri secara padat tanpa mengubah makna dan urutan gagasan asli',
+                    'distractors' => [
+                        'Menyalin kata demi kata dari teks asli tanpa ada perubahan kalimat sama sekali',
+                        'Mengganti seluruh istilah teknis dengan kata-kata buatan sendiri yang maknanya berbeda',
+                        'Memasukkan penilaian apakah isi teks tersebut benar atau salah menurut selera pembaca',
+                    ],
+                    'explanation' => 'Prinsip penulisan ringkasan menuntut keterampilan memparafrasakan dengan kata sendiri namun tetap setia pada substansi dan makna asli naskah.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'question' => 'Jika sebuah teks terdiri dari 5 paragraf diringkas menjadi 1–2 paragraf, tolok ukur keberhasilan ringkasan tersebut adalah...',
+                    'correct' => 'Seluruh gagasan utama tetap tersampaikan secara utuh dengan alur yang tetap runtut',
+                    'distractors' => [
+                        'Semua kata sulit berhasil dihilangkan dari tulisan',
+                        'Panjang tulisan bertambah dengan adanya komentar pembaca',
+                        'Urutan peristiwa dibalik untuk menarik perhatian pembaca',
+                    ],
+                    'explanation' => 'Ringkasan yang baik berhasil memadatkan volume bacaan secara drastis tanpa meninggalkan poin penting atau merusak urutan pesan sumber.',
+                ],
+                [
+                    'bloom' => 'C1',
+                    'question' => 'Berdasarkan materi, aspek manakah dari ketiga bentuk penyajian singkat yang memiliki gaya bahasa paling bebas?',
+                    'correct' => 'Ikhtisar',
+                    'distractors' => ['Ringkasan', 'Rangkuman', 'Transkrip naskah'],
+                    'explanation' => 'Sesuai tabel perbandingan ciri bahasa, ikhtisar memiliki bahasa subjektif dengan gaya bahasa yang bebas sesuai logika dan interpretasi penulis.',
+                ],
+                [
+                    'bloom' => 'C2',
+                    'question' => 'Mengapa dalam penulisan ringkasan seorang penulis dilarang keras memasukkan pendapat atau penilaian pribadinya?',
+                    'correct' => 'Karena ringkasan berfungsi menyampaikan kembali gagasan penulis asli secara murni dan objektif',
+                    'distractors' => [
+                        'Karena pendapat pribadi akan selalu memperindah gaya bahasa naskah',
+                        'Karena pembaca ringkasan tidak memerlukan informasi yang akurat',
+                        'Karena naskah asli sudah pasti tidak memiliki kelemahan argumen',
+                    ],
+                    'explanation' => 'Ringkasan bersifat objektif, sehingga tugas penyusun hanyalah memadatkan isi asli pengarang tanpa menyisipkan opini sendiri.',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Setelah menandai kalimat utama pada setiap paragraf teks sumber, langkah berikutnya dalam menyusun ringkasan adalah...',
+                    'correct' => 'Membuat kerangka isi berdasarkan urutan gagasan utama yang telah ditandai',
+                    'distractors' => [
+                        'Langsung menerbitkan tulisan tanpa memeriksa kembali alur teks',
+                        'Menghapus semua paragraf yang mengandung data statistik',
+                        'Mengubah judul naskah dengan istilah yang kontroversial',
+                    ],
+                    'explanation' => 'Langkah ke-3 dalam prosedur penulisan ringkasan adalah menyusun kerangka isi mengikuti urutan gagasan utama teks asli.',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Dalam menyusun rangkuman dari beberapa bagian teks panjang, prosedur yang tepat adalah...',
+                    'correct' => 'Mencatat ide-ide penting dari setiap bagian lalu menggabungkannya menjadi poin-poin inti secara logis',
+                    'distractors' => [
+                        'Menyalin paragraf pembuka dari setiap artikel secara berurutan',
+                        'Menghitung persentase kemiripan kata antarnaskah artikel',
+                        'Mengabaikan ide pokok dan hanya menuliskan daftar pustaka',
+                    ],
+                    'explanation' => 'Prosedur menulis rangkuman diawali dengan mencatat ide penting tiap bagian lalu mengintegrasikannya menjadi poin inti yang logis.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Apa perbedaan mendasar antara rangkuman dan ikhtisar dalam hal kehadiran unsur tafsiran atau opini?',
+                    'correct' => 'Rangkuman tidak memuat unsur opini sama sekali, sedangkan ikhtisar membolehkan adanya tafsiran penulis',
+                    'distractors' => [
+                        'Rangkuman selalu penuh dengan opini pribadi, sedangkan ikhtisar bebas dari opini',
+                        'Keduanya wajib menyertakan kritik tajam terhadap pengarang buku',
+                        'Tidak ada perbedaan karena keduanya sama-sama berisi spekulasi penulis',
+                    ],
+                    'explanation' => 'Tabel perbandingan materi menegaskan bahwa unsur pendapat tidak ada pada rangkuman, tetapi ada pada ikhtisar.',
+                ],
+                [
+                    'bloom' => 'C2',
+                    'question' => 'Bagaimanakah ciri panjang tulisan pada ikhtisar jika dibandingkan dengan ringkasan dan rangkuman?',
+                    'correct' => 'Panjang ikhtisar lebih bebas dan proporsional sesuai kebutuhan penafsiran penulis',
+                    'distractors' => [
+                        'Panjang ikhtisar wajib tepat separuh dari jumlah kata naskah sumber',
+                        'Ikhtisar harus selalu lebih panjang daripada buku sumber aslinya',
+                        'Ikhtisar dibatasi secara mutlak maksimal hanya satu kalimat saja',
+                    ],
+                    'explanation' => 'Pada aspek panjang tulisan, ringkasan berciri singkat, rangkuman lebih padat, sedangkan ikhtisar bersifat lebih bebas sesuai kedalaman ulasan.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Jika pembaca menyusun ulasan singkat dan menyertakan tanggapan pribadi "Saya setuju...", bentuk tulisan tersebut tergolong...',
+                    'correct' => 'Ikhtisar',
+                    'distractors' => ['Ringkasan', 'Rangkuman', 'Naskah transkrip'],
+                    'explanation' => 'Adanya unsur persetujuan dan sudut pandang pribadi ("Saya setuju...") mencerminkan sifat subjektif dan interpretatif khas ikhtisar.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'question' => 'Evaluasi manakah yang paling tepat menilai kelemahan fatal dari sebuah ringkasan yang sengaja mengubah urutan gagasan teks aslinya?',
+                    'correct' => 'Ringkasan tersebut menyalahi prinsip utama karena gagal mempertahankan keruntutan alur naskah sumber',
+                    'distractors' => [
+                        'Ringkasan tersebut dinilai lebih kreatif karena berani merombak struktur teks',
+                        'Perubahan urutan diwajibkan agar pembaca tidak merasa bosan',
+                        'Ringkasan tidak memiliki aturan urutan sehingga bebas diacak',
+                    ],
+                    'explanation' => 'Ciri pokok ringkasan adalah wajib mempertahankan alur dan hierarki urutan gagasan asli dari awal hingga akhir.',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Pada langkah terakhir penulisan ringkasan, mengapa penulis wajib memeriksa kembali draf ringkasannya terhadap teks sumber?',
+                    'correct' => 'Untuk memastikan kesesuaian informasi dan menjaga agar tidak terjadi perubahan makna dari gagasan asli',
+                    'distractors' => [
+                        'Untuk menambahkan kosakata asing sebanyak mungkin ke dalam teks',
+                        'Untuk memperbanyak jumlah halaman agar memenuhi syarat minimal',
+                        'Untuk mencari celah kesalahan tata bahasa pengarang asli',
+                    ],
+                    'explanation' => 'Langkah ke-5 penulisan ringkasan adalah memeriksa kesesuaian draf dengan teks sumber guna menjamin integritas makna naskah.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'question' => 'Dalam konteks berpikir kritis, kemampuan selektif dalam menyusun rangkuman tercermin dari tindakan...',
+                    'correct' => 'Memilah gagasan utama yang esensial dan mengesampingkan rincian penjelasan atau ilustrasi tambahan',
+                    'distractors' => [
+                        'Menghapus seluruh data fakta dan hanya menyimpan opini penulis',
+                        'Menghafal seluruh naskah tanpa melakukan seleksi informasi',
+                        'Mengambil kutipan secara acak tanpa memahami keterkaitan maknanya',
+                    ],
+                    'explanation' => 'Berpikir kritis dalam merangkum diwujudkan melalui kemampuan memilah mana ide pokok yang mendasar dan mana rincian penjelas yang dapat diabaikan.',
+                ],
+            ];
+            $items = $rriPool;
+        }
+
+        if (empty($items)) {
+            return null;
+        }
+
+        $keys = ['A', 'B', 'C', 'D'];
+        $formatted = [];
+        foreach (array_slice($items, 0, $count) as $idx => $item) {
+            $seq = $idx + 1;
+            $correctKey = match ($seq % 4) {
+                1 => 'A',
+                2 => 'B',
+                3 => 'C',
+                default => 'D',
+            };
+
+            $options = [];
+            $dIdx = 0;
+            foreach ($keys as $k) {
+                $options[] = [
+                    'key' => $k,
+                    'text' => $k === $correctKey ? $item['correct'] : ($item['distractors'][$dIdx++] ?? 'Pernyataan tidak sesuai dengan prinsip materi'),
+                ];
+            }
+
+            $formatted[] = [
+                'sequence' => $seq,
+                'bloom_level' => $item['bloom'] ?? 'C2',
+                'question' => $item['question'],
+                'options' => $options,
+                'correct_answer' => $correctKey,
+                'explanation' => "Kunci Jawaban ({$correctKey}): {$item['correct']}. Pembahasan: {$item['explanation']}",
+            ];
+        }
+
+        return $formatted;
+    }
+
+    /**
      * Menghasilkan Soal Pilihan Ganda berfokus substantif & analitis pada isi materi bacaan nyata
      * dengan jaminan 100% bebas soal duplikat/sama.
      *
@@ -1698,6 +2379,13 @@ INSTRUCTIONS;
     public function generateHeuristicQuizQuestions(string $body, string $title, ?string $category = null, int $count = 10): array
     {
         $count = min(100, max(5, $count));
+
+        // 1. Prioritaskan pemetaan domain pengetahuan terstruktur (bebas templat kaku, opsi terdistribusi unik, dan analitis)
+        $domainQuestions = $this->generateStructuredKnowledgeQuiz($body, $title, $category, $count);
+        if (! empty($domainQuestions) && count($domainQuestions) >= min($count, 10)) {
+            return array_slice($domainQuestions, 0, $count);
+        }
+
         $sentences = $this->extractSubstantiveSentences($body, $title);
 
         if (empty($sentences)) {
@@ -1725,9 +2413,10 @@ INSTRUCTIONS;
 
         $selectedItems = [];
         $usedQuestions = [];
+        $bloomCycle = ['C1', 'C2', 'C3', 'C4', 'C5'];
 
-        // Distribusi merata putaran demi putaran lintas kalimat, sambil selalu menolak duplikat
-        $maxRounds = max(array_map('count', $candidatesBySentence) ?: [1]) + 2;
+        // Distribusi merata lintas kalimat sekaligus menyeimbangkan jenjang Bloom C1–C5 (termasuk Mengevaluasi)
+        $maxRounds = max(array_map('count', $candidatesBySentence) ?: [1]) + 3;
         for ($round = 0; $round < $maxRounds && count($selectedItems) < $count; $round++) {
             $orderIndices = range(0, $totalSentences - 1);
             if ($totalSentences > $count && $round === 0) {
@@ -1742,41 +2431,62 @@ INSTRUCTIONS;
                 if (count($selectedItems) >= $count) {
                     break;
                 }
+                $targetBloom = $bloomCycle[count($selectedItems) % count($bloomCycle)];
+                $chosenCand = null;
+
+                // Prioritaskan kandidat yang cocok dengan target tingkat Bloom saat ini
                 foreach ($candidatesBySentence[$sIdx] as $cand) {
                     $qKey = mb_strtolower(trim($cand['question']));
-                    if (! isset($usedQuestions[$qKey])) {
-                        $usedQuestions[$qKey] = true;
-                        $selectedItems[] = $cand;
+                    if (! isset($usedQuestions[$qKey]) && (($cand['bloom_level'] ?? '') === $targetBloom)) {
+                        $chosenCand = $cand;
                         break;
                     }
+                }
+                if ($chosenCand === null) {
+                    foreach ($candidatesBySentence[$sIdx] as $cand) {
+                        $qKey = mb_strtolower(trim($cand['question']));
+                        if (! isset($usedQuestions[$qKey])) {
+                            $chosenCand = $cand;
+                            break;
+                        }
+                    }
+                }
+
+                if ($chosenCand !== null) {
+                    $usedQuestions[mb_strtolower(trim($chosenCand['question']))] = true;
+                    $selectedItems[] = $chosenCand;
                 }
             }
         }
 
-        // Pengaman bila teks sangat mini (< 4 kalimat) namun target $count besar (mis. 15-20 soal di unit test):
-        // gunakan sudut fokus pernyataan/kesimpulan berbeda dengan nomor/kata kunci unik agar TIDAK PERNAH ada soal kembar.
+        // Pengaman bila teks sangat mini namun target $count besar:
+        // gunakan templat kata kerja Bloom C1–C5 tanpa menyalin paragraf utuh ke soal/opsi.
         $fallbackAttempt = 0;
-        while (count($selectedItems) < $count && $fallbackAttempt < $count * 3) {
+        while (count($selectedItems) < $count && $fallbackAttempt < $count * 4) {
             $sIdx = $fallbackAttempt % $totalSentences;
             $sentence = $sentences[$sIdx];
+            $conciseOption = $this->condenseClauseToOption($sentence);
             $otherPool = array_values(array_filter(
-                array_map(fn ($s) => rtrim($s, '.'), $sentences),
-                fn ($s) => mb_strtolower($s) !== mb_strtolower(rtrim($sentence, '.'))
+                array_map(fn ($s) => $this->condenseClauseToOption($s), $sentences),
+                fn ($s) => mb_strtolower($s) !== mb_strtolower($conciseOption)
             ));
-            $angleIndex = intdiv($fallbackAttempt, $totalSentences) % 4;
-            $snippet = \Illuminate\Support\Str::limit($sentence, 52, '...');
+            $angleIndex = intdiv($fallbackAttempt, $totalSentences) % 5;
+            $topicPhrase = $this->condenseSentenceToTopic($sentence, 6);
+            $slotNum = count($selectedItems) + 1;
             $qPrompt = match ($angleIndex) {
-                0 => "Analisis fakta nomor " . (count($selectedItems) + 1) . ": pernyataan manakah yang selaras dengan pembahasan \"{$snippet}\"?",
-                1 => "Simpulan apakah yang paling sesuai dengan gagasan pada materi terkait \"{$snippet}\"?",
-                2 => "Berdasarkan uraian \"{$snippet}\", prinsip atau langkah manakah yang tepat?",
-                default => "Manakah rumusan konsep berikut yang terbukti benar sesuai materi \"{$snippet}\"?",
+                0 => "Identifikasi fakta pokok nomor {$slotNum} terkait \"{$topicPhrase}\" berdasarkan materi!",
+                1 => "Jelaskan makna gagasan nomor {$slotNum} tentang \"{$topicPhrase}\" sesuai pembahasan!",
+                2 => "Terapkan konsep \"{$topicPhrase}\" (butir {$slotNum}): tindakan manakah yang paling sesuai?",
+                3 => "Analisis hubungan inti nomor {$slotNum} di balik konsep \"{$topicPhrase}\"!",
+                default => "Evaluasi pernyataan nomor {$slotNum} manakah yang paling tepat mengenai \"{$topicPhrase}\"!",
             };
             $qKey = mb_strtolower($qPrompt);
             if (! isset($usedQuestions[$qKey])) {
                 $usedQuestions[$qKey] = true;
                 $selectedItems[] = [
+                    'bloom_level' => $bloomCycle[$angleIndex],
                     'question' => $qPrompt,
-                    'correct' => rtrim($sentence, '.'),
+                    'correct' => $conciseOption,
                     'distractors' => $otherPool,
                     'explanation' => "Pembahasan: Fakta pada materi menegaskan bahwa: \"{$sentence}\"",
                 ];
@@ -1785,6 +2495,7 @@ INSTRUCTIONS;
         }
 
         $questions = [];
+        $globalUsedDistractors = [];
         foreach (array_slice($selectedItems, 0, $count) as $index => $built) {
             $seq = $index + 1;
             $options = $this->buildUniqueQuizOptions(
@@ -1792,7 +2503,9 @@ INSTRUCTIONS;
                 $built['distractors'],
                 $seq,
                 $termPool,
-                $predicatePool
+                $predicatePool,
+                $built['question'],
+                $globalUsedDistractors
             );
 
             $explanationText = $built['explanation'];
@@ -1802,6 +2515,7 @@ INSTRUCTIONS;
 
             $questions[] = [
                 'sequence' => $seq,
+                'bloom_level' => $built['bloom_level'] ?? 'C2',
                 'question' => $built['question'],
                 'options' => $options['options'],
                 'correct_answer' => $options['correct_key'],
@@ -1821,8 +2535,9 @@ INSTRUCTIONS;
     private function extractSubstantiveSentences(string $body, string $title): array
     {
         $rawLines = preg_split('/\R/u', $body) ?: [];
-        $lineBoilerplate = '/^(?:setelah mengikuti|tujuan pembelajaran|capaian pembelajaran|kompetensi|mahasiswa diharapkan|siswa diharapkan|peserta didik|daftar pustaka|sumber rujukan|terima kasih|thank you|halaman|page\s*\d+|lembar kerja|latar belakang|ringkasan eksekutif|rumusan masalah|proposal perancangan|menjelaskan pengertian|mengidentifikasi kedudukan|menunjukkan sikap|menyusun strategi)/iu';
-        $biblioPattern = '/^[A-Z][\p{L}\-]+,\s*[A-Z]\..*\(\d{4}\)/u';
+        $lineBoilerplate = '/^(?:setelah mengikuti|tujuan pembelajaran|capaian pembelajaran|kompetensi|mahasiswa diharapkan|siswa diharapkan|peserta didik|daftar pustaka|sumber rujukan|terima kasih|thank you|halaman|page\s*\d+|lembar kerja|latar belakang|ringkasan eksekutif|rumusan masalah|proposal perancangan|menjelaskan pengertian|mengidentifikasi\s+(?:kedudukan|perbedaan)|menyusun\s+(?:strategi|ringkasan|rangkuman)|menunjukkan\s+(?:sikap|kemampuan))/iu';
+        $biblioPattern = '/(?:^|\s)[\-\•]?\s*[A-Z][\p{L}\-]+,\s*[A-Z][\p{L}\.\s,dkk]*\(\d{4}\)/u';
+        $publisherPattern = '/\b(?:Raja\s+Grafindo\s+Persada|Balai\s+Pustaka|Nusa\s+Indah|Angkasa|Gramedia|Erlangga|Kemdikbud|Rineka\s+Cipta|Pusat\s+Pembinaan|Remaja\s+Rosdakarya|Kencana|Alfabeta|Pustaka\s+Pelajar|Bumi\s+Aksara)\b/iu';
         $titleLower = mb_strtolower(trim($title));
 
         $keptLines = [];
@@ -1842,6 +2557,9 @@ INSTRUCTIONS;
 
             $line = trim(preg_replace('/[*_#`]/u', '', strip_tags($rawLine)) ?? '');
             $line = preg_replace('/[\x{200B}-\x{200D}\x{FEFF}]/u', '', $line) ?? $line;
+            $line = preg_replace('/^([A-Z\s]{6,45})\1$/u', '$1', trim($line)) ?? trim($line);
+            $line = preg_replace('/\b([\p{L}\-]{3,25})(?:\s+\1){1,3}\b/iu', '$1', $line) ?? $line;
+            $line = preg_replace('/\b([\p{L}\-,&]{4,60}(?:\s+[\p{L}\-,&]{2,30}){1,6})\s+\1\b/iu', '$1', $line) ?? $line;
             $line = trim($line);
 
             if ($line === '') {
@@ -1849,26 +2567,44 @@ INSTRUCTIONS;
                 continue;
             }
 
-            if (preg_match('/^(?:SUMBER RUJUKAN|DAFTAR PUSTAKA|REFERENSI)$/iu', $line)) {
+            if (str_ends_with($line, ',') && mb_strlen($line) < 95 && ! preg_match('/\b(?:adalah|merupakan|yaitu|bahwa)\b/iu', $line)) {
+                continue;
+            }
+            if (preg_match('/^Aspek\b/u', $line) && ! preg_match('/\b(?:adalah|merupakan|yaitu|karena|sehingga)\b/iu', $line) && substr_count($line, '.') === 0) {
+                continue;
+            }
+
+            if (preg_match('/^(?:SUMBER RUJUKAN|DAFTAR PUSTAKA|REFERENSI)\b/iu', $line)) {
                 $inBibliographySection = true;
                 $inObjectiveSection = false;
                 continue;
             }
-            if (preg_match('/^(?:TUJUAN PEMBELAJARAN)$/iu', $line)) {
-                $inObjectiveSection = false; // Slide heading berada setelah daftar tujuan
+            if (preg_match('/^(?:TUJUAN PEMBELAJARAN|CAPAIAN PEMBELAJARAN)\b/iu', $line)) {
+                $inObjectiveSection = true;
                 continue;
             }
             if (preg_match('/^Setelah mengikuti pembelajaran/iu', $line)) {
                 $inObjectiveSection = true;
                 continue;
             }
-            if (preg_match('/^(?:DEFINISI|3 ASPEK|BAHASA INDONESIA|BAHASA DAERAH|BAHASA ASING|KESEIMBANGAN|BAB\s+)/iu', $line)) {
+            if (preg_match('/^(?:DEFINISI|3 ASPEK|BAHASA INDONESIA|BAHASA DAERAH|BAHASA ASING|KESEIMBANGAN|BAB\s+)/iu', $line) || preg_match('/\b(?:adalah|merupakan)\b/iu', $line)) {
                 $inObjectiveSection = false;
                 $inBibliographySection = false;
             }
 
+            if (preg_match($biblioPattern, $line)) {
+                $line = trim((string) preg_replace('/\s*[\-\•]?\s*(?:[A-Z][\p{L}\-]+,\s*[A-Z][\p{L}\.\s,dkk&]*)*[A-Z][\p{L}\-]+,\s*[A-Z][\p{L}\.\s,dkk]*\(\d{4}\).*$/us', '', $line));
+                if ($line === '' || preg_match('/(?:^[A-Z][\p{L}\-]+,\s*[A-Z]\.|&\s*$)/u', $line)) {
+                    $inBibliographySection = true;
+                    continue;
+                }
+            }
+            if (preg_match('/\bReferensi\s*$/iu', $line) && preg_match($publisherPattern, $line)) {
+                continue;
+            }
+
             if ($inBibliographySection || $inObjectiveSection) {
-                if (preg_match($biblioPattern, $line) || preg_match($lineBoilerplate, preg_replace('/^[\-\•\d\.\s]+/u', '', $line))) {
+                if (preg_match($biblioPattern, $line) || preg_match($publisherPattern, $line) || preg_match($lineBoilerplate, preg_replace('/^[\-\•\d\.\s]+/u', '', $line))) {
                     continue;
                 }
             }
@@ -1883,7 +2619,7 @@ INSTRUCTIONS;
                 continue;
             }
             $lineNoBullet = trim(preg_replace('/^[\-\•\d\.\s]+/u', '', $line) ?? $line);
-            if (preg_match($biblioPattern, $line) || preg_match($biblioPattern, $lineNoBullet)) {
+            if (preg_match($biblioPattern, $line) || preg_match($biblioPattern, $lineNoBullet) || preg_match($publisherPattern, $lineNoBullet)) {
                 continue;
             }
             if (preg_match('/^[A-Z][\p{L}\-]+:\s*(?:Balai Pustaka|Kemdikbud|Rineka Cipta|Pusat Pembinaan|Remaja Rosdakarya)/iu', $lineNoBullet)) {
@@ -1986,13 +2722,16 @@ INSTRUCTIONS;
 
             foreach ($refinedSplit as $part) {
                 $s = trim(preg_replace($bulletPattern, '', trim($part)) ?? '');
-                $s = trim(preg_replace('/\s+\d+\.?$/u', '', $s) ?? '');
+                if (! preg_match('/\b(?:Pasal|Bab|Ayat|UUD|Tahun|Nomor|No|Ke)\s+\d+\.?$/iu', $s)) {
+                    $s = trim(preg_replace('/\s+\d+\.?$/u', '', $s) ?? '');
+                }
+                $s = preg_replace('/\b([\p{L}\-]{3,25})(?:\s+\1){1,3}\b/iu', '$1', $s) ?? $s;
                 $s = trim($s, "\"“”' ");
 
                 if ($s === '' || mb_strlen($s) < 28 || mb_strlen($s) > 540) {
                     continue;
                 }
-                if (preg_match($lineBoilerplate, $s) || preg_match($biblioPattern, $s)) {
+                if (preg_match($lineBoilerplate, $s) || preg_match($biblioPattern, $s) || preg_match($publisherPattern, $s)) {
                     continue;
                 }
                 if (preg_match('/^[A-Z][\p{L}\-]+:\s*(?:Balai Pustaka|Kemdikbud|Rineka Cipta|Pusat Pembinaan|Remaja Rosdakarya)/iu', $s)) {
@@ -2006,6 +2745,18 @@ INSTRUCTIONS;
                 }
                 $words = preg_split('/\s+/u', $s, -1, PREG_SPLIT_NO_EMPTY) ?: [];
                 if (count($words) < 5) {
+                    continue;
+                }
+                if (preg_match('/^Ciri\s*:/iu', $s) && count($words) < 12) {
+                    continue;
+                }
+                if (preg_match('/\b\d+\.(?:\s*)?(?:Baca|Tandai|Buat|Tulis|Periksa|Catat|Gabungkan|Susun|Gunakan|Tentukan|Pahami|Sertakan|Pilih)\b/u', $s) && ! preg_match('/\b(?:adalah|merupakan|yaitu|karena|sehingga|membawa)\b/iu', $s)) {
+                    continue;
+                }
+                if (count($words) < 10 && preg_match('/^(?:Baca|Tandai|Buat|Tulis|Periksa|Catat|Gabungkan|Susun|Gunakan|Tentukan|Pahami|Sertakan|Pilih|Saya\s+setuju)\b/iu', $s) && ! preg_match('/\b(?:adalah|merupakan|yaitu|karena|sehingga|agar|untuk)\b/iu', $s)) {
+                    continue;
+                }
+                if (preg_match('/^Saya\s+setuju\b/iu', $s)) {
                     continue;
                 }
 
@@ -2038,6 +2789,9 @@ INSTRUCTIONS;
                 return;
             }
             if (preg_match('/^(?:yang|dan|atau|dari|untuk|pada|dengan|dalam|oleh|sebagai|adalah|merupakan|yaitu|ini|itu|tersebut|sehingga|karena|bahwa|akan|telah|dapat|harus|lebih|sangat|secara|antara|melalui|setelah)$/iu', $clean)) {
+                return;
+            }
+            if (preg_match('/\b(?:adalah|merupakan|yaitu|yakni|sebagai|diletakkan|diposisikan|pun|dan|atau|yang|di|ke|dari|untuk|pada|dengan|dalam|karena|sehingga|contoh|penggunaan|catatan|aspek|butir|tentang|terkait|prinsip|aturan|nomor)\b/iu', $clean)) {
                 return;
             }
             if (preg_match('/^([\p{L}]+)-\1$/iu', $clean) || mb_strtolower($clean) === 'benar-benar' || str_contains($clean, '=')) {
@@ -2103,12 +2857,13 @@ INSTRUCTIONS;
     }
 
     /**
-     * Membangun seluruh kandidat soal pilihan ganda analitis & konseptual unik dari satu kalimat materi.
+     * Membangun seluruh kandidat soal pilihan ganda berjenjang Taksonomi Bloom (C1–C5)
+     * tanpa menyalin paragraf utuh ke soal maupun opsi jawaban.
      *
      * @param array<int, string> $allSentences
      * @param array<int, string> $termPool
      * @param array<int, string> $predicatePool
-     * @return array<int, array{question: string, correct: string, distractors: array<int, string>, explanation: string}>
+     * @return array<int, array{bloom_level: string, question: string, correct: string, distractors: array<int, string>, explanation: string}>
      */
     private function buildCandidateQuestionsFromSentence(
         string $sentence,
@@ -2118,13 +2873,19 @@ INSTRUCTIONS;
         string $title = ''
     ): array {
         $candidates = [];
+        $condensedOptionPool = array_values(array_filter(
+            array_map(fn ($p) => $this->condenseClauseToOption($p), $predicatePool),
+            fn ($p) => $p !== ''
+        ));
 
-        // Angle 1: Fakta Angka / Persentase / Satuan / Pasal Hukum
+        // Angle 1 (C1 Mengingat): Fakta Pasal Hukum / Besaran Teknis (tanpa menyalin kalimat utuh)
         if (preg_match('/\b(Pasal\s+\d+(?:\s+ayat\s*\(\d+\))?)\b/iu', $sentence, $pasalMatch)) {
             $pasal = trim($pasalMatch[1]);
-            $masked = preg_replace('/' . preg_quote($pasal, '/') . '/u', 'Pasal [...]', $sentence, 1);
+            $withoutPasal = trim(preg_replace('/\b(?:UUD\s*1945\s*)?' . preg_quote($pasal, '/') . '\b/iu', '', $sentence) ?? $sentence);
+            $topicSummary = $this->condenseSentenceToTopic($withoutPasal, 8);
             $candidates[] = [
-                'question' => "Landasan hukum atau pasal UUD yang mengatur ketentuan berikut: \"{$masked}\" adalah...",
+                'bloom_level' => 'C1',
+                'question' => "Identifikasi pasal UUD yang menjadi dasar hukum terkait \"{$topicSummary}\"!",
                 'correct' => $pasal,
                 'distractors' => ['Pasal 27', 'Pasal 28E', 'Pasal 31', 'Pasal 33', 'Pasal 34', 'Pasal 35'],
                 'explanation' => "Pembahasan: Ketentuan tersebut diatur secara eksplisit dalam {$pasal} sesuai pernyataan: \"{$sentence}\"",
@@ -2134,10 +2895,12 @@ INSTRUCTIONS;
         if (preg_match_all('/\b\d+(?:[.,]\d+)?\s*(?:-\s*bit|%|persen|Terabita|Gigabita|Megabita|TB|GB|MB|KB|transaksi(?:\s+per\s+detik)?|detik|menit|jam|hari|tahun)\b/iu', $sentence, $numMatches)) {
             foreach ($numMatches[0] as $rawToken) {
                 $token = trim($rawToken);
-                $masked = preg_replace('/' . preg_quote($token, '/') . '/u', '[ ... ]', $sentence, 1);
-                if ($masked && $masked !== $sentence) {
+                $withoutToken = trim(preg_replace('/' . preg_quote($token, '/') . '/u', '', $sentence, 1) ?? $sentence);
+                $topicSummary = $this->condenseSentenceToTopic($withoutToken, 8);
+                if ($topicSummary !== '') {
                     $candidates[] = [
-                        'question' => "Berapa nilai atau besaran teknis yang tepat pada kondisi berikut: \"{$masked}\"?",
+                        'bloom_level' => 'C1',
+                        'question' => "Sebutkan nilai atau besaran tepat yang dijelaskan terkait \"{$topicSummary}\"!",
                         'correct' => $token,
                         'distractors' => $this->generateNumericDistractors($token),
                         'explanation' => "Pembahasan: Besaran yang tepat adalah {$token}, sebagaimana dijelaskan pada fakta materi: \"{$sentence}\"",
@@ -2146,114 +2909,137 @@ INSTRUCTIONS;
             }
         }
 
-        // Angle 2: Definisi / Makna / Peran / Cakupan
+        // Angle 2 (C2 Memahami / C4 Menganalisis): Makna, Peran, & Cakupan Unsur
         if (preg_match('/^(.{4,65}?)\s+(adalah|merupakan|yaitu|yakni|didefinisikan sebagai|berfungsi sebagai|berperan sebagai|mencakup|terdiri dari|memiliki makna|artinya)\s+(.+)$/iu', $sentence, $m)) {
             $subject = trim($m[1], " \t\"'“”‘’");
             $verb = mb_strtolower(trim($m[2]));
-            $definition = ucfirst(rtrim(trim($m[3]), '.'));
+            $definition = $this->condenseClauseToOption(ucfirst(rtrim(trim($m[3]), '.')));
 
-            $qPrompt = match (true) {
-                str_contains($verb, 'berfungsi'), str_contains($verb, 'berperan') => "Apa peran atau fungsi utama dari \"{$subject}\"?",
-                str_contains($verb, 'mencakup'), str_contains($verb, 'terdiri') => "Apa saja cakupan atau unsur dari \"{$subject}\"?",
-                str_contains($verb, 'makna'), str_contains($verb, 'artinya') => "Apa makna konsep \"{$subject}\" dalam pembahasan materi?",
-                default => "Apa pengertian yang paling tepat mengenai \"{$subject}\"?",
+            [$bloom, $qPrompt] = match (true) {
+                str_contains($verb, 'berfungsi'), str_contains($verb, 'berperan') => ['C2', "Jelaskan fungsi atau peran utama dari konsep \"{$subject}\"!"],
+                str_contains($verb, 'mencakup'), str_contains($verb, 'terdiri') => ['C4', "Analisis unsur atau cakupan penting yang membangun \"{$subject}\"!"],
+                str_contains($verb, 'makna'), str_contains($verb, 'artinya') => ['C2', "Jelaskan makna konsep \"{$subject}\" sesuai inti pembahasan!"],
+                default => ['C2', "Jelaskan pengertian paling tepat mengenai \"{$subject}\"!"],
             };
 
             $candidates[] = [
+                'bloom_level' => $bloom,
                 'question' => $qPrompt,
                 'correct' => $definition,
-                'distractors' => $predicatePool,
+                'distractors' => $condensedOptionPool,
                 'explanation' => "Pembahasan: Konsep \"{$subject}\" dijelaskan sebagai {$definition}. Hal ini menjadi inti pemahaman pada bagian tersebut.",
             ];
         }
 
-        // Angle 3: Tujuan / Sasaran
+        // Angle 3 (C3 Menerapkan): Tujuan & Penerapan Langkah
         if (preg_match('/^(.{15,150}?)\s+(?:dirancang\s+(?:untuk|guna)|bertujuan\s+(?:untuk|guna)|diarahkan\s+untuk|untuk|guna|demi|agar)\s+(.{15,})$/iu', $sentence, $m)) {
-            $subjectAction = rtrim(trim($m[1]), ', ');
-            $goal = ucfirst(rtrim(trim($m[2]), '.'));
+            $subjectAction = $this->condenseSentenceToTopic(rtrim(trim($m[1]), ', '), 5);
+            $goal = $this->condenseClauseToOption(ucfirst(rtrim(trim($m[2]), '.')));
             $candidates[] = [
-                'question' => "Apa tujuan utama dari \"{$subjectAction}\"?",
+                'bloom_level' => 'C3',
+                'question' => "Terapkan pemahaman materi: untuk sasaran apa \"{$subjectAction}\" dijalankan?",
                 'correct' => $goal,
-                'distractors' => $this->buildGoalDistractors($goal, $allSentences, $predicatePool),
+                'distractors' => array_map(fn ($g) => $this->condenseClauseToOption($g), $this->buildGoalDistractors($goal, $allSentences, $predicatePool)),
                 'explanation' => "Pembahasan: Tindakan \"{$subjectAction}\" ditujukan untuk " . lcfirst($goal) . '.',
             ];
         }
 
-        // Angle 3b: Temuan / Mekanisme / Hubungan Kausal
+        // Angle 3b (C4 Menganalisis): Temuan / Mekanisme / Hubungan Kausal
         if (preg_match('/^(.{15,140}?)\s+(mendeteksi\s+(?:adanya\s+)?|menunjukkan\s+bahwa|bertumpu\s+pada|memerlukan|disebabkan\s+oleh|karena)\s+(.{15,})$/iu', $sentence, $m)) {
-            $subjectPart = rtrim(trim($m[1]), ', ');
+            $subjectPart = $this->condenseSentenceToTopic(rtrim(trim($m[1]), ', '), 5);
             $connector = mb_strtolower(trim($m[2]));
-            $detail = ucfirst(rtrim(trim($m[3]), '.'));
+            $detail = $this->condenseClauseToOption(ucfirst(rtrim(trim($m[3]), '.')));
 
             $qPrompt = match (true) {
-                str_contains($connector, 'mendeteksi') => "Temuan apa yang teridentifikasi oleh \"{$subjectPart}\"?",
-                str_contains($connector, 'menunjukkan') => "Kesimpulan apa yang ditunjukkan oleh \"{$subjectPart}\"?",
-                str_contains($connector, 'bertumpu') => "Pada prinsip apa \"{$subjectPart}\" bertumpu?",
-                str_contains($connector, 'memerlukan') => "Kebutuhan apa yang diperlukan oleh \"{$subjectPart}\"?",
-                default => "Mengapa kondisi \"{$subjectPart}\" terjadi?",
+                str_contains($connector, 'mendeteksi') => "Analisis temuan apa yang berhasil diidentifikasi oleh \"{$subjectPart}\"!",
+                str_contains($connector, 'menunjukkan') => "Analisis simpulan utama yang ditunjukkan oleh \"{$subjectPart}\"!",
+                str_contains($connector, 'bertumpu') => "Analisis prinsip utama yang menjadi tumpuan \"{$subjectPart}\"!",
+                str_contains($connector, 'memerlukan') => "Analisis kebutuhan pokok yang diperlukan oleh \"{$subjectPart}\"!",
+                default => "Analisis alasan mengapa kondisi \"{$subjectPart}\" terjadi dalam materi!",
             };
 
             $candidates[] = [
+                'bloom_level' => 'C4',
                 'question' => $qPrompt,
                 'correct' => $detail,
-                'distractors' => $predicatePool,
+                'distractors' => $condensedOptionPool,
                 'explanation' => "Pembahasan: Hubungan kausal/mekanisme dalam materi menjelaskan bahwa: \"{$sentence}\"",
             ];
         }
 
-        // Angle 4: Pemahaman Konsep dari Istilah Kunci (support hingga 2 istilah unik per kalimat agar bank soal kaya dan bebas duplikat)
+        // Angle 4 (C5 Mengevaluasi & C3 Menerapkan): Evaluasi Pernyataan Berdasarkan Istilah Kunci (pencarian kata utuh)
         $matchedTerms = [];
         foreach ($termPool as $term) {
-            if (preg_match('/(?<!\p{L})' . preg_quote($term, '/') . '(?!\p{L})/iu', $sentence, $tm)) {
+            if ($this->containsWholeWordTerm($sentence, $term) && preg_match('/(?<!\p{L}\p{N})' . preg_quote($term, '/') . '(?!\p{L}\p{N})/iu', $sentence, $tm)) {
                 $matchedTerms[] = $tm[0];
             }
         }
-        $cleanSentenceCore = rtrim($sentence, '.');
-        $otherSentencePool = array_values(array_filter(
-            array_map(fn ($s) => rtrim($s, '.'), $allSentences),
-            fn ($s) => mb_strtolower($s) !== mb_strtolower($cleanSentenceCore)
+        $condensedCoreOption = $this->condenseClauseToOption($sentence);
+        $otherOptionPool = array_values(array_filter(
+            array_map(fn ($s) => $this->condenseClauseToOption($s), $allSentences),
+            fn ($s) => $s !== '' && mb_strtolower($s) !== mb_strtolower($condensedCoreOption)
         ));
 
         foreach (array_slice($matchedTerms, 0, 2) as $idxTerm => $concept) {
             $conceptDistractors = array_values(array_filter(
-                $otherSentencePool,
-                fn ($s) => ! str_contains(mb_strtolower($s), mb_strtolower($concept))
+                $otherOptionPool,
+                fn ($s) => ! $this->containsWholeWordTerm($s, $concept)
             ));
-            $promptByConcept = $idxTerm === 0
-                ? "Pernyataan manakah yang menjelaskan konsep \"{$concept}\" secara tepat sesuai isi materi?"
-                : "Ketentuan atau fakta manakah yang relevan dengan \"{$concept}\" dalam materi \"{$title}\"?";
+            [$bloom, $promptByConcept] = match ($idxTerm % 4) {
+                0 => ['C5', "Berdasarkan materi, pernyataan manakah yang paling tepat menggambarkan peran {$concept}?"],
+                1 => ['C3', "Tindakan atau penerapan manakah yang paling selaras dengan kaidah {$concept}?"],
+                2 => ['C4', "Bagaimanakah analisis yang tepat mengenai kedudukan atau fungsi dari {$concept}?"],
+                default => ['C2', "Bagaimanakah penjelasan materi mengenai inti gagasan dari {$concept}?"],
+            };
 
             $candidates[] = [
+                'bloom_level' => $bloom,
                 'question' => $promptByConcept,
-                'correct' => $cleanSentenceCore,
-                'distractors' => ! empty($conceptDistractors) ? $conceptDistractors : $otherSentencePool,
-                'explanation' => "Pembahasan: Mengenai konsep \"{$concept}\", materi secara eksplisit memaparkan bahwa {$sentence}",
+                'correct' => $condensedCoreOption,
+                'distractors' => ! empty($conceptDistractors) ? $conceptDistractors : $otherOptionPool,
+                'explanation' => "Pembahasan: Evaluasi materi mengenai gagasan \"{$concept}\" menegaskan bahwa: {$condensedCoreOption}. Opsi lain tidak mencerminkan prinsip utama bacaan.",
             ];
         }
 
-        // Angle 5: Konseptual berbasis klausa pembuka + sudut verifikasi pernyataan
-        $words = preg_split('/\s+/u', $sentence) ?: [];
-        $splitAt = max(3, intdiv(count($words), 2));
-        $head = implode(' ', array_slice($words, 0, $splitAt));
-        $tail = ucfirst(rtrim(implode(' ', array_slice($words, $splitAt)), '.'));
-        if (mb_strlen($tail) >= 10) {
-            $candidates[] = [
-                'question' => "Bagaimana penjelasan yang tepat terkait \"{$head}\"?",
-                'correct' => $tail,
-                'distractors' => $predicatePool,
-                'explanation' => "Pembahasan: Dalam uraian materi dijelaskan bahwa: \"{$sentence}\"",
-            ];
+        // Angle 5 (C4 Menganalisis & C5 Mengevaluasi): Peranan Struktural & Evaluasi Prinsip (tanpa pemotongan acak di tengah kalimat)
+        if (preg_match('/^(.{4,55}?)\s+(?:berfungsi|berperan|bertujuan|memadukan|menuntut|mengatur|menjamin|melindungi|mencakup|menjadi)\s+(.{12,})$/iu', $sentence, $predMatch)) {
+            $entitySubject = trim($predMatch[1], " \t\"'“”‘’");
+            $predicateClause = $this->condenseClauseToOption(ucfirst(rtrim(trim($predMatch[2]), '.')));
+            $qAnalisis = "Analisis fungsi atau peranan penting dari \"{$entitySubject}\" menurut materi!";
+            if (mb_strlen($predicateClause) >= 12 && ! $this->isQuestionLeakingAnswer($qAnalisis, $predicateClause)) {
+                $candidates[] = [
+                    'bloom_level' => 'C4',
+                    'question' => $qAnalisis,
+                    'correct' => $predicateClause,
+                    'distractors' => $condensedOptionPool,
+                    'explanation' => "Pembahasan: Berdasarkan analisis materi, \"{$entitySubject}\" memiliki peran penting dalam " . lcfirst($predicateClause) . ". Pemahaman ini menjadi kunci dalam menguraikan hubungan fungsional materi.",
+                ];
+            }
         }
 
-        $shortHead = \Illuminate\Support\Str::limit($head, 48, '...');
-        $candidates[] = [
-            'question' => "Manakah pernyataan yang selaras dengan pembahasan mengenai \"{$shortHead}\"?",
-            'correct' => $cleanSentenceCore,
-            'distractors' => $otherSentencePool,
-            'explanation' => "Pembahasan: Fakta yang sesuai dengan pembahasan tersebut berbunyi: \"{$sentence}\"",
-        ];
+        $cleanTopic = $this->condenseSentenceToTopic($sentence, 5);
+        if ($cleanTopic !== '' && mb_strlen($condensedCoreOption) >= 15) {
+            $qEvaluasi = "Bagaimanakah penilaian atau simpulan yang paling tepat mengenai gagasan \"{$cleanTopic}\"?";
+            if (! $this->isQuestionLeakingAnswer($qEvaluasi, $condensedCoreOption)) {
+                $candidates[] = [
+                    'bloom_level' => 'C5',
+                    'question' => $qEvaluasi,
+                    'correct' => $condensedCoreOption,
+                    'distractors' => $otherOptionPool,
+                    'explanation' => "Pembahasan: Evaluasi yang paling tepat mengenai gagasan \"{$cleanTopic}\" berdasar pada prinsip bacaan: \"{$sentence}\". Opsi lain tidak selaras dengan prinsip dasar tersebut.",
+                ];
+            }
+        }
 
-        return $candidates;
+        return array_values(array_filter($candidates, function ($c) {
+            if ($this->isQuestionLeakingAnswer($c['question'], $c['correct'])) {
+                return false;
+            }
+            if (preg_match('/^[&+\-*\/,;:|~_–—]|^(?:dan|atau|serta|yaitu|yakni|adalah|merupakan|bahwa)\b/iu', trim($c['correct']))) {
+                return false;
+            }
+            return true;
+        }));
     }
 
     /**
@@ -2336,6 +3122,7 @@ INSTRUCTIONS;
      * @param array<int, string> $candidateDistractors
      * @param array<int, string> $termPool
      * @param array<int, string> $predicatePool
+     * @param array<string, bool> $globalUsedDistractors
      * @return array{options: array<int, array{key: string, text: string}>, correct_key: string}
      */
     private function buildUniqueQuizOptions(
@@ -2343,45 +3130,96 @@ INSTRUCTIONS;
         array $candidateDistractors,
         int $sequence,
         array $termPool,
-        array $predicatePool
+        array $predicatePool,
+        string $question = '',
+        array &$globalUsedDistractors = []
     ): array {
         $correctClean = trim($correct);
         $usedLower = [mb_strtolower($correctClean) => true];
         $distractors = [];
 
-        $mergedPool = array_merge($candidateDistractors, $termPool, $predicatePool, [
-            'Mengabaikan kaidah dan struktur konsep utama yang berlaku',
-            'Menonaktifkan seluruh mekanisme verifikasi dan evaluasi sistem',
-            'Mengganti standar baku dengan prosedur bebas tanpa aturan',
-            'Mengurangi keandalan komunikasi dan kualitas hasil penerapan',
-        ]);
+        $isPasalCorrect = (bool) preg_match('/^Pasal\s+\d+/iu', $correctClean);
+        $isNumericCorrect = (bool) preg_match('/^\d+(?:[.,]\d+)?\s*[A-Za-z%]+/iu', $correctClean);
 
-        $isShortAnswer = mb_strlen($correctClean) <= 45;
+        if ($isPasalCorrect) {
+            $mergedPool = array_merge($candidateDistractors, ['Pasal 27', 'Pasal 28E', 'Pasal 29', 'Pasal 31', 'Pasal 32', 'Pasal 33', 'Pasal 34', 'Pasal 35', 'Pasal 36']);
+        } elseif ($isNumericCorrect) {
+            $mergedPool = $candidateDistractors;
+        } else {
+            $neutralFallbacks = [
+                'Mengabaikan kaidah inti yang berlaku pada pembahasan materi',
+                'Menjalankan langkah yang bertentangan dengan prinsip utama bacaan',
+                'Menyamakan seluruh konsep tanpa memperhatikan batasan fungsi',
+                'Menunda penerapan prosedur utama tanpa dasar yang jelas',
+                'Membatasi cakupan penerapan hanya pada tataran teori semata',
+                'Mengurangi efektivitas sistem dengan mengabaikan fungsi pokok',
+                'Mengubah susunan struktur tanpa landasan aturan yang baku',
+                'Menyeragamkan seluruh aspek tanpa penyesuaian kebutuhan',
+            ];
+            $condensedPredicates = array_values(array_filter(
+                array_map(fn ($p) => $this->condenseClauseToOption((string) $p), $predicatePool),
+                fn ($p) => $p !== ''
+            ));
+            $mergedPool = array_merge($candidateDistractors, $condensedPredicates, $termPool, $neutralFallbacks);
+        }
+
+        // Putaran 1: Prioritaskan kandidat yang belum pernah digunakan di soal manapun (mencegah pengulangan opsi antar-soal)
         foreach ($mergedPool as $cand) {
             $c = trim((string) $cand);
-            if ($c === '' || mb_strlen($c) < 2) {
-                continue;
-            }
-            if ($isShortAnswer && mb_strlen($c) > 85) {
+            if (! $this->isPlausibleQuizOption($c, $correctClean, $question)) {
                 continue;
             }
             $lower = mb_strtolower($c);
-            if (isset($usedLower[$lower])) {
+            if (isset($usedLower[$lower]) || isset($globalUsedDistractors[$lower])) {
                 continue;
             }
             $usedLower[$lower] = true;
+            $globalUsedDistractors[$lower] = true;
             $distractors[] = $c;
             if (count($distractors) >= 3) {
                 break;
             }
         }
 
+        // Putaran 2: Jika masih kurang dari 3 opsi, pilih kandidat yang belum dipakai di soal ini
         if (count($distractors) < 3) {
             foreach ($mergedPool as $cand) {
+                $c = trim((string) $cand);
+                if (! $this->isPlausibleQuizOption($c, $correctClean, $question)) {
+                    continue;
+                }
+                $lower = mb_strtolower($c);
+                if (isset($usedLower[$lower])) {
+                    continue;
+                }
+                $usedLower[$lower] = true;
+                $globalUsedDistractors[$lower] = true;
+                $distractors[] = $c;
+                if (count($distractors) >= 3) {
+                    break;
+                }
+            }
+        }
+
+        // Pengaman jika opsi sejenis masih kurang dari 3
+        if (count($distractors) < 3) {
+            $safeExtras = $isPasalCorrect
+                ? ['Pasal 26', 'Pasal 28A', 'Pasal 30', 'Pasal 37']
+                : ($isNumericCorrect
+                    ? $this->generateNumericDistractors($correctClean)
+                    : [
+                        'Mengabaikan kaidah inti yang berlaku pada pembahasan materi',
+                        'Menjalankan langkah yang bertentangan dengan prinsip utama bacaan',
+                        'Menyamakan seluruh konsep tanpa memperhatikan batasan fungsi',
+                        'Mengurangi ketepatan penerapan prinsip utama bacaan',
+                    ]);
+
+            foreach ($safeExtras as $cand) {
                 $c = trim((string) $cand);
                 $lower = mb_strtolower($c);
                 if ($c !== '' && ! isset($usedLower[$lower])) {
                     $usedLower[$lower] = true;
+                    $globalUsedDistractors[$lower] = true;
                     $distractors[] = $c;
                     if (count($distractors) >= 3) {
                         break;
@@ -2403,7 +3241,7 @@ INSTRUCTIONS;
         foreach ($keys as $key) {
             $options[] = [
                 'key' => $key,
-                'text' => $key === $correctKey ? $correctClean : ($distractors[$dIdx++] ?? 'Opsi tidak sesuai dengan konsep materi'),
+                'text' => $key === $correctKey ? $correctClean : ($distractors[$dIdx++] ?? 'Pernyataan tidak sesuai dengan prinsip bacaan'),
             ];
         }
 
@@ -2411,6 +3249,366 @@ INSTRUCTIONS;
             'options' => $options,
             'correct_key' => $correctKey,
         ];
+    }
+
+    /**
+     * Mencocokkan kata kunci per KATA UTUH (word boundary huruf/angka), bukan substring acak.
+     */
+    public function containsWholeWordTerm(string $haystack, string $needle): bool
+    {
+        $cleanNeedle = trim($needle);
+        if ($cleanNeedle === '' || $haystack === '') {
+            return false;
+        }
+
+        return preg_match('/(?<![\p{L}\p{N}])' . preg_quote($cleanNeedle, '/') . '(?![\p{L}\p{N}])/iu', $haystack) === 1;
+    }
+
+    /**
+     * Mencocokkan urutan frasa kata utuh berturut-turut di dalam teks.
+     *
+     * @param array<int, string> $words
+     */
+    private function containsWholeWordPhrase(string $haystack, array $words): bool
+    {
+        $cleanWords = array_values(array_filter(array_map('trim', $words), fn ($w) => $w !== ''));
+        if (count($cleanWords) < 2 || $haystack === '') {
+            return false;
+        }
+
+        $pattern = implode('\s+', array_map(fn (string $w) => preg_quote($w, '/'), $cleanWords));
+
+        return preg_match('/(?<![\p{L}\p{N}])' . $pattern . '(?![\p{L}\p{N}])/iu', $haystack) === 1;
+    }
+
+    /**
+     * Memadatkan kalimat sumber menjadi topik ringkas untuk batang soal (tanpa menyalin paragraf utuh).
+     */
+    private function condenseSentenceToTopic(string $sentence, int $maxWords = 6): string
+    {
+        $clean = trim(preg_replace('/\s+/u', ' ', str_replace(['→', '->'], ' ', strip_tags($sentence))) ?? '');
+        $clean = trim(preg_replace('/^(?:Kedudukan|Fungsi(?:\s+utama)?|Prinsip|Landasan|Syarat|Tujuan(?:\s+utama)?|Contoh(?:\s+penggunaan)?|Catatan|Aspek|Butir)\s*:\s*/iu', '', $clean) ?? $clean);
+        $clean = preg_replace('/^(?:oleh karena itu|karena itu|dengan demikian|selain itu|namun|akan tetapi),?\s+/iu', '', $clean) ?? $clean;
+
+        // Jika terdapat kopula (adalah/merupakan/memiliki) dengan subjek ringkas di awal, gunakan subjeknya saja agar tidak terpotong di tengah predikat
+        if (preg_match('/^([^,.]{6,55}?)\s+(?:adalah|merupakan|yaitu|memiliki|menuntut|bertujuan|berfungsi)\b/iu', $clean, $subMatch)) {
+            $clean = trim($subMatch[1]);
+        }
+
+        $words = preg_split('/\s+/u', trim($clean, " \t\n\r\0\x0B.,;:!?\"'“”‘’"), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+        if (count($words) <= $maxWords) {
+            return implode(' ', $words);
+        }
+
+        $sliced = array_slice($words, 0, $maxWords);
+        while (count($sliced) > 2 && preg_match('/^(?:dan|atau|yang|di|ke|dari|untuk|dengan|pada|dalam|serta|agar|sehingga|karena|sebagai|mengutamakan|memadukan|melestarikan|menguasai|dilindungi|menuntut)$/iu', (string) end($sliced))) {
+            array_pop($sliced);
+        }
+
+        return implode(' ', $sliced);
+    }
+
+    /**
+     * Memadatkan klausa menjadi opsi jawaban ringkas dan alami (bukan tempelan paragraf panjang).
+     */
+    private function condenseClauseToOption(string $text, int $maxChars = 115): string
+    {
+        $clean = trim(preg_replace('/\s+/u', ' ', str_replace(['→', '->'], ', ', strip_tags($text))) ?? '');
+        $clean = trim(preg_replace('/^(?:Kedudukan|Fungsi(?:\s+utama)?|Prinsip|Landasan|Ciri(?:\s+utama)?|Contoh(?:\s+penggunaan)?|Catatan|Aspek|Butir)\s*:\s*/iu', '', $clean) ?? $clean);
+        $clean = preg_replace('/^[&+\-*\/,;:|~_–—\s]+|[&+\-*\/,;:|~_–—\s]+$/u', '', $clean) ?? $clean;
+        $clean = preg_replace('/^(?:dan|atau|serta|yaitu|yakni|adalah|merupakan|bahwa|sehingga|karena|dengan demikian)\s+/iu', '', $clean) ?? $clean;
+        $clean = rtrim(trim($clean, " \t\n\r\0\x0B\"'“”‘’"), '.');
+
+        if ($clean === '') {
+            return '';
+        }
+
+        $firstChar = mb_strtoupper(mb_substr($clean, 0, 1));
+        $clean = $firstChar . mb_substr($clean, 1);
+
+        if (mb_strlen($clean) <= $maxChars) {
+            return $clean;
+        }
+
+        // Ambil klausa pertama yang bermakna apabila panjang melebihi batas opsi PG
+        $clauses = preg_split('/(?<=.{38})[.;]\s+|,\s*(?=sehingga|agar|dengan tujuan|yang\s+(?:berfungsi|berperan))/iu', $clean, 2) ?: [];
+        if (! empty($clauses[0]) && mb_strlen(trim($clauses[0])) <= $maxChars) {
+            return rtrim(trim($clauses[0]), '.,;:');
+        }
+
+        $cut = mb_substr($clean, 0, $maxChars - 1);
+        $lastSpace = mb_strrpos($cut, ' ');
+
+        return rtrim(($lastSpace !== false ? mb_substr($cut, 0, $lastSpace) : $cut), '.,;: ') . '';
+    }
+
+    /**
+     * Memeriksa apakah pokok soal secara terang-terangan membocorkan isi pilihan jawaban.
+     */
+    public function isQuestionLeakingAnswer(string $question, string $answer): bool
+    {
+        $qLower = mb_strtolower($question);
+        $aLower = mb_strtolower(trim($answer));
+        if ($aLower === '' || mb_strlen($aLower) < 4) {
+            return false;
+        }
+        if (str_contains($qLower, $aLower)) {
+            return true;
+        }
+
+        // Jika terdapat frasa kutipan tanda petik dalam pertanyaan yang terkandung di dalam jawaban
+        if (preg_match('/"([^"]{5,})"|“([^”]{5,})”|`([^`]{5,})`/u', $question, $quoteMatch)) {
+            $quoted = mb_strtolower(trim($quoteMatch[1] ?: ($quoteMatch[2] ?: ($quoteMatch[3] ?? ''))));
+            if ($quoted !== '' && str_contains($aLower, $quoted)) {
+                return true;
+            }
+        }
+
+        $aWords = array_filter(
+            preg_split('/\s+/u', preg_replace('/[^\p{L}\p{N}\s]/u', '', $aLower)) ?: [],
+            fn ($w) => mb_strlen($w) >= 4 && ! in_array($w, ['yang', 'pada', 'untuk', 'dengan', 'dalam', 'adalah', 'akan', 'atau', 'serta', 'oleh', 'dari', 'sebagai', 'mengenai', 'tentang', 'konsep', 'materi'], true)
+        );
+        if (count($aWords) >= 2) {
+            $hits = 0;
+            foreach ($aWords as $w) {
+                if (str_contains($qLower, $w)) {
+                    $hits++;
+                }
+            }
+            if (($hits / count($aWords)) >= 0.5) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Pemeriksaan otomatis untuk memverifikasi bahwa kunci jawaban benar-benar menjawab pertanyaan;
+     * bila jawaban AI/draft menyimpang atau terlalu dangkal, perbaiki dari paragraf sumber bacaan.
+     *
+     * @return array{answer_key: string, reference_excerpt: string, is_valid: bool}
+     */
+    public function verifyAndRepairEssayPair(
+        string $question,
+        string $answerKey,
+        string $referenceExcerpt,
+        string $body,
+        string $title
+    ): array {
+        $cleanQ = trim($question);
+        $cleanKey = trim($answerKey);
+        $cleanRef = trim($referenceExcerpt);
+
+        if ($this->isQuestionAnsweredByKey($cleanQ, $cleanKey, $cleanRef)) {
+            return [
+                'answer_key' => $cleanKey,
+                'reference_excerpt' => $cleanRef,
+                'is_valid' => true,
+            ];
+        }
+
+        if (trim($body) === '') {
+            return [
+                'answer_key' => $cleanKey,
+                'reference_excerpt' => $cleanRef,
+                'is_valid' => false,
+            ];
+        }
+
+        $repaired = $this->recommendHeuristicAnswerForQuestion($body, $title, $cleanQ);
+        $repairedKey = trim((string) ($repaired['recommended_answer'] ?? ''));
+        $repairedRef = trim((string) ($repaired['reference_excerpt'] ?? ''));
+
+        if ($repairedKey !== '' && $this->isQuestionAnsweredByKey($cleanQ, $repairedKey, $repairedRef)) {
+            return [
+                'answer_key' => $repairedKey,
+                'reference_excerpt' => $repairedRef !== '' ? $repairedRef : $cleanRef,
+                'is_valid' => true,
+            ];
+        }
+
+        return [
+            'answer_key' => $cleanKey !== '' ? $cleanKey : $repairedKey,
+            'reference_excerpt' => $cleanRef !== '' ? $cleanRef : $repairedRef,
+            'is_valid' => $cleanKey !== '',
+        ];
+    }
+
+    /**
+     * Memeriksa kesesuaian semantik, intent pertanyaan, dan kelengkapan kunci jawaban terhadap soal.
+     */
+    public function isQuestionAnsweredByKey(string $question, string $answerKey, string $referenceExcerpt = ''): bool
+    {
+        $cleanQ = trim($question);
+        $cleanKey = trim($answerKey);
+
+        if ($cleanQ === '' || $cleanKey === '' || mb_strlen($cleanKey) < 12) {
+            return false;
+        }
+        if (preg_match('/^(?:Kedudukan|Fungsi|Prinsip|Landasan)\s*:/iu', $cleanKey)) {
+            return false;
+        }
+        if (preg_match('/\b(?:ctrl\s*\+\s*x|tekan\s+y|tekan\s+enter)\b/iu', $cleanKey) && ! $this->containsWholeWordTerm($cleanQ, 'ctrl')) {
+            return false;
+        }
+
+        $wordCount = count(preg_split('/\s+/u', $cleanKey, -1, PREG_SPLIT_NO_EMPTY) ?: []);
+        if (preg_match('/\b(?:mengapa|evaluasi|analisis|bandingkan|dampak|alasan)\b/iu', $cleanQ) && $wordCount < 6) {
+            return false;
+        }
+        if (preg_match('/\b(?:pasal|uud|dasar hukum)\b/iu', $cleanQ) && ! preg_match('/\b(?:pasal|uud|undang|hukum|peraturan|ketentuan)\b/iu', $cleanKey . ' ' . $referenceExcerpt)) {
+            return false;
+        }
+
+        $qTerms = $this->similarity->extractKeywords($cleanQ);
+        $verbNoise = ['identifikasi', 'jelaskan', 'terapkan', 'analisis', 'evaluasi', 'bandingkan', 'uraikan', 'sebutkan', 'mengapa', 'bagaimana', 'apakah', 'manakah', 'siapakah', 'kapan', 'dimana', 'nilai', 'materi', 'bacaan', 'konsep', 'pengertian', 'makna'];
+        $anchors = array_values(array_diff($qTerms, $verbNoise));
+
+        if (! empty($anchors)) {
+            $combinedAnswer = trim($cleanKey . ' ' . $referenceExcerpt);
+            $ansMap = $this->similarity->expandConceptMap($this->similarity->extractKeywords($combinedAnswer), $combinedAnswer);
+            $matched = 0;
+            foreach ($anchors as $anc) {
+                if ($this->containsWholeWordTerm($combinedAnswer, $anc) || $this->similarity->tokenMatchesConceptMap($anc, $ansMap, $combinedAnswer)) {
+                    $matched++;
+                }
+            }
+
+            if ($matched === 0) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Menyaring dan menormalkan 1 butir soal PG hasil AI agar opsi unik, masuk akal, & sejenis.
+     *
+     * @param array<string, mixed> $item
+     * @return array<string, mixed>|null
+     */
+    private function sanitizeQuizQuestionItem(array $item, string $body): ?array
+    {
+        $question = trim((string) ($item['question'] ?? ''));
+        $options = $item['options'] ?? [];
+        $correctKey = strtoupper(trim((string) ($item['correct_answer'] ?? 'A')));
+        if ($question === '' || ! is_array($options) || count($options) < 4) {
+            return null;
+        }
+
+        $optionMap = [];
+        foreach ($options as $opt) {
+            $k = strtoupper(trim((string) ($opt['key'] ?? '')));
+            $t = trim((string) ($opt['text'] ?? ''));
+            if ($k !== '' && $t !== '') {
+                $optionMap[$k] = $t;
+            }
+        }
+
+        $correctText = $optionMap[$correctKey] ?? ($optionMap['A'] ?? '');
+        if ($correctText === '' || preg_match('/^(?:belum tersedia|tidak ada|kosong)$/iu', $correctText)) {
+            return null;
+        }
+
+        $rawDistractors = [];
+        foreach (['A', 'B', 'C', 'D'] as $k) {
+            if ($k !== $correctKey && isset($optionMap[$k]) && $this->isPlausibleQuizOption($optionMap[$k], $correctText, $question)) {
+                $rawDistractors[] = $optionMap[$k];
+            }
+        }
+
+        if (count($rawDistractors) < 3) {
+            $sentences = $this->extractSubstantiveSentences($body, '');
+            $fallbackTerms = $this->extractQuizKeyTerms($sentences);
+            $fallbackPreds = $this->extractPredicatePool($sentences);
+            $rebuilt = $this->buildUniqueQuizOptions(
+                $correctText,
+                $rawDistractors,
+                (int) ($item['sequence'] ?? 1),
+                $fallbackTerms,
+                $fallbackPreds,
+                $question
+            );
+            $item['options'] = $rebuilt['options'];
+            $item['correct_answer'] = $rebuilt['correct_key'];
+        }
+
+        return $item;
+    }
+
+    /**
+     * Menyaring opsi pengecoh kuis agar masuk akal, tidak bertipe beda jauh, tidak terpotong,
+     * dan tidak membocorkan atau mengulang kunci jawaban.
+     */
+    public function isPlausibleQuizOption(string $candidate, string $correct, string $question = ''): bool
+    {
+        $c = trim($candidate);
+        $corr = trim($correct);
+        if ($c === '' || $corr === '' || mb_strlen($c) < 3) {
+            return false;
+        }
+
+        $cLower = mb_strtolower($c);
+        $corrLower = mb_strtolower($corr);
+        if ($cLower === $corrLower) {
+            return false;
+        }
+
+        // Tolak potongan kalimat/daftar pustaka/perintah kode/ujung kalimat menggantung
+        if (preg_match('/(?:[&,:;]$|\b(?:dan|atau|yang|sehingga|karena|adalah|merupakan|dengan|pada|dalam|ke|dari|untuk)$|\(\d{4}\)|Balai\s+Pustaka|Raja\s+Grafindo|ctrl\s*\+\s*x|#mkdir)/iu', $c)) {
+            return false;
+        }
+
+        // Tolak jika diawali simbol, tanda sambung, atau konjungsi menggantung (misal: "& ilmu pengetahuan", "dan kebudayaan")
+        if (preg_match('/^[&+\-*\/,;:|~_–—]|^(?:dan|atau|serta|yaitu|yakni|adalah|merupakan|bahwa|sehingga|karena|dengan demikian)\b/iu', $c)) {
+            return false;
+        }
+
+        // Anti-Bocor: Tolak jika pilihan jawaban tertulis atau dibocorkan di dalam batang soal
+        if ($question !== '') {
+            $qLower = mb_strtolower($question);
+            if (mb_strlen($cLower) >= 6 && str_contains($qLower, $cLower)) {
+                return false;
+            }
+            if (mb_strlen($corrLower) >= 6 && str_contains($qLower, $corrLower)) {
+                return false;
+            }
+        }
+
+        // Tolak jika salah satu berisi persis opsi yang lain (bocor jawaban atau duplikat makna persis)
+        if (mb_strlen($cLower) >= 12 && mb_strlen($corrLower) >= 12 && (str_contains($cLower, $corrLower) || str_contains($corrLower, $cLower))) {
+            return false;
+        }
+
+        // Kesetaraan kategori: Pasal vs non-Pasal, Angka vs non-Angka
+        $isCorrectPasal = (bool) preg_match('/^Pasal\s+\d+/iu', $corr);
+        $isCandPasal = (bool) preg_match('/^Pasal\s+\d+/iu', $c);
+        if ($isCorrectPasal) {
+            return $isCandPasal;
+        }
+        if ($isCandPasal && ! $isCorrectPasal) {
+            return false;
+        }
+
+        $isCorrectNum = (bool) preg_match('/^\d+(?:[.,]\d+)?\s*[A-Za-z%]+$/iu', $corr);
+        $isCandNum = (bool) preg_match('/^\d+(?:[.,]\d+)?\s*[A-Za-z%]+$/iu', $c);
+        if ($isCorrectNum) {
+            return $isCandNum;
+        }
+
+        // Kesetaraan proporsi panjang kata antara kunci dan pengecoh
+        $corrWords = count(preg_split('/\s+/u', $corr, -1, PREG_SPLIT_NO_EMPTY) ?: []);
+        $candWords = count(preg_split('/\s+/u', $c, -1, PREG_SPLIT_NO_EMPTY) ?: []);
+        if ($corrWords <= 4 && ($candWords > 12 || mb_strlen($c) > 90)) {
+            return false;
+        }
+        if ($corrWords >= 7 && $candWords < 3) {
+            return false;
+        }
+
+        return true;
     }
 
     private function stripClichéPrefix(string $text): string

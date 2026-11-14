@@ -71,28 +71,29 @@
                     <p class="passage-lede">{!! \Illuminate\Support\Str::inlineMarkdown(e($excerptClean)) !!}</p>
                 @endif
 
-                <!-- Versi 1: Mode Gulir Vertikal (Seluruh materi terstruktur utuh) -->
-                <div class="passage-markdown" data-scroll-reader>
-                    {!! $formattedBodyHtml !!}
-                </div>
-
-                <!-- Versi 2: Mode Buka Halaman Kertas (Paginasi Buku + Swipe Mobile) -->
-                <div class="book-page-stage hidden" data-page-reader>
-                    <div class="book-page-sheet passage-markdown" data-book-sheet></div>
-                    <div class="book-page-nav">
-                        <button type="button" class="outline-button" data-book-prev disabled>
-                            <x-icon name="arrow-left" /> <span>Halaman Sebelumnya</span>
-                        </button>
-                        <span class="text-xs font-bold text-slate-600" data-book-indicator>Halaman 1 / {{ max(1, count($bookPagesHtml)) }}</span>
-                        <button type="button" class="outline-button" data-book-next>
-                            <span>Halaman Berikutnya</span> <x-icon name="arrow-right" />
-                        </button>
+                    <!-- Versi 1: Mode Gulir Vertikal (Seluruh materi terstruktur utuh) -->
+                    <div class="passage-markdown" data-scroll-reader>
+                        {!! $formattedBodyHtml !!}
                     </div>
-                </div>
 
-                <div class="passage-note">
-                    <x-icon name="lightbulb" />
-                    <span>Saat membaca, cari kalimat yang menjadi <strong>bukti</strong> untuk setiap gagasan penting.</span>
+                    <!-- Versi 2: Mode Buka Halaman Kertas (Paginasi Buku + Swipe Mobile) -->
+                    <div class="book-page-stage hidden" data-page-reader>
+                        <div class="book-page-sheet passage-markdown" data-book-sheet></div>
+                        <div class="book-page-nav">
+                            <button type="button" class="outline-button" data-book-prev disabled>
+                                <x-icon name="arrow-left" /> <span>Halaman Sebelumnya</span>
+                            </button>
+                            <span class="text-xs font-bold text-slate-600" data-book-indicator>Halaman 1 / {{ max(1, count($bookPagesHtml)) }}</span>
+                            <button type="button" class="outline-button" data-book-next>
+                                <span>Halaman Berikutnya</span> <x-icon name="arrow-right" />
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="passage-note">
+                        <x-icon name="lightbulb" />
+                        <span>Saat membaca, cari kalimat yang menjadi <strong>bukti</strong> untuk setiap gagasan penting.</span>
+                    </div>
                 </div>
             </div>
 
@@ -122,31 +123,58 @@
                 <div class="session-head">
                     <div class="session-icon"><x-icon name="book-open-text" /></div>
                     <div>
-                        <p class="section-overline">SESI MEMBACAMU</p>
-                        <h2>{{ $document->title }}</h2>
+                        <p class="section-overline">DISKUSI SOCRATIC</p>
+                        <h2 id="coach-title">Tanya Socrates</h2>
+                    </div>
+                    <span class="coach-status"><i></i> Tutor AI</span>
+                </div>
+
+                <!-- Tips Membaca Aktif Terintegrasi -->
+                <div class="bg-indigo-50/70 rounded-xl p-2.5 border border-indigo-100/80 mb-3 text-[11px] text-indigo-950 flex items-start gap-2">
+                    <x-icon name="lightbulb" class="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
+                    <div class="space-y-0.5">
+                        <span class="font-bold text-indigo-900">Tips Membaca Aktif:</span>
+                        <p class="text-indigo-800/90 text-[10.5px] leading-tight">Tanyakan gagasan utama, cari kalimat buktinya, dan uji sudut pandang baru dengan Socrates.</p>
                     </div>
                 </div>
-                <div class="session-stat-row">
-                    <span>Status sesi</span>
-                    <strong data-session-status-label>{{ $session->isCompleted() ? 'Selesai & Terkunci' : $initialProgress . '% dibaca' }}</strong>
+
+                <div class="coach-transcript" data-coach-transcript aria-live="polite" aria-label="Percakapan dengan tutor">
+                    <p class="coach-message coach-message-assistant">Halo! Bagian mana dari bacaan ini yang ingin kamu pahami lebih dalam?</p>
+                    @foreach ($coachHistory as $msg)
+                        <p class="coach-message coach-message-{{ $msg->role === 'user' ? 'user' : 'assistant' }}">{{ $msg->content }}</p>
+                    @endforeach
                 </div>
-                <div class="session-stat-row">
-                    <span>Mulai membaca</span>
-                    <strong>{{ $session->started_at->format('H:i') }}</strong>
+                <div class="coach-prompts" aria-label="Contoh pertanyaan">
+                    <button type="button" data-coach-prompt="Apa gagasan utama bacaan ini?">Gagasan utama</button>
+                    <button type="button" data-coach-prompt="Bukti apa yang mendukung ide penting dalam bacaan?">Cari bukti</button>
+                    <button type="button" data-coach-prompt="Adakah sudut pandang lain atau makna mendalam dari bacaan ini?">Sudut pandang</button>
                 </div>
-                <div class="session-stat-row {{ $session->completed_at ? '' : 'hidden' }}" data-session-completed-row>
-                    <span>Waktu kumpul</span>
-                    <strong data-session-completed-time>{{ $session->completed_at ? $session->completed_at->format('H:i') : '' }}</strong>
-                </div>
-                <div class="session-progress">
-                    <div class="progress-track">
-                        <span data-session-progress-bar style="width:{{ $initialProgress }}%"></span>
+                <form class="coach-form" data-coach-form>
+                    <label class="sr-only" for="coach-message">Tulis pertanyaan atau pemikiranmu</label>
+                    <textarea id="coach-message" name="message" rows="2" maxlength="{{ config('ai.limits.message_characters', 1200) }}" placeholder="Tulis pertanyaan atau pemikiranmu…" required data-coach-input></textarea>
+                    <div class="coach-form-footer">
+                        <span data-coach-count>0 / {{ config('ai.limits.message_characters', 1200) }}</span>
+                        <button type="submit" class="challenge-button" data-coach-send>
+                            <span data-coach-send-label>Kirim</span><x-icon name="arrow-right" />
+                        </button>
                     </div>
-                    <span data-session-progress-text>{{ $initialProgress }}%</span>
+                </form>
+                <p class="coach-error" role="alert" data-coach-error hidden></p>
+                <p class="coach-footnote"><x-icon name="shield-check" /> AI membantu kamu berpikir; periksa kembali jawabannya dengan bacaan.</p>
+            </section>
+
+            <!-- 3. TANTANGAN BACAAN (Langkah Evaluasi Setelah Membaca) -->
+            <section class="panel session-card" data-challenge-card>
+                <div class="session-head">
+                    <div class="session-icon text-amber-600 bg-amber-50"><x-icon name="award" /></div>
+                    <div>
+                        <p class="section-overline">EVALUASI PEMAHAMAN</p>
+                        <h2>Tantangan Bacaan</h2>
+                    </div>
                 </div>
 
                 <!-- Primary CTA -->
-                <div data-primary-cta-wrapper>
+                <div data-primary-cta-wrapper class="mt-3">
                     @if ($session->isCompleted())
                         <a class="challenge-button session-cta !bg-emerald-600 hover:!bg-emerald-700" href="{{ $hasTeacherChallenges ? route('student.teacher-challenges.show', ['document' => $document->id]) : route('quiz.timed', ['document' => $document->id]) }}">
                             <x-icon name="lock" class="size-3.5" /> <span>Lihat hasil jawaban</span>
@@ -163,7 +191,7 @@
                         @endif
                     @else
                         <div id="tcLockedBox"
-                             class="p-3.5 rounded-2xl bg-amber-50/90 border border-amber-200 text-xs text-amber-950 space-y-1.5 shadow-2xs mt-3"
+                             class="p-3.5 rounded-2xl bg-amber-50/90 border border-amber-200 text-xs text-amber-950 space-y-1.5 shadow-2xs"
                              data-challenges-lock
                              data-remaining="{{ $remainingLockSeconds }}"
                              data-has-teacher-challenges="{{ $hasTeacherChallenges ? '1' : '0' }}"
@@ -187,7 +215,7 @@
 
                 <!-- Daftar Tantangan Bacaan (Keduanya terkunci 2 menit hingga timer habis / bacaan selesai) -->
                 <div class="mt-4 pt-3 border-t border-slate-100 space-y-2" data-challenge-items-box>
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">TANTANGAN BACAAN</p>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">DAFTAR TANTANGAN</p>
 
                     <div data-quiz-item-slot>
                         @if ($isChallengesUnlocked)
@@ -236,56 +264,6 @@
                         @endif
                     </div>
                 </div>
-            </section>
-
-            <section class="panel focus-card">
-                <p class="section-overline">CARA MEMBACA AKTIF</p>
-                <h2>Berhenti sejenak dan tanyakan…</h2>
-                <ul class="focus-list">
-                    <li><span>01</span><p>Apa gagasan utama bagian ini?</p></li>
-                    <li><span>02</span><p>Kalimat mana yang mendukung gagasan itu?</p></li>
-                    <li><span>03</span><p>Adakah sudut pandang lain yang perlu dipikirkan?</p></li>
-                </ul>
-                <div class="focus-tip"><x-icon name="lightbulb" /> Tidak perlu terburu-buru menemukan jawaban.</div>
-            </section>
-
-            <section class="panel coach-panel"
-                     data-reading-coach
-                     data-endpoint="{{ route('reading.coach') }}"
-                     data-session-id="{{ $session->id }}"
-                     data-max-length="{{ config('ai.limits.message_characters', 1200) }}"
-                     data-initial-history='@json($coachHistory->values())'
-                     aria-labelledby="coach-title">
-                <div class="coach-heading">
-                    <div class="session-icon"><x-icon name="message-circle" /></div>
-                    <div>
-                        <p class="section-overline">DISKUSI SOCRATIC</p>
-                        <h2 id="coach-title">Tanya Socrates</h2>
-                    </div>
-                    <span class="coach-status"><i></i> Tutor AI</span>
-                </div>
-                <div class="coach-transcript" data-coach-transcript aria-live="polite" aria-label="Percakapan dengan tutor">
-                    <p class="coach-message coach-message-assistant">Halo! Bagian mana dari bacaan ini yang ingin kamu pahami lebih dalam?</p>
-                    @foreach ($coachHistory as $msg)
-                        <p class="coach-message coach-message-{{ $msg->role === 'user' ? 'user' : 'assistant' }}">{{ $msg->content }}</p>
-                    @endforeach
-                </div>
-                <div class="coach-prompts" aria-label="Contoh pertanyaan">
-                    <button type="button" data-coach-prompt="Apa gagasan utama bacaan ini?">Gagasan utama</button>
-                    <button type="button" data-coach-prompt="Bukti apa yang mendukung ide penting dalam bacaan?">Cari bukti</button>
-                </div>
-                <form class="coach-form" data-coach-form>
-                    <label class="sr-only" for="coach-message">Tulis pertanyaan atau pemikiranmu</label>
-                    <textarea id="coach-message" name="message" rows="2" maxlength="{{ config('ai.limits.message_characters', 1200) }}" placeholder="Tulis pertanyaan atau pemikiranmu…" required data-coach-input></textarea>
-                    <div class="coach-form-footer">
-                        <span data-coach-count>0 / {{ config('ai.limits.message_characters', 1200) }}</span>
-                        <button type="submit" class="challenge-button" data-coach-send>
-                            <span data-coach-send-label>Kirim</span><x-icon name="arrow-right" />
-                        </button>
-                    </div>
-                </form>
-                <p class="coach-error" role="alert" data-coach-error hidden></p>
-                <p class="coach-footnote"><x-icon name="shield-check" /> AI membantu kamu berpikir; periksa kembali jawabannya dengan bacaan.</p>
             </section>
             <div class="privacy-note"><x-icon name="shield-check" /><span>Waktumu untuk membaca. Fokusmu yang utama.</span></div>
         </aside>
@@ -363,6 +341,7 @@
     // 2 Mode Baca: Gulir Vertikal vs Buka Halaman Kertas
     const bookPages = @json($bookPagesHtml);
     const modeButtons = document.querySelectorAll('[data-reading-mode-btn]');
+    const scrollContainer = document.querySelector('[data-reading-scroll-container]');
     const scrollReader = document.querySelector('[data-scroll-reader]');
     const pageReader = document.querySelector('[data-page-reader]');
     const bookSheet = document.querySelector('[data-book-sheet]');
@@ -408,10 +387,28 @@
         if (readingMode === 'book') {
             scrollReader.classList.add('hidden');
             pageReader.classList.remove('hidden');
+            scrollContainer?.classList.remove('is-mode-scroll');
+            scrollContainer?.classList.add('is-mode-book');
             renderBookPage(currentBookPage, false);
         } else {
             pageReader.classList.add('hidden');
             scrollReader.classList.remove('hidden');
+            scrollContainer?.classList.remove('is-mode-book');
+            scrollContainer?.classList.add('is-mode-scroll');
+        }
+    };
+
+    window.SocratesReading = {
+        getMode: () => readingMode,
+        setMode: setReadingMode,
+        getPage: () => currentBookPage,
+        setPage: renderBookPage,
+        findPageForParagraph: (paraNum) => {
+            const pInt = parseInt(paraNum, 10);
+            if (isNaN(pInt) || !bookPages || !bookPages.length) return 0;
+            const targetPattern = new RegExp(`id=["']para-${pInt}["']|data-paragraph-index=["']${pInt}["']`, 'i');
+            const foundIdx = bookPages.findIndex((html) => targetPattern.test(html));
+            return foundIdx >= 0 ? foundIdx : 0;
         }
     };
 
@@ -441,19 +438,29 @@
         }, { passive: true });
     }
 
-    // Real-time Scroll Progress Tracker pada Mode Gulir
+    // Real-time Scroll Progress Tracker pada Mode Gulir (mendukung scroll container internal & window)
     const handleScrollProgress = () => {
-        if (isSessionCompleted || readingMode !== 'scroll' || !scrollReader) return;
-        const rect = scrollReader.getBoundingClientRect();
-        const scrollTop = window.scrollY || document.documentElement.scrollTop;
-        const startY = rect.top + scrollTop - window.innerHeight * 0.45;
-        const totalReadable = Math.max(200, scrollReader.offsetHeight - window.innerHeight * 0.45);
-        const pct = Math.min(99, Math.max(5, Math.round(((scrollTop - startY) / totalReadable) * 99)));
-        if (pct > highestProgress) {
-            updateProgressUI(pct);
-            scheduleSyncProgress(pct);
+        if (isSessionCompleted || readingMode !== 'scroll') return;
+        if (scrollContainer && scrollContainer.scrollHeight > scrollContainer.clientHeight) {
+            const maxScroll = scrollContainer.scrollHeight - scrollContainer.clientHeight;
+            const pct = Math.min(99, Math.max(5, Math.round((scrollContainer.scrollTop / maxScroll) * 99)));
+            if (pct > highestProgress) {
+                updateProgressUI(pct);
+                scheduleSyncProgress(pct);
+            }
+        } else if (scrollReader) {
+            const rect = scrollReader.getBoundingClientRect();
+            const scrollTop = window.scrollY || document.documentElement.scrollTop;
+            const startY = rect.top + scrollTop - window.innerHeight * 0.45;
+            const totalReadable = Math.max(200, scrollReader.offsetHeight - window.innerHeight * 0.45);
+            const pct = Math.min(99, Math.max(5, Math.round(((scrollTop - startY) / totalReadable) * 99)));
+            if (pct > highestProgress) {
+                updateProgressUI(pct);
+                scheduleSyncProgress(pct);
+            }
         }
     };
+    scrollContainer?.addEventListener('scroll', handleScrollProgress, { passive: true });
     window.addEventListener('scroll', handleScrollProgress, { passive: true });
     setReadingMode(readingMode);
 

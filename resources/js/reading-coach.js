@@ -20,14 +20,115 @@ if (panel) {
         }
     } catch (_) {}
 
+    const formatParagraphPills = (text) => {
+        return text.replace(/(?:\[?¶(\d+)\]?|\bparagraf\s+\[?¶?(\d+)\]?)/gi, (_, p1, p2) => {
+            const pNum = p1 || p2;
+            return `<button type="button" class="coach-para-pill" data-jump-para="${pNum}" title="Sorot & lompat ke Paragraf ${pNum}"><span>¶${pNum}</span> <svg style="width:10px;height:10px;display:inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>`;
+        });
+    };
+
+    const highlightAndScrollToParagraph = (pIndex) => {
+        const pNum = parseInt(pIndex, 10);
+        if (isNaN(pNum)) return;
+
+        const readingControl = window.SocratesReading;
+        const currentMode = readingControl ? readingControl.getMode() : (localStorage.getItem('SR_READING_MODE') || 'scroll');
+
+        // A. Mode Halaman (Kertas Buku)
+        if (currentMode === 'book' && readingControl) {
+            const targetPageIdx = readingControl.findPageForParagraph(pNum);
+            readingControl.setPage(targetPageIdx, true);
+
+            setTimeout(() => {
+                const bookSheet = document.querySelector('[data-book-sheet]');
+                if (!bookSheet) return;
+
+                document.querySelectorAll('.passage-para-block.is-targeted').forEach((el) => {
+                    el.classList.remove('is-targeted');
+                });
+
+                const target = bookSheet.querySelector(`#para-${pNum}`) || bookSheet.querySelector(`[data-paragraph-index="${pNum}"]`);
+                if (target) {
+                    target.classList.add('is-targeted');
+
+                    const panel = document.querySelector('[data-passage-panel]');
+                    if (panel) {
+                        const panelRect = panel.getBoundingClientRect();
+                        if (panelRect.top < 60 || panelRect.top > window.innerHeight * 0.4) {
+                            const windowTargetY = window.scrollY + panelRect.top - 70;
+                            window.scrollTo({ top: Math.max(0, windowTargetY), behavior: 'smooth' });
+                        }
+                    }
+                }
+            }, 70);
+            return;
+        }
+
+        // B. Mode Gulir Vertikal
+        const scrollReader = document.querySelector('[data-scroll-reader]');
+        const target = scrollReader
+            ? (scrollReader.querySelector(`#para-${pNum}`) || scrollReader.querySelector(`[data-paragraph-index="${pNum}"]`))
+            : document.getElementById(`para-${pNum}`);
+
+        if (!target) return;
+
+        document.querySelectorAll('.passage-para-block.is-targeted').forEach((el) => {
+            el.classList.remove('is-targeted');
+        });
+
+        target.classList.add('is-targeted');
+
+        // Jika ada heading H3 tepat di atas paragraf, ikut sertakan agar konteks materi utuh
+        const elementToScroll = (target.previousElementSibling && target.previousElementSibling.tagName === 'H3')
+            ? target.previousElementSibling
+            : target;
+
+        const scrollContainer = document.querySelector('[data-reading-scroll-container]');
+        if (scrollContainer && scrollContainer.classList.contains('is-mode-scroll')) {
+            const containerRect = scrollContainer.getBoundingClientRect();
+            const elemRect = elementToScroll.getBoundingClientRect();
+            const targetScrollTop = elemRect.top - containerRect.top + scrollContainer.scrollTop - 24;
+            scrollContainer.scrollTo({ top: Math.max(0, targetScrollTop), behavior: 'smooth' });
+        }
+
+        // Pastikan kartu materi di layar browser tidak terpotong di bagian atas
+        const panel = document.querySelector('[data-passage-panel]');
+        if (panel) {
+            const panelRect = panel.getBoundingClientRect();
+            if (panelRect.top < 60 || panelRect.top > window.innerHeight * 0.4) {
+                const windowTargetY = window.scrollY + panelRect.top - 70;
+                window.scrollTo({ top: Math.max(0, windowTargetY), behavior: 'smooth' });
+            }
+        }
+    };
+
+    document.addEventListener('click', (e) => {
+        const pill = e.target.closest('[data-jump-para]');
+        if (!pill) return;
+        highlightAndScrollToParagraph(pill.dataset.jumpPara);
+    });
+
     const addMessage = (role, content, extraClass = '') => {
         const message = document.createElement('p');
         message.className = `coach-message coach-message-${role}${extraClass ? ` ${extraClass}` : ''}`;
-        message.textContent = content;
+        if (role === 'assistant') {
+            const escaped = document.createElement('div');
+            escaped.textContent = content;
+            message.innerHTML = formatParagraphPills(escaped.innerHTML);
+        } else {
+            message.textContent = content;
+        }
         transcript.append(message);
         transcript.scrollTop = transcript.scrollHeight;
         return message;
     };
+
+    // Format badge interaktif pada pesan awal/riwayat yang sudah ada
+    transcript.querySelectorAll('.coach-message-assistant').forEach((el) => {
+        if (!el.querySelector('.coach-para-pill')) {
+            el.innerHTML = formatParagraphPills(el.innerHTML);
+        }
+    });
 
     const updateCount = () => {
         count.textContent = `${input.value.length} / ${maxLength}`;
@@ -76,6 +177,10 @@ if (panel) {
 
             loading.remove();
             addMessage('assistant', data.reply);
+            const paraMatch = data.reply.match(/(?:\[?¶(\d+)\]?|\bparagraf\s+\[?¶?(\d+)\]?)/i);
+            if (paraMatch) {
+                highlightAndScrollToParagraph(paraMatch[1] || paraMatch[2]);
+            }
             history.push({ role: 'user', content: message }, { role: 'assistant', content: data.reply });
             history.splice(0, Math.max(0, history.length - 6));
         } catch (requestError) {

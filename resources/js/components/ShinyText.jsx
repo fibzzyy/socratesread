@@ -14,12 +14,13 @@ export default function ShinyText({
 
     return (
         <span
-            className={`inline-block text-transparent bg-clip-text ${disabled ? '' : 'animate-shiny-text'} ${className}`}
+            className={`inline-block bg-clip-text text-transparent ${disabled ? '' : 'animate-shiny-text'} ${className}`}
             style={{
                 backgroundImage:
-                    'linear-gradient(120deg, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.95) 50%, rgba(255, 255, 255, 0.45) 100%)',
+                    'linear-gradient(120deg, #1d4ed8 0%, #3b82f6 50%, #1d4ed8 100%)',
                 backgroundSize: '200% 100%',
                 WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
                 animationDuration: animationDuration,
             }}
         >

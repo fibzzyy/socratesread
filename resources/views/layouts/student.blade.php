@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -18,6 +19,7 @@
     @yield('head')
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
+
 <body>
     @php($userInitials = collect(explode(' ', auth()->user()->name))->filter()->take(2)->map(fn ($part) => mb_substr($part, 0, 1))->implode(''))
     @php($isReadingIndex = request()->routeIs('reading') && ! request()->route('document'))
@@ -91,7 +93,8 @@
             @endunless
             <div class="page-content stage-two-content {{ $isReadingIndex ? 'reading-page-content' : '' }}">
                 @yield('content')
-                <footer class="page-footer"><span>Terus bertanya, terus bertumbuh.</span><span>© 2026 SocratesRead</span></footer>
+                <footer class="page-footer"><span>Terus bertanya, terus bertumbuh.</span><span>© 2026
+                        SocratesRead</span></footer>
             </div>
         </main>
     </div>
@@ -108,4 +111,5 @@
     </script>
     @stack('scripts')
 </body>
+
 </html>

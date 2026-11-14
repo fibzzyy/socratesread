@@ -251,13 +251,13 @@ class SemanticSimilarityEvaluator
 
         foreach ($tokens as $tok) {
             $map[$tok] = true;
-            $stem = $this->simpleStem($tok);
-            if ($stem !== '') {
-                $map[$stem] = true;
+            $stemVariants = $this->extractStemVariants($tok);
+            foreach ($stemVariants as $sv) {
+                $map[$sv] = true;
             }
             foreach ($this->synonymGroups as $group) {
                 foreach ($group as $gWord) {
-                    if ($tok === $gWord || $stem === $gWord || str_contains($tok, $gWord) || str_contains($gWord, $stem)) {
+                    if ($tok === $gWord || in_array($gWord, $stemVariants, true) || in_array($this->simpleStem($gWord), $stemVariants, true)) {
                         foreach ($group as $syn) {
                             $map[$syn] = true;
                         }
@@ -279,9 +279,11 @@ class SemanticSimilarityEvaluator
         if (isset($conceptMap[$targetToken])) {
             return true;
         }
-        $stem = $this->simpleStem($targetToken);
-        if ($stem !== '' && isset($conceptMap[$stem])) {
-            return true;
+        $stemVariants = $this->extractStemVariants($targetToken);
+        foreach ($stemVariants as $sv) {
+            if (isset($conceptMap[$sv])) {
+                return true;
+            }
         }
         if (mb_strlen($targetToken) >= 5 && isset($conceptMap['__COMPACT__']) && is_string($conceptMap['__COMPACT__'])) {
             if (mb_strpos($conceptMap['__COMPACT__'], $targetToken) !== false) {
@@ -290,7 +292,7 @@ class SemanticSimilarityEvaluator
         }
         foreach ($this->synonymGroups as $group) {
             foreach ($group as $gWord) {
-                if ($targetToken === $gWord || $stem === $gWord || str_contains($targetToken, $gWord)) {
+                if ($targetToken === $gWord || in_array($gWord, $stemVariants, true) || in_array($this->simpleStem($gWord), $stemVariants, true)) {
                     foreach ($group as $syn) {
                         if (isset($conceptMap[$syn])) {
                             return true;
@@ -306,10 +308,53 @@ class SemanticSimilarityEvaluator
 
     protected function simpleStem(string $word): string
     {
-        $w = preg_replace('/^(?:meng|meny|mem|men|me|peng|peny|pem|pen|pe|ber|ter|di|ke|se)/u', '', $word) ?? $word;
+        $w = preg_replace('/^(?:meng|meny|mem|men|me|peng|peny|pem|pen|per|pe|ber|ter|di|ke|se)/u', '', $word) ?? $word;
         $w = preg_replace('/(?:kannya|inya|annya|kan|an|nya|lah|kah|i)$/u', '', $w) ?? $w;
 
         return mb_strlen($w) >= 3 ? $w : $word;
+    }
+
+    /**
+     * Menghasilkan variasi kata dasar utuh Bahasa Indonesia (termasuk peluluhan meN-/peN-)
+     * sehingga pencocokan konsep tetap per kata/akar utuh tanpa substring acak.
+     *
+     * @return array<int, string>
+     */
+    protected function extractStemVariants(string $word): array
+    {
+        $variants = [$word];
+        $stripSuffix = static fn (string $w): string => preg_replace('/(?:kannya|inya|annya|kan|an|nya|lah|kah|i)$/u', '', $w) ?? $w;
+
+        $baseNoSuffix = $stripSuffix($word);
+        if (mb_strlen($baseNoSuffix) >= 3) {
+            $variants[] = $baseNoSuffix;
+        }
+
+        $simple = $this->simpleStem($word);
+        if (mb_strlen($simple) >= 3) {
+            $variants[] = $simple;
+        }
+
+        $nasalRules = [
+            '/^(?:meng|peng)([aiueo].+)$/u' => 'k$1',
+            '/^(?:meny|peny)([aiueo].+)$/u' => 's$1',
+            '/^(?:mem|pem)([aiueo].+)$/u' => 'p$1',
+            '/^(?:men|pen)([aiueo].+)$/u' => 't$1',
+        ];
+        foreach ($nasalRules as $pattern => $replacement) {
+            if (preg_match($pattern, $word)) {
+                $restored = preg_replace($pattern, $replacement, $word) ?? '';
+                $restoredStem = $stripSuffix($restored);
+                if (mb_strlen($restored) >= 3) {
+                    $variants[] = $restored;
+                }
+                if (mb_strlen($restoredStem) >= 3) {
+                    $variants[] = $restoredStem;
+                }
+            }
+        }
+
+        return array_values(array_unique(array_filter($variants, fn (string $v) => mb_strlen($v) >= 3)));
     }
 
     /**

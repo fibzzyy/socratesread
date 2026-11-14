@@ -87,4 +87,50 @@ class SocraticCoachTest extends TestCase
 
         Http::assertNothingSent();
     }
+
+    public function test_student_can_consult_socratic_coach_on_completed_session_with_numbered_paragraphs(): void
+    {
+        Config::set('services.openrouter.api_key', 'test-api-key');
+        Http::fake([
+            'https://openrouter.ai/api/v1/chat/completions' => Http::response(['error' => 'not found'], 404),
+            'https://openrouter.ai/api/v1/responses' => Http::response([
+                'output' => [[
+                    'type' => 'message',
+                    'content' => [['type' => 'output_text', 'text' => 'Perhatikan kembali paragraf [¶2], apa alasan utama perlindungan tersebut?']],
+                ]],
+            ]),
+        ]);
+
+        $student = User::factory()->create(['role' => 'student']);
+        $document = Document::query()->create([
+            'title' => 'Trigatra Bangun Bahasa',
+            'category' => 'Bahasa Indonesia',
+            'body' => "Paragraf pembuka tentang Trigatra Bangun Bahasa.\n\nBahasa Daerah dilindungi UUD 1945 Pasal 32 untuk melestarikan budaya.\n\nBahasa Asing dipelajari untuk komunikasi global.",
+            'is_published' => true,
+        ]);
+        $session = ReadingSession::query()->create([
+            'user_id' => $student->id,
+            'document_id' => $document->id,
+            'status' => 'completed',
+            'progress_percent' => 100,
+            'started_at' => now()->subMinutes(10),
+            'completed_at' => now()->subMinute(),
+        ]);
+
+        $this->actingAs($student)
+            ->postJson(route('reading.coach'), [
+                'session_id' => $session->id,
+                'message' => 'Mengapa bahasa daerah dilindungi menurut materi?',
+            ])
+            ->assertOk()
+            ->assertJsonPath('reply', 'Perhatikan kembali paragraf [¶2], apa alasan utama perlindungan tersebut?');
+
+        $lastPair = Http::recorded()->last();
+        $this->assertNotNull($lastPair);
+        $lastReq = $lastPair[0];
+        $this->assertSame('https://openrouter.ai/api/v1/responses', $lastReq->url());
+        $payload = json_encode($lastReq->data(), JSON_UNESCAPED_UNICODE);
+        $this->assertStringContainsString('[¶2]', $payload);
+        $this->assertStringContainsString('ANTI-BOCOR KUNCI TANTANGAN', $payload);
+    }
 }

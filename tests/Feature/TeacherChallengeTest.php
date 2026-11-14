@@ -389,4 +389,193 @@ class TeacherChallengeTest extends TestCase
         $reviewRes->assertSee('Anton Moeliono (1985)');
         $reviewRes->assertDontSee('Menjelaskan pengertian Trigatra Bangun Bahasa.');
     }
+
+    public function test_student_can_check_question_interactively_lock_result_and_finish_challenge(): void
+    {
+        $teacher = User::factory()->create(['role' => 'teacher']);
+        $student = User::factory()->create(['role' => 'student', 'entry_grade' => 10, 'enrollment_year' => 2026]);
+
+        $document = Document::query()->create([
+            'uploaded_by' => $teacher->id,
+            'title' => 'Demokrasi Pancasila',
+            'category' => 'PKN',
+            'target_grade' => '10',
+            'body' => str_repeat("Pembukaan materi tentang kehidupan bernegara.\n\n", 140)
+                . 'Musyawarah untuk mufakat lebih diutamakan daripada voting agar seluruh pihak didengarkan dan tidak ada pihak yang merasa dikalahkan sehingga persatuan tetap terjaga.',
+            'excerpt' => 'Musyawarah mufakat dalam Demokrasi Pancasila.',
+            'estimated_minutes' => 5,
+            'is_published' => true,
+        ]);
+
+        $q1 = TeacherChallenge::query()->create([
+            'document_id' => $document->id,
+            'type' => 'essay',
+            'sequence' => 1,
+            'difficulty' => 'medium',
+            'difficulty_weight' => 2,
+            'question' => 'Mengapa prinsip musyawarah untuk mufakat lebih diutamakan dibandingkan voting?',
+            'rubric' => 'Agar seluruh pihak didengarkan pendapatnya dan tidak ada pihak yang merasa dikalahkan sehingga persatuan tetap terjaga.',
+        ]);
+
+        $q2 = TeacherChallenge::query()->create([
+            'document_id' => $document->id,
+            'type' => 'multiple_choice',
+            'sequence' => 2,
+            'difficulty' => 'easy',
+            'difficulty_weight' => 1,
+            'question' => 'Apa tujuan utama musyawarah mufakat?',
+            'options' => [
+                'A' => 'Menjaga persatuan tanpa ada pihak dikalahkan',
+                'B' => 'Memenangkan suara terbanyak secara sepihak',
+                'C' => 'Menghindari diskusi',
+                'D' => 'Mengabaikan pendapat minoritas',
+            ],
+            'correct_answer' => 'A',
+        ]);
+
+        // Mock LLM bergaya Gemini NotebookLM + pastikan konteks materi akhir (>4500 karakter) ikut terkirim ke penilai
+        $mockLlm = \Mockery::mock(\App\Services\AI\Contracts\LanguageModel::class);
+        $mockLlm->shouldReceive('isConfigured')->andReturn(true);
+        $mockLlm->shouldReceive('respond')->once()->withArgs(function (array $messages, string $instructions) {
+            $prompt = (string) ($messages[0]['content'] ?? '');
+
+            return str_contains($instructions, 'Toleransi typo')
+                && str_contains($prompt, 'tidak ada pihak yang merasa dikalahkan sehingga persatuan tetap terjaga');
+        })->andReturn(json_encode([
+            'score' => 92,
+            'understanding_level' => 'Sangat Tepat (Mahir)',
+            'text_alignment' => 'supported',
+            'missing_concepts' => [],
+            'hint' => '',
+            'evidence_spans' => ['mendengarkan pendapat dari pihak mana pun', 'menjaga persatuan bersama'],
+            'feedback' => 'Penjelasan Anda sangat baik. Anda berhasil menangkap esensi musyawarah untuk mufakat yang menghindari adanya pihak yang merasa dikalahkan atau didominasi, sehingga keharmonisan dan persatuan tetap terjaga.',
+        ]));
+        $this->app->instance(\App\Services\AI\Contracts\LanguageModel::class, $mockLlm);
+
+        // 1. Cek soal #1 secara interaktif
+        $checkRes = $this->actingAs($student)->postJson(
+            route('student.teacher-challenges.check-question', $document),
+            [
+                'challenge_id' => $q1->id,
+                'answer' => 'Karena dengan begitu kita dapat mendengarkan pendapat dari pihak mana pun dan tidak ada pihak yang merasa di menangkan sehingga tetap menjaga persatuan bersama',
+            ]
+        );
+
+        $checkRes->assertOk();
+        $checkRes->assertJsonPath('locked', true);
+        $checkRes->assertJsonPath('checked_count', 1);
+        $checkRes->assertJsonPath('total_questions', 2);
+        $checkRes->assertJsonPath('evaluated.evaluation_status', 'benar');
+        $checkRes->assertJsonPath('evaluated.quality_percent', 92);
+
+        // Draft in_progress tersimpan di DB
+        $this->assertDatabaseHas('student_teacher_challenge_submissions', [
+            'user_id' => $student->id,
+            'document_id' => $document->id,
+            'status' => 'in_progress',
+        ]);
+
+        // 2. Anti-cheat: mencoba cek ulang soal #1 dengan jawaban berbeda tidak mengubah skor yang sudah terkunci
+        $retryRes = $this->actingAs($student)->postJson(
+            route('student.teacher-challenges.check-question', $document),
+            [
+                'challenge_id' => $q1->id,
+                'answer' => 'Jawaban berbeda setelah melihat kunci',
+            ]
+        );
+        $retryRes->assertOk();
+        $retryRes->assertJsonPath('evaluated.quality_percent', 92);
+
+        // 3. Kumpulkan tantangan (Q1 ambil hasil terkunci, Q2 dinilai sekarang -> PG A benar)
+        $submitRes = $this->actingAs($student)->postJson(
+            route('student.teacher-challenges.submit', $document),
+            [
+                'answers' => [
+                    $q2->id => 'A',
+                ],
+            ]
+        );
+
+        $submitRes->assertOk();
+        $submitRes->assertJsonPath('completed', true);
+        $submitRes->assertJsonPath('answers_breakdown.' . $q1->id . '.evaluation_status', 'benar');
+        $submitRes->assertJsonPath('answers_breakdown.' . $q2->id . '.evaluation_status', 'benar');
+
+        $this->assertDatabaseHas('student_teacher_challenge_submissions', [
+            'user_id' => $student->id,
+            'document_id' => $document->id,
+            'status' => 'completed',
+        ]);
+    }
+
+    public function test_gemini_language_model_provider_sends_system_instruction_and_parses_response(): void
+    {
+        config()->set('ai.provider', 'gemini');
+        config()->set('services.gemini.api_key', 'test-gemini-key');
+        config()->set('services.gemini.model', 'gemini-2.5-flash');
+
+        \Illuminate\Support\Facades\Http::fake([
+            'generativelanguage.googleapis.com/*' => \Illuminate\Support\Facades\Http::response([
+                'candidates' => [
+                    [
+                        'content' => [
+                            'parts' => [
+                                ['text' => '{"score": 90, "feedback": "Mantap"}'],
+                            ],
+                        ],
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        $provider = $this->app->make(\App\Services\AI\Contracts\LanguageModel::class);
+        $this->assertInstanceOf(\App\Services\AI\GeminiLanguageModelProvider::class, $provider);
+        $this->assertTrue($provider->isConfigured());
+
+        $reply = $provider->respond(
+            [['role' => 'user', 'content' => 'Evaluasi jawaban siswa']],
+            'Kamu adalah penilai NotebookLM.',
+            ['temperature' => 0.0, 'max_output_tokens' => 400]
+        );
+
+        $this->assertSame('{"score": 90, "feedback": "Mantap"}', $reply);
+    }
+
+    public function test_blank_essay_submission_displays_empty_status_and_model_answer(): void
+    {
+        $teacher = User::factory()->create(['role' => 'teacher']);
+        $student = User::factory()->create(['role' => 'student', 'entry_grade' => 10, 'enrollment_year' => 2026]);
+
+        $document = Document::query()->create([
+            'uploaded_by' => $teacher->id,
+            'title' => 'Trigatra Bangun Bahasa',
+            'category' => 'Bahasa Indonesia',
+            'target_grade' => '10',
+            'body' => 'Bahasa Indonesia berkedudukan sebagai bahasa nasional dan bahasa negara sesuai UUD 1945 Pasal 36.',
+            'excerpt' => 'Kedudukan bahasa nasional.',
+            'estimated_minutes' => 5,
+            'is_published' => true,
+        ]);
+
+        $challenge = TeacherChallenge::query()->create([
+            'document_id' => $document->id,
+            'type' => 'essay',
+            'sequence' => 1,
+            'question' => 'Mengapa Bahasa Indonesia memiliki kedudukan sebagai bahasa nasional dan bahasa negara?',
+            'rubric' => 'Bahasa Indonesia berperan sebagai identitas pemersatu bangsa sekaligus bahasa resmi kenegaraan sesuai UUD 1945 Pasal 36.',
+            'reference_excerpt' => 'Bahasa Indonesia berkedudukan sebagai bahasa nasional dan bahasa negara sesuai UUD 1945 Pasal 36.',
+        ]);
+
+        $submitRes = $this->actingAs($student)->post(route('student.teacher-challenges.submit', $document), [
+            'answers' => [$challenge->id => ''],
+        ]);
+        $submitRes->assertRedirect(route('student.teacher-challenges.show', $document));
+
+        $reviewRes = $this->actingAs($student)->get(route('student.teacher-challenges.show', $document));
+        $reviewRes->assertOk();
+        $reviewRes->assertSee('Jawaban Kosong');
+        $reviewRes->assertSee('Jawaban kosong (Belum diisi).');
+        $reviewRes->assertSee('Kunci Jawaban yang Benar Berdasarkan Materi:');
+        $reviewRes->assertSee('identitas pemersatu bangsa');
+    }
 }
