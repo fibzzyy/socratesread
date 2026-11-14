@@ -5,7 +5,7 @@
             <h2 id="change-password-heading" class="text-xl font-bold text-slate-900 mt-1 m-0">Kelola Akses Akun</h2>
             <p class="text-xs text-slate-500 mt-0.5 m-0">Perbarui email dan kata sandi untuk melindungi privasi akun Anda.</p>
         </div>
-        <span class="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shadow-2xs">
+        <span class="w-10 h-10 text-slate-400 flex items-center justify-center">
             <x-icon name="shield-check" class="w-5 h-5" />
         </span>
     </div>
@@ -19,8 +19,8 @@
                     Email aktif saat ini: <strong class="text-slate-800 font-semibold">{{ $user->email }}</strong>
                 </p>
             </div>
-            <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 bg-emerald-50 border border-emerald-200/60 px-2.5 py-0.5 rounded-full">
-                <x-icon name="check" class="w-3 h-3" />
+            <span class="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500">
+                <x-icon name="check" class="w-3 h-3 text-slate-500" />
                 Terverifikasi
             </span>
         </div>
