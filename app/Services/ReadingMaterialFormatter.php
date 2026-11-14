@@ -865,8 +865,12 @@ class ReadingMaterialFormatter
                 continue;
             }
 
-            // Substantive block (paragraf, bullet list, quote): bungkus dengan nomor paragraf interaktif
+            // Substantive block (paragraf, bullet list, table, quote): bungkus dengan nomor paragraf interaktif
             $contentHtml = trim(Str::markdown($trimmed, ['html_input' => 'escape', 'allow_unsafe_links' => false]));
+            if (str_contains($contentHtml, '<table')) {
+                $contentHtml = preg_replace('/<table\b/u', '<div class="table-wrapper"><table', $contentHtml) ?? $contentHtml;
+                $contentHtml = str_replace('</table>', '</table></div>', $contentHtml);
+            }
             $htmlBlocks[] = <<<HTML
 <div class="passage-para-block group" id="para-{$currentIndex}" data-paragraph-index="{$currentIndex}">
     <span class="para-marker" title="Paragraf {$currentIndex}">¶{$currentIndex}</span>
