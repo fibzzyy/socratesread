@@ -14,14 +14,15 @@
             data-dropdown-trigger>
         
         {{-- Avatar --}}
-        <div class="shrink-0">
-            <div class="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center bg-slate-100 text-slate-400 shadow-xs ring-1 ring-slate-900/10">
+        <div class="relative shrink-0">
+            <div class="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center {{ $user->avatarUrl() ? 'bg-slate-100 ring-1 ring-slate-900/10' : 'bg-blue-600 text-white font-bold text-xs ring-1 ring-blue-700/20' }} shadow-xs">
                 @if ($user->avatarUrl())
                     <img src="{{ $user->avatarUrl() }}" alt="{{ $user->name }}" class="w-full h-full object-cover">
                 @else
-                    <x-icon name="user" class="h-4 w-4 text-slate-400" />
+                    <span>{{ $user->initials() }}</span>
                 @endif
             </div>
+            <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-2 ring-white" aria-hidden="true"></span>
         </div>
 
         {{-- Username & Role Label --}}
@@ -47,11 +48,11 @@
         <div class="p-4 bg-gradient-to-b from-slate-50/90 via-blue-50/20 to-white border-b border-slate-100">
             <div class="flex items-center gap-3">
                 <div class="relative shrink-0">
-                    <div class="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center bg-slate-100 text-slate-400 shadow-md ring-2 ring-white">
+                    <div class="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center {{ $user->avatarUrl() ? 'bg-slate-100 ring-2 ring-white' : 'bg-blue-600 text-white font-bold text-base ring-2 ring-white' }} shadow-md">
                         @if ($user->avatarUrl())
                             <img src="{{ $user->avatarUrl() }}" alt="{{ $user->name }}" class="w-full h-full object-cover">
                         @else
-                            <x-icon name="user" class="h-6 w-6 text-slate-400" />
+                            <span>{{ $user->initials() }}</span>
                         @endif
                     </div>
                 </div>

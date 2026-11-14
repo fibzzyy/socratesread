@@ -25,12 +25,20 @@
 </head>
 
 <body>
-    @php($isReadingIndex = request()->routeIs('reading') && ! request()->route('document'))
-    @php($isProgressOverview = request()->routeIs('progress') && ! request()->query('classroom'))
+    @php
+        $isReadingIndex = request()->routeIs('reading') && ! request()->route('document');
+        $isProgressOverview = request()->routeIs('progress') && ! request()->query('classroom');
+        $currentAuthUser = auth()->user();
+        $studentSummary = ($currentAuthUser && $currentAuthUser->role === 'student')
+            ? rescue(fn () => app(\App\Services\GamificationService::class)->summary($currentAuthUser), ['xp' => 0, 'current_streak' => 0], false)
+            : ['xp' => 0, 'current_streak' => 0];
+        $headerXp = $studentSummary['xp'] ?? 0;
+        $headerStreak = $studentSummary['current_streak'] ?? 0;
+    @endphp
     <div class="app-shell">
         <button class="scrim" type="button" aria-label="Tutup navigasi" data-menu-close></button>
         <aside class="sidebar sidebar-theme" id="primary-navigation" aria-label="Navigasi utama">
-            <a class="brand" href="{{ route('dashboard') }}" aria-label="SocratesRead, beranda"><img class="brand-logo" src="{{ asset('images/logo.png') }}" alt="" style="width: 36px; height: 36px; object-fit: contain;"><span class="brand-name">Socrates<span>Read</span></span></a>
+            <a class="brand" href="{{ route('dashboard') }}" aria-label="SocratesRead, beranda"><img class="brand-logo" src="{{ asset('images/logo.png') }}" alt=""><span class="brand-name">Socrates<span>Read</span></span></a>
             <div class="nav-label">MENU UTAMA</div>
             <nav class="nav-list" aria-label="Menu utama">
                 <a class="nav-link {{ request()->routeIs('dashboard') ? 'is-active' : '' }}" href="{{ route('dashboard') }}" @if(request()->routeIs('dashboard')) aria-current="page" @endif><x-icon name="layout-dashboard" /><span>Beranda</span></a>
@@ -46,25 +54,27 @@
             <div class="sidebar-spacer"></div>
         </aside>
         <main class="main-content {{ $isReadingIndex ? 'reading-room-shell' : '' }}">
-            @unless($isReadingIndex)
-                <header class="topbar student-topbar-pill quiz-topbar">
-                    <button class="icon-button menu-toggle" type="button" aria-label="Buka navigasi" aria-controls="primary-navigation" aria-expanded="false" data-menu-toggle><x-icon name="menu" /></button>
-                    <div class="breadcrumb">
-                        <a href="{{ route('dashboard') }}" class="quiz-home-link topbar-home-link" aria-label="Beranda"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7M5 9v12h14V9M9 21v-7h6v7" /></svg></a>
-                        <a href="{{ route('dashboard') }}" class="hover:text-blue-600 transition-colors">Ruang belajar</a>
-                        @hasSection('breadcrumb_items')
-                            @yield('breadcrumb_items')
-                        @else
-                            <span>/</span><strong>@yield('breadcrumb', 'Halaman')</strong>
-                        @endif
-                    </div>
-                    <div class="topbar-actions">
-                        <span class="today-label"><x-icon name="calendar-days" />{{ now()->locale('id')->translatedFormat('l, d F Y') }}</span>
-                        <x-notification-center />
-                        <x-profile-dropdown />
-                    </div>
-                </header>
-            @endunless
+            <header class="topbar student-topbar-pill quiz-topbar">
+                <button class="icon-button menu-toggle" type="button" aria-label="Buka navigasi" aria-controls="primary-navigation" aria-expanded="false" data-menu-toggle><x-icon name="menu" /></button>
+                <div class="breadcrumb">
+                    <a href="{{ route('dashboard') }}" class="quiz-home-link topbar-home-link" aria-label="Beranda"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7M5 9v12h14V9M9 21v-7h6v7" /></svg></a>
+                    <a href="{{ route('dashboard') }}" class="hover:text-blue-600 transition-colors">Ruang belajar</a>
+                    @hasSection('breadcrumb_items')
+                        @yield('breadcrumb_items')
+                    @else
+                        <span>/</span><strong>@yield('breadcrumb', 'Halaman')</strong>
+                    @endif
+                </div>
+                <div class="topbar-actions">
+                    <span class="today-label"><x-icon name="calendar-days" />{{ now()->locale('id')->translatedFormat('l, d F Y') }}</span>
+                    @if ($isReadingIndex && $currentAuthUser?->role === 'student')
+                        <span class="reading-stat-chip topbar-stat-chip stat-chip-xp" title="Total XP Anda"><x-icon name="star" /> {{ number_format($headerXp, 0, ',', '.') }} XP</span>
+                        <span class="reading-stat-chip topbar-stat-chip stat-chip-streak" title="Rutinitas Belajar"><x-icon name="flame" /> Rutinitas {{ $headerStreak }} hari</span>
+                    @endif
+                    <x-notification-center />
+                    <x-profile-dropdown />
+                </div>
+            </header>
             <div class="page-content stage-two-content {{ $isReadingIndex ? 'reading-page-content' : '' }}">
                 @yield('content')
                 <footer class="page-footer"><span>Terus bertanya, terus bertumbuh.</span><span>© 2026
