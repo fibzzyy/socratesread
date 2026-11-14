@@ -176,7 +176,7 @@ class ProfileSettingsTest extends TestCase
             ->assertOk()
             ->assertSee('SMA Negeri 1 Jakarta')
             ->assertSee('Bahasa Indonesia')
-            ->assertSee('Informasi Pendidik');
+            ->assertSee('Informasi mengajar');
     }
 
     public function test_student_profile_shows_password_change_form(): void
