@@ -159,8 +159,32 @@
 /* Keep the related Kelas Saya class tiles on the same compact type scale. */
 .my-class-heading h1 { font-family: Poppins, 'Plus Jakarta Sans', sans-serif; font-size: 28px; font-weight: 600; line-height: 1.15; letter-spacing: -.3px; }
 .my-class-grade { font-size: 11px; }
-.my-class-grid { grid-template-columns: repeat(auto-fill, 272px); gap: 16px; }
-.my-class-room-card { width: 272px; max-width: 100%; gap: 10px; padding: 14px; border-radius: 16px; }
+.my-class-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 20px !important;
+    width: 100% !important;
+}
+.my-class-room-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    gap: 10px;
+    padding: 18px;
+    border-radius: 16px;
+}
+@media (max-width: 1024px) {
+    .my-class-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 16px !important;
+    }
+}
+@media (max-width: 640px) {
+    .my-class-grid {
+        grid-template-columns: minmax(0, 1fr) !important;
+        gap: 14px !important;
+    }
+}
 .my-class-room-heading { min-height: 60px; align-items: center; gap: 8px; }
 .my-class-room-icon { width: 34px; height: 34px; border-radius: 50%; }
 .my-class-room-icon .lucide-icon { width: 17px; height: 17px; }

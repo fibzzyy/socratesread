@@ -454,9 +454,9 @@ class ReadingMaterialFormatter
         $markdown = preg_replace('/\R+Tugas\s+1\s+Selanjutnya,?\s+lakukan\s+analisis.*?(?=\R+\d+\.\s+[A-Z]|\Z)/ius', "\n\n", $markdown);
 
         // 4. Bersihkan spanduk / instruksi tugas PR di sela-sela subbab (BS)
-        $markdown = preg_replace('/(?:\(Sumber:[^\)]+\))?\s*Tugas\s+Sekarang,?\s+kerjakan\s+tugas-tugas.*?Kegiatan\s+2\s+Menyusun\s+Ringkasan/ius', "(Sumber: http://istiqomahalmaky.blogspot.co.id)\n\n### Kegiatan 2: Menyusun Ringkasan", $markdown);
+        $markdown = preg_replace('/(?:\(Sumber:[^\)]+\))?\s*Tugas\s+Sekarang,?\s+kerjakan\s+tugas-tugas.*?Kegiatan\s+2\s+Menyusun\s+Ringkasan/ius', "(Sumber: http://istiqomahalmaky.blogspot.co.id)\n\n### Kegiatan 2: Menyusun Ringkasan\n\n", $markdown);
         $markdown = preg_replace('/Setelah\s+ringkasan\s+yang\s+kamu\s+buat\s+selesai,?\s+lakukanlah\s+aktivitas.*?Bacalah\s+teks\s+laporan\s+hasil\s+observasi\s+berjudul\s+D[’\']\s*topeng\s+Museum\s+Angkut\s+berikut\s+ini\.?\s*(?:Kemudian,?\s+kerjakan\s+tugas-tugasnya[^\n\.]*\.?)?/ius', "### Teks: D' Topeng Museum Angkut\n\n", $markdown);
-        $markdown = preg_replace('/(?:Setelah\s+berlatih\s+memahami\s+gagasan\s+pokok[^\n]+)?Tulislah\s+pada\s+buku\s+kerjamu!\s*Paragraf\s+Gagasan\s+Pokok.*?Kegiatan\s+3\s+Menyimpulkan\s+Fungsi/ius', "### Kegiatan 3: Menyimpulkan Fungsi", $markdown);
+        $markdown = preg_replace('/(?:Setelah\s+berlatih\s+memahami\s+gagasan\s+pokok[^\n]+)?Tulislah\s+pada\s+buku\s+kerjamu!\s*Paragraf\s+Gagasan\s+Pokok.*?Kegiatan\s+3\s+Menyimpulkan\s+Fungsi/ius', "### Kegiatan 3: Menyimpulkan Fungsi\n\n", $markdown);
 
         $markdown = preg_replace('/(?:\s+Tugas|\R+Tugas)\s+\d+[\s\:\.]*Selanjutnya,?\s+lakukan\s+analisis\s+kebahasaan.*?Paragraf\s+ke:\s*/ius', "\n\n", $markdown);
         $markdown = preg_replace('/(?:\R+|^)\s*Selanjutnya,?\s+lanjutkan\s+dengan\s+mencari\s+\d+\s+kata.*?Paragraf\s+ke:\s*/ius', "\n\n", $markdown);
@@ -793,11 +793,26 @@ class ReadingMaterialFormatter
         $text = preg_replace('/(?<=\p{L})\*+\s*$/mu', '', $text);
         $text = preg_replace('/^\s*\*\s+/mu', '- ', $text);
 
-        // 4. Pastikan setiap heading terisolasi dengan double newline (\n\n) agar tidak menyatu dengan paragraf
+        // 4. Pisahkan heading yang menyatu langsung dengan teks isi materi atau sub-bab
+        $text = preg_replace('/(###\s*Kegiatan\s+2[:\.]?\s*Menyusun\s+Ringkasan\s+Isi\s+Teks\s+Laporan\s+Hasil\s+Observasi)\s+(Sebuah\s+ringkasan)/iu', "$1\n\n$2", $text);
+        $text = preg_replace('/(###\s*Kegiatan\s+3[:\.]?\s*Menyimpulkan\s+Fungsi\s+Teks\s+Laporan\s+Hasil\s+Observasi)\s+(Laporan\s+hasil)/iu', "$1\n\n$2", $text);
+        $text = preg_replace('/(###\s*[^\n\*]+?)\s*(\*\*(?:Setelah|Untuk|Kedudukan|\-))/iu', "$1\n\n$2", $text);
+        $text = preg_replace('/(###\s*(?:TUJUAN\s+PEMBELAJARAN|CAPAIAN\s+PEMBELAJARAN|Tujuan\s+Pembelajaran|Capaian\s+Pembelajaran))\s+(Setelah|Menjelaskan|Siswa|Peserta|\d)/iu', "$1\n\n$2", $text);
+        $text = preg_replace('/(###\s*CONTOH\s+PRAKTIK)\s+(Teks\s+Asli|[A-Z])/iu', "$1\n\n$2", $text);
+        $text = preg_replace('/(###\s*HAKIKAT\s+KARYA\s+TULIS\s+ILMIAH)\s+(Karya\s+tulis)/iu', "$1\n\n$2", $text);
+        $text = preg_replace('/(###\s*ILMIAH)\s+(\d+\.)/iu', "### KARYA TULIS ILMIAH\n\n$2", $text);
+        $text = preg_replace('/(###\s*Daftar\s+[Pp]ustaka)\s+(Singkat|Rahayu|[A-Z])/iu', "### Daftar Pustaka\n\n$2", $text);
+        $text = preg_replace('/(###\s*Bab\s+V\s+Penutup)\s+(Daftar\s+pustaka|[A-Z])/iu', "$1\n\n$2", $text);
+        $text = preg_replace('/(###\s*\d+\.\s*Barisan\s+Geometri)\s+(Lima\s+anak|[A-Z])/iu', "$1\n\n$2", $text);
+        $text = preg_replace('/(###\s*\d+\.\s*Barisan\s+Aritmetika)\s+(\*\*Eksplorasi|[A-Z])/iu', "$1\n\n$2", $text);
+        $text = preg_replace('/(###\s*[A-G]\.\s+[^\n]+?)\s+([A-G]\.\d+\.|\d+\.|\p{Lu}[a-z]+)/u', "$1\n\n$2", $text);
+        $text = preg_replace('/###\s*EOF\s+(chmod\s+[^\n]+)/iu', "```bash\n$1", $text);
+
+        // 5. Pastikan setiap heading terisolasi dengan double newline (\n\n) agar tidak menyatu dengan paragraf
         $text = preg_replace('/(?<!\n)\n(#{1,6}\s+[^\n]+)/u', "\n\n$1", $text);
         $text = preg_replace('/(#{1,6}\s+[^\n]+)\n(?!\n)/u', "$1\n\n", $text);
 
-        // 5. Normalisasi heading kosong berulang
+        // 6. Normalisasi heading kosong berulang
         $text = preg_replace('/(?:^\s*#{1,6}\s*$\R?)+/mu', '', $text);
 
         return $text;
@@ -1121,7 +1136,7 @@ HTML;
      *
      * @return array<int, string> Array HTML per halaman
      */
-    public function splitIntoPages(string $formattedMarkdown, int $idealPageChars = 2100): array
+    public function splitIntoPages(string $formattedMarkdown, int $idealPageChars = 1200): array
     {
         $chunks = preg_split('/\R{2,}/u', trim($formattedMarkdown), -1, PREG_SPLIT_NO_EMPTY) ?: [];
         if (empty($chunks)) {

@@ -79,28 +79,60 @@
                     <!-- Versi 2: Mode Buka Halaman Kertas (Paginasi Buku + Swipe Mobile) -->
                     <div class="book-page-stage hidden" data-page-reader>
                         <div class="book-page-sheet passage-markdown" data-book-sheet></div>
-                        <div class="book-page-nav">
-                            <button type="button" class="outline-button" data-book-prev disabled>
-                                <x-icon name="arrow-left" /> <span>Halaman Sebelumnya</span>
-                            </button>
-                            <span class="text-xs font-bold text-slate-600" data-book-indicator>Halaman 1 / {{ max(1, count($bookPagesHtml)) }}</span>
-                            <button type="button" class="outline-button" data-book-next>
-                                <span>Halaman Berikutnya</span> <x-icon name="arrow-right" />
-                            </button>
-                        </div>
                     </div>
 
-                    <div class="passage-note">
+                    <div class="passage-note" data-scroll-note>
                         <x-icon name="lightbulb" />
                         <span>Saat membaca, cari kalimat yang menjadi <strong>bukti</strong> untuk setiap gagasan penting.</span>
                     </div>
+                </div>
+
+            <!-- Dedicated Menu Pindah Halaman (Di Luar Teks Bacaan) -->
+            <div class="book-page-nav-bar hidden" data-book-nav-bar>
+                <button type="button" class="book-nav-action-btn" data-book-prev disabled>
+                    <x-icon name="arrow-left" class="w-4 h-4" /> <span>Halaman Sebelumnya</span>
+                </button>
+                <div class="book-nav-center-badge">
+                    <x-icon name="book-open-text" class="w-3.5 h-3.5 text-blue-600" />
+                    <span class="text-xs font-bold text-slate-800" data-book-indicator>Halaman 1 / {{ max(1, count($bookPagesHtml)) }}</span>
+                </div>
+                <button type="button" class="book-nav-action-btn" data-book-next>
+                    <span>Halaman Berikutnya</span> <x-icon name="arrow-right" class="w-4 h-4" />
+                </button>
+            </div>
+
+            <!-- Space Khusus di Ujung Kotak Bagian Bacaan -->
+            <div class="reading-passage-footer">
+                <div class="reading-footer-progress">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
+                        <span class="text-xs font-semibold text-slate-600">Progres Membaca:</span>
+                        <strong class="text-xs font-bold text-slate-900" data-read-progress-badge>{{ $initialProgress }}%</strong>
+                    </div>
+                    <div class="reading-footer-track">
+                        <span data-reading-footer-bar style="width:{{ $initialProgress }}%"></span>
+                    </div>
+                </div>
+
+                <div class="reading-footer-actions">
+                    @if ($session->isCompleted())
+                        <button type="button" class="complete-reading-btn is-complete" disabled data-complete-reading data-session-id="{{ $session->id }}" data-progress-url="{{ route('reading.progress') }}">
+                            <x-icon name="check" />
+                            <span data-complete-label>Tugas Selesai & Terkunci</span>
+                        </button>
+                    @else
+                        <button type="button" class="complete-reading-btn" data-complete-reading data-session-id="{{ $session->id }}" data-progress-url="{{ route('reading.progress') }}">
+                            <x-icon name="check" />
+                            <span data-complete-label>Selesai membaca</span>
+                        </button>
+                    @endif
                 </div>
             </div>
 
         </article>
 
         <aside class="reading-side-column reading-companion-panel" aria-label="Panduan membaca">
-            <section class="panel session-card reading-status-card" aria-labelledby="reading-status-title">
+            <section class="panel session-card reading-status-card" data-session-card aria-labelledby="reading-status-title">
                 <div class="session-head">
                     <div class="session-icon"><x-icon name="book-open-text" /></div>
                     <div>
@@ -116,28 +148,20 @@
                     <span>Mulai membaca</span>
                     <strong>{{ $session->started_at?->format('H:i') ?? '—' }} WIB</strong>
                 </div>
-                <div class="passage-bottom">
-                    <span class="read-progress-label">
-                        <span class="read-progress-dot"></span> Progres membaca <strong data-read-progress>{{ $initialProgress }}%</strong>
-                    </span>
-                    <div class="progress-track">
-                        <span data-bottom-progress-bar style="width:{{ $initialProgress }}%"></span>
-                    </div>
-                    @if ($session->isCompleted())
-                        <button type="button" class="outline-button is-complete" disabled data-complete-reading data-session-id="{{ $session->id }}" data-progress-url="{{ route('reading.progress') }}">
-                            <span data-complete-label>Tugas Selesai & Terkunci</span>
-                            <x-icon name="check" />
-                        </button>
-                    @else
-                        <button type="button" class="outline-button" data-complete-reading data-session-id="{{ $session->id }}" data-progress-url="{{ route('reading.progress') }}">
-                            <span data-complete-label>Selesai membaca</span>
-                            <x-icon name="check" />
-                        </button>
-                    @endif
+                <div class="session-stat-row {{ $session->completed_at ? '' : 'hidden' }}" data-session-completed-row>
+                    <span>Waktu selesai</span>
+                    <strong data-session-completed-time>{{ $session->completed_at ? $session->completed_at->format('H:i') . ' WIB' : '—' }}</strong>
+                </div>
+                <div class="session-stat-row pt-1">
+                    <span>Progres membaca</span>
+                    <strong data-read-progress>{{ $initialProgress }}%</strong>
+                </div>
+                <div class="progress-track mt-1 mb-1">
+                    <span data-bottom-progress-bar style="width:{{ $initialProgress }}%"></span>
                 </div>
             </section>
 
-            <section class="panel session-card" data-session-card>
+            <section class="panel session-card coach-panel" data-coach-card data-reading-coach data-endpoint="{{ route('reading.coach') }}" data-session-id="{{ $session->id }}" data-max-length="{{ config('ai.limits.message_characters', 1200) }}" data-initial-history="{{ json_encode($coachHistory ?? []) }}" aria-labelledby="coach-title">
                 <div class="session-head">
                     <div class="session-icon"><x-icon name="book-open-text" /></div>
                     <div>
@@ -167,7 +191,7 @@
                     <button type="button" data-coach-prompt="Bukti apa yang mendukung ide penting dalam bacaan?">Cari bukti</button>
                     <button type="button" data-coach-prompt="Adakah sudut pandang lain atau makna mendalam dari bacaan ini?">Sudut pandang</button>
                 </div>
-                <form class="coach-form" data-coach-form>
+                <form class="coach-form" data-coach-form method="POST" onsubmit="return false;">
                     <label class="sr-only" for="coach-message">Tulis pertanyaan atau pemikiranmu</label>
                     <textarea id="coach-message" name="message" rows="2" maxlength="{{ config('ai.limits.message_characters', 1200) }}" placeholder="Tulis pertanyaan atau pemikiranmu…" required data-coach-input></textarea>
                     <div class="coach-form-footer">
@@ -326,6 +350,10 @@
 
         if (readProgressEl) readProgressEl.textContent = `${highestProgress}%`;
         if (bottomProgressBar) bottomProgressBar.style.width = `${highestProgress}%`;
+        const footerBar = document.querySelector('[data-reading-footer-bar]');
+        if (footerBar) footerBar.style.width = `${highestProgress}%`;
+        const footerBadge = document.querySelector('[data-read-progress-badge]');
+        if (footerBadge) footerBadge.textContent = `${highestProgress}%`;
         if (sessionProgressBar) sessionProgressBar.style.width = `${highestProgress}%`;
         if (sessionProgressText) sessionProgressText.textContent = `${highestProgress}%`;
         if (sessionStatusLabel && !isSessionCompleted) {
@@ -377,10 +405,7 @@
             bookSheet.classList.add('is-turning');
             setTimeout(() => bookSheet.classList.remove('is-turning'), 160);
         }
-        bookSheet.innerHTML = `
-            ${bookPages[currentBookPage]}
-            <div class="book-page-footer-num">— Halaman ${currentBookPage + 1} dari ${bookPages.length} —</div>
-        `;
+        bookSheet.innerHTML = `${bookPages[currentBookPage]}`;
         bookIndicator.textContent = `Halaman ${currentBookPage + 1} / ${bookPages.length}`;
         bookPrevBtn.disabled = currentBookPage === 0;
         bookNextBtn.disabled = currentBookPage >= bookPages.length - 1;
@@ -402,17 +427,23 @@
             btn.classList.toggle('is-active', active);
             btn.setAttribute('aria-pressed', String(active));
         });
+        const bookNavBar = document.querySelector('[data-book-nav-bar]');
+        const scrollNote = document.querySelector('[data-scroll-note]');
         if (readingMode === 'book') {
             scrollReader.classList.add('hidden');
             pageReader.classList.remove('hidden');
             scrollContainer?.classList.remove('is-mode-scroll');
             scrollContainer?.classList.add('is-mode-book');
+            bookNavBar?.classList.remove('hidden');
+            scrollNote?.classList.add('hidden');
             renderBookPage(currentBookPage, false);
         } else {
             pageReader.classList.add('hidden');
             scrollReader.classList.remove('hidden');
             scrollContainer?.classList.remove('is-mode-book');
             scrollContainer?.classList.add('is-mode-scroll');
+            bookNavBar?.classList.add('hidden');
+            scrollNote?.classList.remove('hidden');
         }
     };
 

@@ -395,16 +395,16 @@
 
                     <div class="flex items-center gap-2">
                         @if ($isLocked)
-                            <a class="outline-button !border-purple-200 !text-purple-700 bg-purple-50/50 hover:bg-purple-100" href="{{ route('progress') }}">
-                                <x-icon name="trending-up" /> <span>Lihat Progress</span>
+                            <a class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-xl border border-purple-200 text-purple-700 bg-purple-50 hover:bg-purple-100 transition no-underline shadow-2xs" href="{{ route('progress') }}">
+                                <x-icon name="trending-up" class="w-4 h-4 text-purple-600 shrink-0" /> <span>Lihat Progress</span>
                             </a>
-                            <a class="outline-button" href="{{ route('quiz.index') }}">
-                                <x-icon name="brain-circuit" /> <span>Tantangan Socrates</span>
+                            <a class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-xl border border-slate-200 text-slate-700 bg-white hover:bg-slate-50 transition no-underline shadow-2xs" href="{{ route('quiz.index') }}">
+                                <x-icon name="brain-circuit" class="w-4 h-4 text-indigo-600 shrink-0" /> <span>Tantangan Socrates</span>
                             </a>
                         @endif
-                        <button type="button" class="challenge-button" data-btn-next>
+                        <button type="button" class="challenge-button inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold" data-btn-next>
                             <span data-next-label>Lanjut</span>
-                            <x-icon name="arrow-right" />
+                            <x-icon name="arrow-right" class="w-4 h-4 shrink-0" />
                         </button>
                     </div>
                 </div>

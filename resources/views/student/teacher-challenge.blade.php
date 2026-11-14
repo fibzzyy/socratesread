@@ -307,19 +307,19 @@
             @endforeach
         </div>
 
-        <div class="flex flex-wrap items-center justify-between gap-3">
-            <a href="{{ route('quiz.index') }}" class="outline-button">
-                <x-icon name="arrow-left" class="w-4 h-4" />
+        <div class="flex flex-wrap items-center justify-between gap-3 mt-6 pt-4 border-t border-slate-200/80">
+            <a href="{{ route('quiz.index') }}" class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl border border-slate-200 text-slate-700 bg-white hover:bg-slate-50 transition no-underline shadow-2xs">
+                <x-icon name="arrow-left" class="w-4 h-4 shrink-0" />
                 <span>Kembali ke Tantangan Socrates</span>
             </a>
             <div class="flex items-center gap-2">
-                <a href="{{ route('progress') }}" class="outline-button !border-purple-200 !text-purple-700 bg-purple-50/50 hover:bg-purple-100/70">
-                    <x-icon name="trending-up" class="w-4 h-4" />
+                <a href="{{ route('progress') }}" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-xl border border-purple-200 text-purple-700 bg-purple-50 hover:bg-purple-100 transition no-underline shadow-2xs">
+                    <x-icon name="trending-up" class="w-4 h-4 text-purple-600 shrink-0" />
                     <span>Lihat Progress</span>
                 </a>
-                <a href="{{ route('quiz.index') }}" class="challenge-button">
+                <a href="{{ route('quiz.index') }}" class="challenge-button inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition no-underline shadow-2xs">
                     <span>Lanjut ke Tantangan Socrates</span>
-                    <x-icon name="arrow-right" class="w-4 h-4" />
+                    <x-icon name="arrow-right" class="w-4 h-4 shrink-0" />
                 </a>
             </div>
         </div>
