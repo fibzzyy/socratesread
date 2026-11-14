@@ -4,41 +4,45 @@
 @section('breadcrumb', 'Challenge Socrates')
 
 @section('content')
-    <section class="stage-heading" aria-labelledby="quizzes-heading">
+    <div class="quizzes-page">
+    <section class="stage-heading quizzes-hero" aria-labelledby="quizzes-heading">
         <div>
             <p class="eyebrow">EVALUASI PEMAHAMAN BACAAN · CHALLENGE SOCRATES</p>
-            <h1 id="quizzes-heading">Challenge Socrates</h1>
-            <p class="welcome-subtitle">Pilih materi bacaan yang ingin Anda kerjakan tantangannya. Setiap tantangan menguji kecepatan & ketepatan analisis dengan batas waktu tertentu.</p>
+            <h1 id="quizzes-heading">Challenge <span>Socrates</span></h1>
+            <p class="welcome-subtitle">Pilih materi bacaan yang ingin Anda kerjakan tantangannya. Setiap tantangan menguji kecepatan dan ketepatan analisis dengan batas waktu tertentu.</p>
         </div>
-        <div class="inline-flex items-center gap-2 rounded-2xl bg-white border border-slate-200/80 px-4 py-2.5 text-xs font-bold text-slate-700 shadow-2xs">
-            <x-icon name="gamepad-2" class="w-4 h-4 text-indigo-600" />
+        <span class="quizzes-hero-rule" aria-hidden="true"></span>
+        <div class="quizzes-hero-note inline-flex items-center gap-2 rounded-2xl bg-white border border-slate-200/80 px-4 py-2.5 text-xs font-bold text-slate-700 shadow-2xs">
+            <x-icon name="book-open-text" class="w-4 h-4 text-indigo-600" />
             <span>Challenge Terjadwal & Terpandu AI</span>
         </div>
     </section>
 
     <!-- Stat Metrics Row -->
-    <section class="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4 mb-7" aria-label="Statistik Kuis">
-        <article class="panel p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-3.5 bg-white">
+    <section class="quizzes-stats grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4 mb-7" aria-label="Statistik Kuis">
+        <article class="quiz-stat quiz-stat-total panel p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-3.5 bg-white">
             <div class="w-11 h-11 rounded-xl bg-indigo-50 text-indigo-600 grid place-items-center shrink-0 border border-indigo-100">
-                <x-icon name="gamepad-2" class="w-5 h-5" />
+                <x-icon name="book-open-text" class="w-5 h-5" />
             </div>
             <div>
                 <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Kuis</p>
                 <h3 class="text-xl font-extrabold text-slate-800">{{ $totalQuizzes }} <span class="text-xs font-normal text-slate-400">Materi</span></h3>
             </div>
+            <span class="stat-ornament" aria-hidden="true">✦</span><span class="stat-progress" aria-hidden="true"><i style="width: 100%"></i></span>
         </article>
 
-        <article class="panel p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-3.5 bg-white">
+        <article class="quiz-stat quiz-stat-complete panel p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-3.5 bg-white">
             <div class="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 grid place-items-center shrink-0 border border-emerald-100">
-                <x-icon name="check-circle" class="w-5 h-5" />
+                <x-icon name="check" class="w-5 h-5" />
             </div>
             <div>
                 <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Kuis Selesai</p>
                 <h3 class="text-xl font-extrabold text-emerald-700">{{ $completedCount }} <span class="text-xs font-normal text-slate-400">/ {{ $totalQuizzes }}</span></h3>
             </div>
+            <span class="stat-ornament" aria-hidden="true">↗</span><span class="stat-progress" aria-hidden="true"><i style="width: {{ $totalQuizzes > 0 ? min(100, round(($completedCount / $totalQuizzes) * 100)) : 0 }}%"></i></span>
         </article>
 
-        <article class="panel p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-3.5 bg-white">
+        <article class="quiz-stat quiz-stat-score panel p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-3.5 bg-white">
             <div class="w-11 h-11 rounded-xl bg-amber-50 text-amber-600 grid place-items-center shrink-0 border border-amber-100">
                 <x-icon name="award" class="w-5 h-5" />
             </div>
@@ -46,9 +50,10 @@
                 <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Rata-rata Skor</p>
                 <h3 class="text-xl font-extrabold text-amber-900">{{ $averageScore }} <span class="text-xs font-normal text-slate-400">/ 100</span></h3>
             </div>
+            <span class="stat-ornament" aria-hidden="true">★</span><span class="stat-progress" aria-hidden="true"><i style="width: {{ min(100, max(0, (float) $averageScore)) }}%"></i></span>
         </article>
 
-        <article class="panel p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-3.5 bg-white">
+        <article class="quiz-stat quiz-stat-xp panel p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-3.5 bg-white">
             <div class="w-11 h-11 rounded-xl bg-blue-50 text-blue-600 grid place-items-center shrink-0 border border-blue-100">
                 <x-icon name="zap" class="w-5 h-5" />
             </div>
@@ -56,29 +61,34 @@
                 <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Total XP Kuis</p>
                 <h3 class="text-xl font-extrabold text-blue-700">+{{ $totalXpEarned }} <span class="text-xs font-normal text-slate-400">XP</span></h3>
             </div>
+            <span class="stat-ornament" aria-hidden="true">✧</span><span class="stat-progress" aria-hidden="true"><i style="width: 100%"></i></span>
         </article>
     </section>
 
     <!-- Filter Bar (Status & Category) -->
-    <div class="mb-6 flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 px-4 rounded-2xl border border-slate-200/80 shadow-2xs">
+    <div class="quizzes-filters mb-6 flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 px-4 rounded-2xl border border-slate-200/80 shadow-2xs">
         <div class="flex items-center gap-2 flex-wrap">
             <a href="{{ route('quiz.index', ['status' => 'all', 'category' => $selectedCategory]) }}"
-               class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition border {{ $selectedStatus === 'all' ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100' }}">
-                Semua ({{ $totalQuizzes }})
+               class="quiz-filter-link {{ $selectedStatus === 'all' ? 'is-filter-active text-white' : '' }}">
+                <x-icon name="book-open-text" class="quiz-filter-icon" />
+                <span>Semua</span><span class="quiz-filter-count">({{ $totalQuizzes }})</span>
             </a>
             <a href="{{ route('quiz.index', ['status' => 'not_started', 'category' => $selectedCategory]) }}"
-               class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition border {{ $selectedStatus === 'not_started' ? 'bg-slate-800 text-white border-slate-800 shadow-2xs' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100' }}">
-                Belum Dikerjakan ({{ $notStartedCount }})
+               class="quiz-filter-link {{ $selectedStatus === 'not_started' ? 'is-filter-active text-white' : '' }}">
+                <svg class="quiz-filter-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m8 12 2.5 2.5L16 9"/></svg>
+                <span>Belum Dikerjakan</span><span class="quiz-filter-count">({{ $notStartedCount }})</span>
             </a>
             @if ($inProgressCount > 0)
                 <a href="{{ route('quiz.index', ['status' => 'in_progress', 'category' => $selectedCategory]) }}"
-                   class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition border {{ $selectedStatus === 'in_progress' ? 'bg-amber-600 text-white border-amber-600 shadow-2xs' : 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100' }}">
-                    Sedang Berjalan ({{ $inProgressCount }})
+                   class="quiz-filter-link {{ $selectedStatus === 'in_progress' ? 'is-filter-active text-white' : '' }}">
+                    <svg class="quiz-filter-icon" viewBox="0 0 24 24" aria-hidden="true"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+                    <span>Sedang Berjalan</span><span class="quiz-filter-count">({{ $inProgressCount }})</span>
                 </a>
             @endif
             <a href="{{ route('quiz.index', ['status' => 'completed', 'category' => $selectedCategory]) }}"
-               class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition border {{ $selectedStatus === 'completed' ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100' }}">
-                Selesai ({{ $completedCount }})
+               class="quiz-filter-link {{ $selectedStatus === 'completed' ? 'is-filter-active text-white' : '' }}">
+                <svg class="quiz-filter-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4v16"/><path d="M4 4c5-3 11 3 16 0v12c-5 3-11-3-16 0"/></svg>
+                <span>Selesai</span><span class="quiz-filter-count">({{ $completedCount }})</span>
             </a>
         </div>
 
@@ -96,76 +106,76 @@
     </div>
 
     <!-- Quiz Cards Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+    <div class="quizzes-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         @forelse ($quizItems as $item)
             @php
                 $doc = $item['document'];
                 $isCompleted = $item['status'] === 'completed';
                 $isInProgress = $item['status'] === 'in_progress';
             @endphp
-            <article class="bg-white rounded-2xl border border-slate-200/90 shadow-2xs hover:shadow-md transition flex flex-col overflow-hidden group">
+            <article class="quiz-card quiz-card--{{ $isCompleted ? 'completed' : ($isInProgress ? 'in-progress' : 'not-started') }} bg-white rounded-2xl border border-slate-200/90 shadow-2xs hover:shadow-md transition flex flex-col overflow-hidden group">
                 <!-- Card Header -->
-                <div class="p-5 pb-4 border-b border-slate-100 flex flex-col">
+                <div class="quiz-card-header p-5 pb-4 border-b border-slate-100 flex flex-col">
                     <div>
                         <div class="flex items-start justify-between gap-2 mb-2.5">
                             <div class="flex flex-col items-start gap-1.5 min-w-0">
-                                <span class="rounded-lg bg-indigo-50 text-indigo-700 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider border border-indigo-100">
+                                <span class="quiz-card-category rounded-lg bg-indigo-50 text-indigo-700 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider border border-indigo-100">
                                     {{ $doc->category ?: 'Umum' }}
                                 </span>
-                                <span class="rounded-lg bg-slate-100 text-slate-600 px-2 py-0.5 text-[10px] font-semibold">
+                                <span class="quiz-card-grade rounded-lg bg-slate-100 text-slate-600 px-2 py-0.5 text-[10px] font-semibold">
                                     {{ $doc->targetGradeLabel() }}
                                 </span>
                             </div>
 
                             @if ($isCompleted)
-                                <span class="shrink-0 whitespace-nowrap inline-flex items-center gap-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 text-[10px] font-bold">
-                                    <x-icon name="check-circle" class="w-3 h-3 text-emerald-600" />
+                                <span class="quiz-card-status quiz-card-status--completed shrink-0 whitespace-nowrap inline-flex items-center gap-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 text-[10px] font-bold">
+                <x-icon name="check" class="w-3 h-3 text-emerald-600" />
                                     <span>Selesai</span>
                                 </span>
                             @elseif ($isInProgress)
-                                <span class="shrink-0 whitespace-nowrap inline-flex items-center gap-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-0.5 text-[10px] font-bold animate-pulse">
+                                <span class="quiz-card-status quiz-card-status--in-progress shrink-0 whitespace-nowrap inline-flex items-center gap-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-0.5 text-[10px] font-bold">
                                     <x-icon name="clock" class="w-3 h-3 text-amber-600" />
                                     <span>Sedang Berjalan</span>
                                 </span>
                             @else
-                                <span class="shrink-0 whitespace-nowrap inline-flex items-center gap-1 rounded-full bg-slate-100 text-slate-600 px-2.5 py-0.5 text-[10px] font-semibold">
+                                <span class="quiz-card-status quiz-card-status--not-started shrink-0 whitespace-nowrap inline-flex items-center gap-1 rounded-full bg-slate-100 text-slate-600 px-2.5 py-0.5 text-[10px] font-semibold">
                                     Belum Dikerjakan
                                 </span>
                             @endif
                         </div>
 
-                        <h3 class="text-sm font-extrabold text-slate-900 group-hover:text-indigo-600 transition line-clamp-2 leading-snug mb-1.5">
+                        <h3 class="quiz-card-title text-sm font-extrabold text-slate-900 group-hover:text-indigo-600 transition line-clamp-2 leading-snug mb-1.5">
                             {{ $doc->title }}
                         </h3>
 
-                        <div class="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] text-slate-500 mb-3">
+                        <div class="quiz-card-meta flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] text-slate-500 mb-3">
                             <span class="inline-flex items-center gap-1">
                                 <x-icon name="user" class="w-3 h-3 text-slate-400" />
                                 <span>{{ $doc->uploader?->name ?? 'Guru Pengampu' }}</span>
                             </span>
                             <span class="text-slate-300">•</span>
                             <span class="inline-flex items-center gap-1">
-                                <x-icon name="book-open" class="w-3 h-3 text-slate-400" />
+                                <x-icon name="book-open-text" class="w-3 h-3 text-slate-400" />
                                 <span>{{ $doc->estimated_minutes ?: 5 }}m baca</span>
                             </span>
                         </div>
                     </div>
 
                     <!-- Quiz Meta Chips -->
-                    <div class="grid grid-cols-3 gap-1.5 pt-3 border-t border-slate-100/80 text-center">
-                        <div class="p-2 rounded-xl bg-slate-50 border border-slate-100">
+                    <div class="quiz-card-metrics grid grid-cols-3 gap-1.5 pt-3 border-t border-slate-100/80 text-center">
+                        <div class="quiz-card-metric p-2 rounded-xl bg-slate-50 border border-slate-100">
                             <span class="block text-[10px] font-bold uppercase text-slate-400">Durasi</span>
                             <span class="text-xs font-bold text-slate-700 flex items-center justify-center gap-1 mt-0.5">
                                 <span>⏱️</span> {{ $item['duration_minutes'] }}m
                             </span>
                         </div>
-                        <div class="p-2 rounded-xl bg-slate-50 border border-slate-100">
+                        <div class="quiz-card-metric p-2 rounded-xl bg-slate-50 border border-slate-100">
                             <span class="block text-[10px] font-bold uppercase text-slate-400">Soal</span>
                             <span class="text-xs font-bold text-slate-700 flex items-center justify-center gap-1 mt-0.5">
                                 <span>📝</span> {{ $item['question_count'] }} Soal
                             </span>
                         </div>
-                        <div class="p-2 rounded-xl bg-blue-50/70 border border-blue-100">
+                        <div class="quiz-card-metric quiz-card-metric--reward p-2 rounded-xl bg-blue-50/70 border border-blue-100">
                             <span class="block text-[10px] font-bold uppercase text-blue-500">Reward</span>
                             <span class="text-xs font-bold text-blue-700 flex items-center justify-center gap-1 mt-0.5">
                                 <span>⚡</span> +150 XP
@@ -176,7 +186,7 @@
 
                 <!-- Status / Result Box -->
                 @if ($isCompleted)
-                    <div class="px-5 py-3 bg-emerald-50/70 border-b border-emerald-100 flex items-center justify-between text-xs">
+                    <div class="quiz-card-state-box quiz-card-state-box--completed px-5 py-3 bg-emerald-50/70 border-b border-emerald-100 flex items-center justify-between text-xs">
                         <div class="flex items-center gap-2">
                             <span class="w-7 h-7 rounded-lg bg-emerald-600 text-white grid place-items-center font-extrabold text-xs">
                                 ✓
@@ -191,7 +201,7 @@
                         </span>
                     </div>
                 @elseif ($isInProgress)
-                    <div class="px-5 py-3 bg-amber-50/60 border-b border-amber-100 flex items-center gap-2.5 text-xs">
+                    <div class="quiz-card-state-box quiz-card-state-box--in-progress px-5 py-3 bg-amber-50/60 border-b border-amber-100 flex items-center gap-2.5 text-xs">
                         <span class="w-7 h-7 rounded-lg bg-amber-100 text-amber-700 grid place-items-center shrink-0">
                             <x-icon name="clock" class="w-3.5 h-3.5" />
                         </span>
@@ -201,7 +211,7 @@
                         </div>
                     </div>
                 @else
-                    <div class="px-5 py-3 bg-indigo-50/40 border-b border-slate-100 flex items-center gap-2.5 text-xs">
+                    <div class="quiz-card-state-box quiz-card-state-box--not-started px-5 py-3 bg-indigo-50/40 border-b border-slate-100 flex items-center gap-2.5 text-xs">
                         <span class="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-600 grid place-items-center shrink-0">
                             <x-icon name="sparkles" class="w-3.5 h-3.5" />
                         </span>
@@ -213,7 +223,7 @@
                 @endif
 
                 <!-- Action Footer -->
-                <div class="p-4 bg-slate-50/70 flex-1 flex flex-col gap-3">
+                <div class="quiz-card-actions p-4 bg-slate-50/70 flex-1 flex flex-col gap-3">
                     <!-- 1. Challenge Socrates Section -->
                     <div class="space-y-1.5">
                         <div class="flex items-center justify-between">
@@ -272,7 +282,7 @@
 
                     <div class="mt-auto flex items-center justify-between text-[11px] pt-2 px-1 border-t border-slate-100">
                         <a href="{{ route('reading', ['document' => $doc->id]) }}" class="text-slate-500 hover:text-blue-600 font-semibold inline-flex items-center gap-1 transition">
-                            <x-icon name="book-open" class="w-3 h-3" />
+                            <x-icon name="book-open-text" class="w-3 h-3" />
                             <span>Baca Teks Materi</span>
                         </a>
                         @if (! $isCompleted)
@@ -286,7 +296,7 @@
         @empty
             <div class="col-span-full py-16 text-center rounded-2xl bg-white border border-dashed border-slate-300 p-8">
                 <div class="w-16 h-16 rounded-2xl bg-indigo-50 text-indigo-500 grid place-items-center mx-auto mb-3">
-                    <x-icon name="gamepad-2" class="w-8 h-8" />
+                <x-icon name="book-open-text" class="w-8 h-8" />
                 </div>
                 <h3 class="text-sm font-bold text-slate-800 mb-1">Belum Ada Kuis Tersedia</h3>
                 <p class="text-xs text-slate-500 max-w-md mx-auto mb-4">
@@ -367,4 +377,5 @@
             }
         });
     </script>
+    </div>
 @endsection

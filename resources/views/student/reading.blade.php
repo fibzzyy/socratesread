@@ -18,8 +18,9 @@
 @endphp
 
 @section('content')
+    <div class="reading-book-page">
     @if (session('notice')) <div class="auth-notice" role="status">{{ session('notice') }}</div> @endif
-    <section class="stage-heading" aria-labelledby="reading-title">
+    <section class="stage-heading reading-book-header" aria-labelledby="reading-title">
         <div>
             <p class="eyebrow">RUANG FOKUSMU</p>
             <h1 id="reading-title">Reading Room</h1>
@@ -30,8 +31,8 @@
         </a>
     </section>
 
-    <div class="reading-room-grid">
-        <article class="panel passage-panel" aria-labelledby="passage-title">
+    <div class="reading-room-grid reading-workspace-grid">
+        <article class="panel passage-panel reading-document-workspace" aria-labelledby="passage-title">
             <div class="passage-toolbar flex-wrap">
                 <div class="passage-tags">
                     <span class="category-tag tag-blue">{{ mb_strtoupper($document->category) }}</span>
@@ -40,10 +41,11 @@
                 <div class="flex flex-wrap items-center gap-2.5">
                     <div class="reading-mode-switch" role="group" aria-label="Mode tampilan membaca">
                         <button type="button" class="reading-mode-btn is-active" data-reading-mode-btn="scroll" aria-pressed="true">
-                            <span>📜 Gulir</span>
+                            <svg class="reading-mode-glyph" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2" /><path d="M9 8h6M9 12h6M9 16h4" /></svg>
+                            <span>Gulir</span>
                         </button>
                         <button type="button" class="reading-mode-btn" data-reading-mode-btn="book" aria-pressed="false">
-                            <span>📖 Halaman</span>
+                            <x-icon name="book-open-text" /> <span>Halaman</span>
                         </button>
                     </div>
                     <div class="text-controls" aria-label="Pengaturan teks">
@@ -54,21 +56,20 @@
                 </div>
             </div>
 
-            <div class="passage-scroll-wrapper is-mode-scroll custom-scrollbar" data-reading-scroll-container>
-                <div class="passage-content" data-reading-text>
-                    <p class="section-overline">{{ mb_strtoupper($document->category) }} · BACAAN PILIHAN</p>
-                    <h2 id="passage-title">{{ $document->title }}</h2>
-                    @php
-                        $excerptClean = trim((string) $document->excerpt);
-                        $plainBodySample = mb_strtolower(preg_replace('/\s+/u', ' ', strip_tags($formattedBodyHtml)) ?? '');
-                        $excerptSample = mb_strtolower(mb_substr(preg_replace('/\s+/u', ' ', $excerptClean) ?? '', 0, 40));
-                        $isDuplicateLede = $excerptClean === ''
-                            || mb_strtolower($excerptClean) === mb_strtolower(trim((string) $document->title))
-                            || ($excerptSample !== '' && str_contains($plainBodySample, $excerptSample));
-                    @endphp
-                    @if (! $isDuplicateLede)
-                        <p class="passage-lede">{!! \Illuminate\Support\Str::inlineMarkdown(e($excerptClean)) !!}</p>
-                    @endif
+            <div class="passage-content reading-canvas" data-reading-text>
+                <p class="section-overline">{{ mb_strtoupper($document->category) }} · BACAAN PILIHAN</p>
+                <h2 id="passage-title">{{ $document->title }}</h2>
+                @php
+                    $excerptClean = trim((string) $document->excerpt);
+                    $plainBodySample = mb_strtolower(preg_replace('/\s+/u', ' ', strip_tags($formattedBodyHtml)) ?? '');
+                    $excerptSample = mb_strtolower(mb_substr(preg_replace('/\s+/u', ' ', $excerptClean) ?? '', 0, 40));
+                    $isDuplicateLede = $excerptClean === ''
+                        || mb_strtolower($excerptClean) === mb_strtolower(trim((string) $document->title))
+                        || ($excerptSample !== '' && str_contains($plainBodySample, $excerptSample));
+                @endphp
+                @if (! $isDuplicateLede)
+                    <p class="passage-lede">{!! \Illuminate\Support\Str::inlineMarkdown(e($excerptClean)) !!}</p>
+                @endif
 
                     <!-- Versi 1: Mode Gulir Vertikal (Seluruh materi terstruktur utuh) -->
                     <div class="passage-markdown" data-scroll-reader>
@@ -117,45 +118,10 @@
             </div>
         </article>
 
-        <aside class="reading-side-column" aria-label="Panduan membaca">
-            <!-- 1. Ringkasan Status Sesi (Compact) -->
-            <section class="panel session-card !p-4" data-session-card>
-                <div class="flex items-center justify-between gap-3">
-                    <div class="flex items-center gap-2.5 min-w-0">
-                        <div class="session-icon !w-8 !h-8 !rounded-lg shrink-0">
-                            <x-icon name="book-open-text" class="w-4 h-4" />
-                        </div>
-                        <div class="min-w-0">
-                            <p class="section-overline !mb-0 text-[10px]">SESI MEMBACA</p>
-                            <h2 class="text-xs font-bold text-slate-800 truncate leading-snug">{{ $document->title }}</h2>
-                        </div>
-                    </div>
-                    <div class="shrink-0">
-                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10.5px] font-bold {{ $session->isCompleted() ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800' }}" data-session-status-label>
-                            {{ $session->isCompleted() ? 'Selesai & Terkunci' : $initialProgress . '% dibaca' }}
-                        </span>
-                    </div>
-                </div>
-                <div class="mt-2.5 flex items-center justify-between text-[11px] text-slate-500 pt-2 border-t border-slate-100">
-                    <span>Mulai: <strong class="text-slate-700 font-semibold">{{ $session->started_at->format('H:i') }}</strong></span>
-                    <span class="{{ $session->completed_at ? '' : 'hidden' }}" data-session-completed-row>Kumpul: <strong class="text-slate-700 font-semibold" data-session-completed-time>{{ $session->completed_at ? $session->completed_at->format('H:i') : '' }}</strong></span>
-                    <span class="font-bold text-blue-600" data-session-progress-text>{{ $initialProgress }}%</span>
-                </div>
-                <div class="progress-track mt-1.5 h-1.5">
-                    <span data-session-progress-bar style="width:{{ $initialProgress }}%"></span>
-                </div>
-            </section>
-
-            <!-- 2. DISKUSI SOCRATIC (Tanya Socrates) - Sejajar Pandangan Membaca -->
-            <section class="panel coach-panel"
-                     data-reading-coach
-                     data-endpoint="{{ route('reading.coach') }}"
-                     data-session-id="{{ $session->id }}"
-                     data-max-length="{{ config('ai.limits.message_characters', 1200) }}"
-                     data-initial-history='@json($coachHistory->values())'
-                     aria-labelledby="coach-title">
-                <div class="coach-heading">
-                    <div class="session-icon"><x-icon name="message-circle" /></div>
+        <aside class="reading-side-column reading-companion-panel" aria-label="Panduan membaca">
+            <section class="panel session-card" data-session-card>
+                <div class="session-head">
+                    <div class="session-icon"><x-icon name="book-open-text" /></div>
                     <div>
                         <p class="section-overline">DISKUSI SOCRATIC</p>
                         <h2 id="coach-title">Tanya Socrates</h2>
@@ -303,6 +269,7 @@
         </aside>
     </div>
     <div class="toast-message" role="status" aria-live="polite" data-reading-toast></div>
+    </div>
 @endsection
 
 @push('scripts')

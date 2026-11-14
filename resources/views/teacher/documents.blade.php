@@ -5,19 +5,19 @@
 
 @section('content')
     <section class="stage-heading" aria-labelledby="teacher-documents-title">
-        <div><p class="eyebrow">MATERI UNTUK BERPIKIR LEBIH DALAM</p><h1 id="teacher-documents-title">Kelola bacaan</h1><p class="welcome-subtitle">Unggah PDF berbasis teks untuk menjadi bahan Reading Room siswa.</p></div>
+        <div><h1 id="teacher-documents-title">Kelola bacaan</h1><p class="welcome-subtitle">Unggah dan atur materi yang akan dibaca siswa.</p></div>
     </section>
 
     @if (session('status')) <div class="auth-notice" role="status">{{ session('status') }}</div> @endif
 
     <section class="panel teacher-upload-panel" aria-labelledby="upload-heading">
-        <div class="section-heading"><div><p class="section-overline">TAMBAHKAN MATERI</p><h2 id="upload-heading">Unggah dokumen PDF</h2></div><span class="session-icon"><x-icon name="book-open-text"/></span></div>
+        <div class="section-heading"><div><h2 id="upload-heading">Unggah materi</h2><p class="teacher-section-intro">PDF akan dirapikan dan disiapkan untuk Reading Room siswa.</p></div></div>
         <form method="POST" action="{{ route('teacher.documents.store') }}" enctype="multipart/form-data" class="teacher-upload-form">
             @csrf
             <div class="upload-fields-row">
                 <div class="upload-field-group"><label for="document-title">Judul bacaan</label><input id="document-title" name="title" class="upload-field" type="text" maxlength="160" value="{{ old('title') }}" placeholder="Contoh: Ekosistem pesisir" required>@error('title')<small class="upload-field-error">{{ $message }}</small>@enderror</div>
                 <div class="upload-field-group">
-                    <label for="document-category">Mata Pelajaran / Kelas</label>
+                    <label for="document-category">Mata pelajaran atau kelas</label>
                     @if ($teacherClasses->isNotEmpty())
                         <select id="document-category" name="category" class="upload-field bg-white" required>
                             <option value="" disabled {{ old('category') ? '' : 'selected' }}>Pilih Mata Pelajaran / Kelas</option>
@@ -36,7 +36,7 @@
                     @error('category')<small class="upload-field-error">{{ $message }}</small>@enderror
                 </div>
                 <div class="upload-field-group">
-                    <label for="document-target-grade">Peruntukan Tingkat</label>
+                    <label for="document-target-grade">Tingkat siswa</label>
                     <select id="document-target-grade" name="target_grade" class="upload-field bg-white">
                         <option value="all" {{ old('target_grade', 'all') === 'all' ? 'selected' : '' }}>Semua Kelas (Umum)</option>
                         <option value="10" {{ old('target_grade') === '10' ? 'selected' : '' }}>Khusus Kelas 10</option>
@@ -46,7 +46,7 @@
                     @error('target_grade')<small class="upload-field-error">{{ $message }}</small>@enderror
                 </div>
                 <div class="upload-field-group">
-                    <label for="document-quiz-duration">Durasi Kuis Keseluruhan</label>
+                    <label for="document-quiz-duration">Durasi kuis</label>
                     <select id="document-quiz-duration" name="quiz_duration_minutes" class="upload-field bg-white">
                         <option value="5" {{ old('quiz_duration_minutes') == '5' ? 'selected' : '' }}>5 Menit</option>
                         <option value="10" {{ old('quiz_duration_minutes') == '10' ? 'selected' : '' }}>10 Menit</option>
@@ -153,7 +153,7 @@
             <div class="teacher-upload-footer">
                 <p><x-icon name="sparkles"/> AI otomatis merapikan teks materi, menyusun 10 Kuis Socrates & 5 Tantangan Guru (HOTS).</p>
                 <button class="challenge-button" type="submit">
-                    <span>Proses dengan AI</span>
+                    <span>Unggah dan proses</span>
                     <x-icon name="arrow-right"/>
                 </button>
             </div>
@@ -163,29 +163,28 @@
     <section class="panel teacher-documents-panel" aria-labelledby="teacher-documents-list-title">
         <div class="section-heading">
             <div>
-                <p class="section-overline">KOLEKSI GURU</p>
                 <h2 id="teacher-documents-list-title">Bacaan yang diunggah</h2>
             </div>
             <span class="document-count">{{ $documents->count() }} dokumen</span>
         </div>
 
         <!-- Filter Tab Jenjang -->
-        <div class="mb-4 flex flex-wrap items-center gap-2 border-b border-slate-100 pb-3">
-            <a href="{{ route('teacher.documents', ['grade' => 'all']) }}" class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition {{ $selectedGrade === 'all' ? 'bg-blue-600 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}">
+        <div class="teacher-grade-filters" aria-label="Filter tingkat siswa">
+            <a href="{{ route('teacher.documents', ['grade' => 'all']) }}" class="teacher-grade-filter {{ $selectedGrade === 'all' ? 'is-active' : '' }}">
                 <span>Semua Tingkat</span>
-                <span class="rounded-full px-1.5 py-0.2 text-[10px] {{ $selectedGrade === 'all' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700' }}">{{ $gradeCounts['all'] }}</span>
+                <span>{{ $gradeCounts['all'] }}</span>
             </a>
-            <a href="{{ route('teacher.documents', ['grade' => '10']) }}" class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition {{ $selectedGrade === '10' ? 'bg-blue-600 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}">
+            <a href="{{ route('teacher.documents', ['grade' => '10']) }}" class="teacher-grade-filter {{ $selectedGrade === '10' ? 'is-active' : '' }}">
                 <span>Kelas 10</span>
-                <span class="rounded-full px-1.5 py-0.2 text-[10px] {{ $selectedGrade === '10' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700' }}">{{ $gradeCounts['10'] }}</span>
+                <span>{{ $gradeCounts['10'] }}</span>
             </a>
-            <a href="{{ route('teacher.documents', ['grade' => '11']) }}" class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition {{ $selectedGrade === '11' ? 'bg-blue-600 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}">
+            <a href="{{ route('teacher.documents', ['grade' => '11']) }}" class="teacher-grade-filter {{ $selectedGrade === '11' ? 'is-active' : '' }}">
                 <span>Kelas 11</span>
-                <span class="rounded-full px-1.5 py-0.2 text-[10px] {{ $selectedGrade === '11' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700' }}">{{ $gradeCounts['11'] }}</span>
+                <span>{{ $gradeCounts['11'] }}</span>
             </a>
-            <a href="{{ route('teacher.documents', ['grade' => '12']) }}" class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition {{ $selectedGrade === '12' ? 'bg-blue-600 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}">
+            <a href="{{ route('teacher.documents', ['grade' => '12']) }}" class="teacher-grade-filter {{ $selectedGrade === '12' ? 'is-active' : '' }}">
                 <span>Kelas 12</span>
-                <span class="rounded-full px-1.5 py-0.2 text-[10px] {{ $selectedGrade === '12' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700' }}">{{ $gradeCounts['12'] }}</span>
+                <span>{{ $gradeCounts['12'] }}</span>
             </a>
         </div>
 
@@ -195,27 +194,26 @@
                 <div class="teacher-document-copy">
                     <div class="flex items-center gap-2 flex-wrap">
                         <strong>{{ $document->title }}</strong>
-                        <span data-quiz-badge-doc="{{ $document->id }}" class="rounded bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700 border border-indigo-200/60 inline-flex items-center gap-1">
-                            <x-icon name="gamepad-2" class="w-3 h-3 text-indigo-600"/>
-                            <span data-quiz-badge-text>Kuis Socrates: {{ $document->quiz_question_count ?? 10 }} Soal (⏱️ {{ $document->quiz_duration_minutes ?? 15 }}m)</span>
-                        </span>
-                        <span data-doc-challenge-pill="{{ $document->id }}" class="rounded bg-purple-50 px-2 py-0.5 text-[10px] font-bold text-purple-700 border border-purple-200/60 inline-flex items-center gap-1">
-                            <x-icon name="award" class="w-3 h-3 text-purple-600"/>
-                            <span data-doc-challenge-pill-text>{{ $document->teacher_challenges_count }} Tantangan Guru</span>
-                        </span>
                     </div>
-                    <span>{{ $document->category }} · <span class="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700">{{ $document->targetGradeLabel() }}</span> · <span data-doc-chars-id="{{ $document->id }}">{{ number_format(mb_strlen($document->body)) }} karakter</span> · {{ $document->created_at->locale('id')->translatedFormat('d M Y') }}</span>
+                    <div class="teacher-document-meta">
+                        <span>{{ $document->category }}</span>
+                        <span class="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700">{{ $document->targetGradeLabel() }}</span>
+                        <span data-quiz-badge-doc="{{ $document->id }}"><span data-quiz-badge-text>{{ $document->quiz_question_count ?? 10 }} soal · {{ $document->quiz_duration_minutes ?? 15 }} menit</span></span>
+                        <span data-doc-challenge-pill="{{ $document->id }}"><span data-doc-challenge-pill-text>{{ $document->teacher_challenges_count }} tantangan</span></span>
+                        <span data-doc-chars-id="{{ $document->id }}">{{ number_format(mb_strlen($document->body)) }} karakter</span>
+                        <span>{{ $document->created_at->locale('id')->translatedFormat('d M Y') }}</span>
+                    </div>
                 </div>
-                <div class="flex items-center gap-2 flex-wrap">
-                    <button type="button" class="inline-flex items-center gap-1.5 rounded-lg border border-purple-300 bg-purple-50 px-2.5 py-1.5 text-xs font-bold text-purple-900 hover:bg-purple-100 transition shadow-2xs" data-challenge-btn data-doc-id="{{ $document->id }}" data-doc-title="{{ $document->title }}" data-get-url="{{ route('teacher.documents.challenges.index', $document) }}" data-store-url="{{ route('teacher.documents.challenges.store', $document) }}" data-suggestions-url="{{ route('teacher.documents.challenges.suggestions', $document) }}" data-analyze-url="{{ route('teacher.documents.challenges.analyze', $document) }}" data-recommend-answer-url="{{ route('teacher.documents.challenges.recommend_answer', $document) }}" title="Kelola Tantangan Guru (Esai & PG)">
-                        <x-icon name="award" class="w-3.5 h-3.5 text-purple-600"/>
-                        <span data-challenge-btn-label>Tantangan Guru ({{ $document->teacher_challenges_count }})</span>
+                <div class="teacher-document-actions">
+                    <button type="button" class="teacher-document-action" data-challenge-btn data-doc-id="{{ $document->id }}" data-doc-title="{{ $document->title }}" data-get-url="{{ route('teacher.documents.challenges.index', $document) }}" data-store-url="{{ route('teacher.documents.challenges.store', $document) }}" data-suggestions-url="{{ route('teacher.documents.challenges.suggestions', $document) }}" data-analyze-url="{{ route('teacher.documents.challenges.analyze', $document) }}" data-recommend-answer-url="{{ route('teacher.documents.challenges.recommend_answer', $document) }}" title="Kelola tantangan guru">
+                        <x-icon name="award" class="w-3.5 h-3.5"/>
+                        <span data-challenge-btn-label>Tantangan ({{ $document->teacher_challenges_count }})</span>
                     </button>
-                    <form method="POST" action="{{ route('teacher.documents.quiz_duration', $document) }}" data-quiz-settings-form data-doc-id="{{ $document->id }}" class="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg p-1 relative" title="Pengaturan Kuis Socrates untuk Siswa">
+                    <form method="POST" action="{{ route('teacher.documents.quiz_duration', $document) }}" data-quiz-settings-form data-doc-id="{{ $document->id }}" class="teacher-quiz-settings" title="Pengaturan kuis untuk siswa">
                         @csrf @method('PATCH')
                         <div class="flex items-center gap-1">
-                            <span class="text-[10px] text-slate-400 font-bold pl-1">⏱️</span>
-                            <select name="quiz_duration_minutes" class="text-[11px] font-semibold py-0.5 px-1 rounded border-0 bg-transparent text-slate-700 hover:text-amber-600 cursor-pointer focus:ring-0" title="Ubah Durasi Kuis Socrates">
+                            <span class="teacher-setting-label">Durasi</span>
+                            <select name="quiz_duration_minutes" title="Ubah durasi kuis">
                                 <option value="5" @selected(($document->quiz_duration_minutes ?? 15) == 5)>5m</option>
                                 <option value="10" @selected(($document->quiz_duration_minutes ?? 15) == 10)>10m</option>
                                 <option value="15" @selected(($document->quiz_duration_minutes ?? 15) == 15)>15m</option>
@@ -225,15 +223,14 @@
                                 <option value="60" @selected(($document->quiz_duration_minutes ?? 15) == 60)>60m</option>
                             </select>
                         </div>
-                        <span class="text-slate-300">|</span>
-                        @php
-                            $maxCapacity = $document->maxRecommendedQuizQuestions();
-                            $idealRec = $document->idealRecommendedQuizQuestions();
-                            $counts = [5, 10, 15, 20, 25, 30, 40, 50];
-                        @endphp
                         <div class="flex items-center gap-1">
-                            <span class="text-[10px] text-slate-400 font-bold">📝</span>
-                            <select name="quiz_question_count" class="text-[11px] font-semibold py-0.5 px-1 rounded border-0 bg-transparent text-slate-700 hover:text-blue-600 cursor-pointer focus:ring-0" title="Ubah Jumlah Soal Kuis Socrates (5 - {{ $maxCapacity }} Soal disarankan)">
+                            <span class="teacher-setting-label">Soal</span>
+                            @php
+                                $maxCapacity = $document->maxRecommendedQuizQuestions();
+                                $idealRec = $document->idealRecommendedQuizQuestions();
+                                $counts = [5, 10, 15, 20, 25, 30, 40, 50];
+                            @endphp
+                            <select name="quiz_question_count" title="Ubah jumlah soal kuis (5 - {{ $maxCapacity }} soal disarankan)">
                                 @foreach($counts as $cnt)
                                     @php
                                         $isDisabled = $cnt > $maxCapacity;
@@ -263,9 +260,9 @@
                             'challengeMaxXp' => $document->challenge_max_xp ?? 0,
                         ], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) !!}
                     </script>
-                    <button type="button" class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition" data-preview-btn data-doc-id="{{ $document->id }}" title="Pratinjau Materi & Soal">
-                        <x-icon name="eye" class="w-3.5 h-3.5 text-slate-500"/>
-                        <span class="hidden sm:inline">Pratinjau & Soal</span>
+                    <button type="button" class="teacher-document-action" data-preview-btn data-doc-id="{{ $document->id }}" title="Pratinjau materi dan soal">
+                        <x-icon name="eye" class="w-3.5 h-3.5"/>
+                        <span>Pratinjau</span>
                     </button>
                     <form method="POST" action="{{ route('teacher.documents.destroy', $document) }}"
                           data-confirm-title="Hapus Bacaan Secara Permanen?"
@@ -274,7 +271,7 @@
                           data-confirm-ok="Ya, Hapus Permanen"
                           data-confirm-variant="danger">
                         @csrf @method('DELETE')
-                        <button type="submit" class="teacher-document-delete" aria-label="Hapus bacaan {{ $document->title }}">
+                    <button type="submit" class="teacher-document-action teacher-document-delete" aria-label="Hapus bacaan {{ $document->title }}">
                             <x-icon name="trash-2"/>
                             <span>Hapus</span>
                         </button>
@@ -977,7 +974,7 @@
                                 const docId = form.dataset.docId;
                                 const badgeText = document.querySelector(`[data-quiz-badge-doc="${docId}"] [data-quiz-badge-text]`);
                                 if (badgeText && json.quiz_question_count && json.quiz_duration_minutes) {
-                                    badgeText.textContent = `Kuis Socrates: ${json.quiz_question_count} Soal (⏱️ ${json.quiz_duration_minutes}m)`;
+                                    badgeText.textContent = `${json.quiz_question_count} soal · ${json.quiz_duration_minutes} menit`;
                                 }
                                 if (savedPill) {
                                     savedPill.textContent = `✓ ${json.quiz_question_count || ''} Soal Tersimpan`;
@@ -1638,11 +1635,11 @@
                 if (!docId) return;
                 const pillText = document.querySelector(`[data-doc-challenge-pill="${docId}"] [data-doc-challenge-pill-text]`);
                 if (pillText) {
-                    pillText.textContent = `${totalChallenges} Tantangan Guru`;
+                    pillText.textContent = `${totalChallenges} tantangan`;
                 }
                 const btnLabel = document.querySelector(`[data-challenge-btn][data-doc-id="${docId}"] [data-challenge-btn-label]`);
                 if (btnLabel) {
-                    btnLabel.textContent = `Tantangan Guru (${totalChallenges})`;
+                    btnLabel.textContent = `Tantangan (${totalChallenges})`;
                 }
                 const scriptEl = document.getElementById('doc-preview-data-' + docId);
                 if (scriptEl) {

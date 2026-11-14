@@ -1,6 +1,12 @@
 @import 'tailwindcss';
 @import './dashboard.css' layer(components);
+@import './quiz-cards.css';
 @import './landing.css';
+@import './reading-room.css';
+@import './achievements.css';
+@import './reading-book.css';
+@import './sidebar-theme.css';
+@import './responsive-system.css';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';

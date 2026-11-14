@@ -17,16 +17,13 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body>
-    <div class="app-shell">
+    <div class="app-shell teacher-app-shell">
         <button class="scrim" type="button" aria-label="Tutup navigasi" data-menu-close></button>
         <aside class="sidebar" id="teacher-navigation" aria-label="Area guru">
             <a class="brand" href="{{ route('teacher.dashboard') }}" aria-label="SocratesRead, area guru">
-                <span class="brand-logo-wrap">
-                    <img src="{{ asset('images/logo.png') }}" alt="Logo SocratesRead" class="brand-logo">
-                </span>
-                <span class="brand-name">socrates<span>read</span><small>AREA GURU</small></span>
+                <img src="{{ asset('images/logo.png') }}" alt="Logo SocratesRead" class="brand-logo">
+                <span class="brand-name">Socrates<span>Read</span></span>
             </a>
-            <div class="nav-label">PEMANTAUAN BELAJAR</div>
             <nav class="nav-list" aria-label="Menu guru">
                 <a class="nav-link {{ request()->routeIs('teacher.dashboard') ? 'is-active' : '' }}" href="{{ route('teacher.dashboard') }}" @if(request()->routeIs('teacher.dashboard')) aria-current="page" @endif><x-icon name="layout-dashboard"/><span>Ringkasan</span></a>
                 <a class="nav-link {{ request()->routeIs('teacher.classrooms*') ? 'is-active' : '' }}" href="{{ route('teacher.classrooms') }}" @if(request()->routeIs('teacher.classrooms*')) aria-current="page" @endif><x-icon name="users"/><span>Kelas saya</span></a>
@@ -40,7 +37,7 @@
                 <div class="breadcrumb"><a href="{{ route('teacher.dashboard') }}">Area guru</a><span>/</span><strong>@yield('breadcrumb', 'Ringkasan')</strong></div>
                 <div class="topbar-actions">
                     <span class="today-label">{{ now()->locale('id')->translatedFormat('l, d F Y') }}</span>
-                    <button class="icon-button notification-button" type="button" aria-label="Notifikasi"><x-icon name="bell" /><i></i></button>
+                    <x-notification-center />
                     <x-profile-dropdown />
                 </div>
             </header>
@@ -82,12 +79,26 @@
     <script>
         (() => {
             const shell = document.querySelector('.app-shell');
+            const sidebar = shell?.querySelector('.sidebar');
             const toggle = document.querySelector('[data-menu-toggle]');
             const close = document.querySelector('[data-menu-close]');
-            const setOpen = (open) => { shell.classList.toggle('menu-open', open); toggle.setAttribute('aria-expanded', String(open)); document.body.classList.toggle('menu-locked', open); };
+            if (!shell || !sidebar || !toggle || !close) return;
+            const mobileNavigation = window.matchMedia('(max-width: 1024px)');
+            const setOpen = (open, restoreFocus = true) => {
+                const isOpen = mobileNavigation.matches && open;
+                shell.classList.toggle('menu-open', isOpen);
+                toggle.setAttribute('aria-expanded', String(isOpen));
+                document.body.classList.toggle('menu-locked', isOpen);
+                sidebar.inert = mobileNavigation.matches && !isOpen;
+                if (isOpen && restoreFocus) sidebar.querySelector('.nav-link')?.focus({ preventScroll: true });
+                else if (restoreFocus && sidebar.contains(document.activeElement) && toggle.getClientRects().length) toggle.focus({ preventScroll: true });
+            };
+            setOpen(false, false);
             toggle.addEventListener('click', () => setOpen(!shell.classList.contains('menu-open')));
             close.addEventListener('click', () => setOpen(false));
+            shell.querySelectorAll('.sidebar .nav-link, .sidebar .brand').forEach((link) => link.addEventListener('click', () => setOpen(false)));
             document.addEventListener('keydown', (event) => { if (event.key === 'Escape') setOpen(false); });
+            mobileNavigation.addEventListener('change', () => setOpen(false, false));
         })();
 
         (() => {

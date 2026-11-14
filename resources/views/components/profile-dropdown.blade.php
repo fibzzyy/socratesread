@@ -1,6 +1,5 @@
 @php
     $user = auth()->user();
-    $userInitials = collect(explode(' ', $user->name))->filter()->take(2)->map(fn ($part) => mb_substr($part, 0, 1))->implode('');
     $isStudent = $user->role === 'student';
     $isTeacher = $user->role === 'teacher';
 @endphp
@@ -14,20 +13,15 @@
             aria-label="Menu akun {{ $user->name }}"
             data-dropdown-trigger>
         
-        {{-- Avatar & Animated Pulse Indicator --}}
-        <div class="relative shrink-0">
-            <div class="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center font-bold text-xs bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-xs ring-1 ring-slate-900/10">
+        {{-- Avatar --}}
+        <div class="shrink-0">
+            <div class="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center bg-slate-100 text-slate-400 shadow-xs ring-1 ring-slate-900/10">
                 @if ($user->avatarUrl())
                     <img src="{{ $user->avatarUrl() }}" alt="{{ $user->name }}" class="w-full h-full object-cover">
                 @else
-                    {{ mb_strtoupper($userInitials) }}
+                    <x-icon name="user" class="h-4 w-4 text-slate-400" />
                 @endif
             </div>
-            {{-- Online pulse indicator --}}
-            <span class="absolute -bottom-0.5 -right-0.5 flex h-2.5 w-2.5">
-                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500 border-2 border-white"></span>
-            </span>
         </div>
 
         {{-- Username & Role Label --}}
@@ -53,11 +47,11 @@
         <div class="p-4 bg-gradient-to-b from-slate-50/90 via-blue-50/20 to-white border-b border-slate-100">
             <div class="flex items-center gap-3">
                 <div class="relative shrink-0">
-                    <div class="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center font-bold text-sm bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-md ring-2 ring-white">
+                    <div class="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center bg-slate-100 text-slate-400 shadow-md ring-2 ring-white">
                         @if ($user->avatarUrl())
                             <img src="{{ $user->avatarUrl() }}" alt="{{ $user->name }}" class="w-full h-full object-cover">
                         @else
-                            {{ mb_strtoupper($userInitials) }}
+                            <x-icon name="user" class="h-6 w-6 text-slate-400" />
                         @endif
                     </div>
                 </div>
@@ -66,20 +60,12 @@
                     <h3 class="font-bold text-slate-900 text-sm truncate leading-tight tracking-tight">{{ $user->name }}</h3>
                     <p class="text-xs text-slate-500 truncate mt-0.5">{{ $user->email }}</p>
                     
-                    {{-- Role Badge (shadcn badge design token) --}}
-                    <div class="mt-2 flex items-center gap-1.5 flex-wrap">
-                        @if ($isTeacher)
-                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80 shadow-2xs">
-                                <x-icon name="graduation-cap" class="w-3 h-3 text-emerald-600" />
-                                Guru SocratesRead
-                            </span>
-                        @else
-                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200/80 shadow-2xs">
-                                <x-icon name="book-open-text" class="w-3 h-3 text-blue-600" />
-                                Siswa SocratesRead
-                            </span>
-                        @endif
-                    </div>
+                    @if ($isStudent)
+                        <span class="mt-2 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200/80 shadow-2xs">
+                            <x-icon name="book-open-text" class="w-3 h-3 text-blue-600" />
+                            Siswa SocratesRead
+                        </span>
+                    @endif
                 </div>
             </div>
         </div>
