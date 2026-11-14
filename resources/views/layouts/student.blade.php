@@ -53,7 +53,7 @@
                         <a href="{{ route('dashboard') }}" class="hover:text-blue-600 transition-colors">Ruang belajar</a><span>/</span><strong>@yield('breadcrumb', 'Halaman')</strong>
                     </div>
                     <div class="topbar-actions">
-                        <span class="today-label">@if(request()->routeIs('quiz.index'))<x-icon name="calendar-days" />@endif{{ now()->locale('id')->translatedFormat('l, d F Y') }}</span>
+                        <span class="today-label"><x-icon name="calendar-days" />{{ now()->locale('id')->translatedFormat('l, d F Y') }}</span>
                         <x-notification-center />
                         <x-profile-dropdown />
                     </div>

@@ -1,0 +1,57 @@
+/* Dashboard-only heading icon and profile dropdown stacking. */
+.teacher-dashboard-page .stage-heading > .teacher-dashboard-heading-copy {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 12px;
+    margin-left: 0;
+}
+.teacher-dashboard-page .stage-heading > .teacher-dashboard-heading-copy::before,
+.teacher-dashboard-page .stage-heading > .teacher-dashboard-heading-copy::after {
+    display: none;
+    content: none;
+}
+.teacher-dashboard-heading-icon {
+    display: flex;
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    color: #2563eb;
+    background: #e7f0ff;
+}
+.teacher-dashboard-heading-icon .lucide-icon { width: 21px; height: 21px; flex: 0 0 21px; }
+.teacher-dashboard-heading-text { min-width: 0; }
+
+.teacher-dashboard-page > .main-content { overflow: visible; }
+.teacher-dashboard-page > .main-content::after {
+    display: none;
+    content: none;
+}
+.teacher-dashboard-page > .main-content > .topbar {
+    position: sticky;
+    z-index: 1100;
+    overflow: visible;
+}
+.teacher-dashboard-page > .main-content > .page-content {
+    z-index: 1;
+    overflow: visible;
+    padding-top: 12px;
+}
+.teacher-dashboard-page .profile-dropdown-container {
+    position: relative;
+    z-index: 1101;
+}
+.teacher-dashboard-page .profile-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    z-index: 1200;
+    margin-top: 0;
+}
+
+@media (max-width: 767px) {
+    .teacher-dashboard-page > .main-content > .page-content { padding-top: 22px; }
+}

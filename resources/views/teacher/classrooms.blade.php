@@ -4,53 +4,62 @@
 @section('breadcrumb', 'Kelas saya')
 
 @section('content')
-    <section class="stage-heading" aria-labelledby="classrooms-title">
+    <div class="teacher-classrooms-page">
+    <section class="stage-heading classrooms-page-heading" aria-labelledby="classrooms-title">
         <div><p class="eyebrow">KOMUNITAS BELAJAR</p><h1 id="classrooms-title">Kelas saya</h1><p class="welcome-subtitle">Kelola kode gabung dan pantau siswa yang membaca materi Anda.</p></div>
     </section>
 
     @if (session('status')) <div class="auth-notice" role="status">{{ session('status') }}</div> @endif
 
-    <section class="panel" aria-labelledby="create-class-title">
-        <div class="section-heading"><div><p class="section-overline">MULAI BERSAMA</p><h2 id="create-class-title">Buat kelas baru</h2></div></div>
-        <form method="POST" action="{{ route('teacher.classrooms.store') }}" class="grid gap-3 sm:grid-cols-[1fr_180px_auto] sm:items-end">
-            @csrf
-            <div class="grid gap-1.5">
-                <label for="class-name" class="text-xs font-semibold text-slate-700">Nama kelas</label>
-                <input id="class-name" name="name" value="{{ old('name') }}" maxlength="120" required class="min-h-10 rounded-lg border border-slate-300 px-3 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100" placeholder="Contoh: X IPA 1">
-                @error('name')<span class="text-xs text-red-700">{{ $message }}</span>@enderror
+    <form method="POST" action="{{ route('teacher.classrooms.store') }}" class="panel classroom-create-card classroom-create-form" aria-labelledby="create-class-title">
+        @csrf
+        <div class="classroom-create-icon" aria-hidden="true">
+            <x-icon name="users-round" class="classroom-create-users-icon" />
+            <span class="classroom-create-icon-plus">+</span>
+        </div>
+        <div class="classroom-create-copy">
+            <p class="section-overline">MULAI BERSAMA</p>
+            <h2 id="create-class-title">Buat kelas baru</h2>
+            <p class="classroom-create-description">Mulai kelas baru dan ajak siswa membaca serta berdiskusi bersama.</p>
+        </div>
+        <div class="classroom-form-fields">
+            <div class="classroom-form-field classroom-name-field">
+                <label for="class-name">Nama kelas</label>
+                <input id="class-name" name="name" value="{{ old('name') }}" maxlength="120" required class="classroom-form-control" placeholder="Contoh: X IPA 1">
+                @error('name')<span class="classroom-field-error">{{ $message }}</span>@enderror
             </div>
-            <div class="grid gap-1.5">
-                <label for="target_grade" class="text-xs font-semibold text-slate-700">Target Jenjang</label>
-                <select id="target_grade" name="target_grade" class="min-h-10 rounded-lg border border-slate-300 px-3 text-sm outline-none bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100">
+            <div class="classroom-form-field classroom-grade-field">
+                <label for="target_grade">Target Jenjang</label>
+                <select id="target_grade" name="target_grade" class="classroom-form-control">
                     <option value="">Semua Tingkat</option>
                     <option value="10" {{ old('target_grade') == '10' ? 'selected' : '' }}>Kelas 10</option>
                     <option value="11" {{ old('target_grade') == '11' ? 'selected' : '' }}>Kelas 11</option>
                     <option value="12" {{ old('target_grade') == '12' ? 'selected' : '' }}>Kelas 12</option>
                 </select>
-                @error('target_grade')<span class="text-xs text-red-700">{{ $message }}</span>@enderror
+                @error('target_grade')<span class="classroom-field-error">{{ $message }}</span>@enderror
             </div>
-            <button type="submit" class="challenge-button h-10">Buat kelas <x-icon name="arrow-right" /></button>
-        </form>
-    </section>
+        </div>
+        <button type="submit" class="challenge-button classroom-submit"><x-icon name="plus" />Buat kelas <x-icon name="arrow-right" /></button>
+    </form>
 
     <!-- Tab Filter Status Kelas -->
-    <div class="mt-8 mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3">
-        <div class="flex items-center gap-2">
-            <a href="{{ route('teacher.classrooms', ['status' => 'active']) }}" class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition {{ $status === 'active' ? 'bg-blue-600 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}">
+    <div class="classroom-tabs">
+        <div class="classroom-tab-list">
+            <a href="{{ route('teacher.classrooms', ['status' => 'active']) }}" class="classroom-tab {{ $status === 'active' ? 'is-active' : '' }}">
                 <span>Kelas Aktif</span>
-                <span class="rounded-full px-1.5 py-0.2 text-[10px] {{ $status === 'active' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700' }}">{{ $activeCount }}</span>
+                <span class="classroom-count-badge">{{ $activeCount }}</span>
             </a>
-            <a href="{{ route('teacher.classrooms', ['status' => 'archived']) }}" class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition {{ $status === 'archived' ? 'bg-blue-600 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}">
+            <a href="{{ route('teacher.classrooms', ['status' => 'archived']) }}" class="classroom-tab {{ $status === 'archived' ? 'is-active' : '' }}">
                 <span>Diarsipkan</span>
-                <span class="rounded-full px-1.5 py-0.2 text-[10px] {{ $status === 'archived' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700' }}">{{ $archivedCount }}</span>
+                <span class="classroom-count-badge">{{ $archivedCount }}</span>
             </a>
         </div>
-        <span class="text-xs text-slate-500 font-medium">{{ $classrooms->count() }} kelas ditampilkan</span>
+        <span class="classroom-count">{{ $classrooms->count() }} kelas ditampilkan</span>
     </div>
 
-    <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Daftar kelas">
+    <section class="classroom-grid" aria-label="Daftar kelas">
         @forelse ($classrooms as $classroom)
-            <article class="panel grid content-start gap-5">
+            <article class="panel classroom-card">
                 <div class="flex items-start justify-between gap-4">
                     <div>
                         <div class="flex min-h-6 items-center gap-2">
@@ -142,8 +151,27 @@
                 </div>
             </article>
         @empty
-            <div class="panel md:col-span-2 xl:col-span-3">
-                <div class="teacher-empty-state">
+            <div class="panel classroom-empty-panel">
+                <div class="teacher-empty-state classroom-empty">
+                    <svg class="classroom-empty-illustration" viewBox="0 0 240 150" fill="none" aria-hidden="true">
+                        <circle cx="36" cy="96" r="7" fill="#C9DCFF"/>
+                        <circle cx="204" cy="34" r="10" fill="#7EA9F5"/>
+                        <circle cx="220" cy="88" r="4" fill="#D5E3FA"/>
+                        <circle cx="18" cy="48" r="4" fill="#4388F5"/>
+                        <g class="classroom-empty-card classroom-empty-card-back" transform="rotate(-10 100 72)">
+                            <rect x="54" y="22" width="116" height="88" rx="14" fill="#E7F0FF" stroke="#C4D8FA" stroke-width="2"/>
+                            <path d="M72 41h56" stroke="#A8C5F5" stroke-width="6" stroke-linecap="round"/>
+                            <path d="M72 56h40" stroke="#D1E0F8" stroke-width="5" stroke-linecap="round"/>
+                        </g>
+                        <g class="classroom-empty-card classroom-empty-card-front" transform="rotate(7 134 84)">
+                            <rect x="83" y="35" width="112" height="86" rx="14" fill="#F8FBFF" stroke="#C7D9F7" stroke-width="2"/>
+                            <circle cx="139" cy="68" r="20" fill="#E1ECFF"/>
+                            <path d="M130 71c0-5 4-9 9-9s9 4 9 9M125 83c1-6 6-10 14-10s13 4 14 10" stroke="#2871F2" stroke-width="4" stroke-linecap="round"/>
+                            <path d="M103 101h67" stroke="#D6E2F5" stroke-width="6" stroke-linecap="round"/>
+                        </g>
+                        <circle cx="190" cy="113" r="18" fill="#2469EE"/>
+                        <path d="M190 105v16M182 113h16" stroke="white" stroke-width="3" stroke-linecap="round"/>
+                    </svg>
                     <span class="session-icon"><x-icon name="users" /></span>
                     @if ($status === 'archived')
                         <strong>Belum ada kelas yang diarsipkan</strong>
@@ -151,11 +179,13 @@
                     @else
                         <strong>Belum ada kelas aktif</strong>
                         <p>Buat kelas baru pada form di atas untuk mendapatkan kode gabung bagi siswa Anda.</p>
+                        <span class="classroom-empty-hint">Mulai dengan membuat kelas pertama Anda.</span>
                     @endif
                 </div>
             </div>
         @endforelse
     </section>
+    </div>
 @endsection
 
 @push('scripts')
