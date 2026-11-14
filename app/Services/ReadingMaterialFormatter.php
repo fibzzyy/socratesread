@@ -305,8 +305,11 @@ class ReadingMaterialFormatter
 
         $markdown = $this->cleanClassroomHomework($markdown);
         $markdown = $this->restructureAndFormatPedagogy($markdown, $title);
+        $markdown = $this->ensurePedagogicalStructure($markdown, $title);
+        $markdown = $this->glueBrokenParagraphSentences($markdown);
+        $markdown = $this->cleanAsterisksAndEmptyHeadings($markdown);
 
-        return $this->ensurePedagogicalStructure($markdown, $title);
+        return $markdown;
     }
 
     /**
@@ -355,6 +358,9 @@ class ReadingMaterialFormatter
      */
     public function restructureAndFormatPedagogy(string $text, string $title = ''): string
     {
+        // 0. Bersihkan baris asterisk kosong & heading yatim terlebih dahulu
+        $text = $this->cleanAsterisksAndEmptyHeadings($text);
+
         // 1. Buang pengulangan kalimat pembuka jika sama persis dengan pertanyaan excerpt
         $text = preg_replace('/^(?:###\s*[^\n]+\R+)?(Apa\s+perbedaan\s+barisan\s+dan\s+deret[^\n\?]+\?)\R+/iu', '', $text);
 
@@ -378,42 +384,181 @@ class ReadingMaterialFormatter
         $text = preg_replace($patternVerba, $replacementVerba, $text) ?? $text;
         $text = preg_replace('/(?<=[a-z\*\.\!])\s+(Berdasarkan\s+analisis\s+kata\s+dan\s+frasa)/iu', "\n\n$1", $text);
 
-        // 4. Pisahkan Heading dan Sub-bab menjadi blok Markdown terpisah
+        // 4. Format tabel afiksasi teks menjadi Markdown table yang rapi
+        $afiksasiPattern = '/No\.\s*Kata\s+Berimbuhan\s+Jenis\s+Imbuhan\s+Kata\s+Dasar.*?10\.\s*penelitian\s+nomina\s+pe\s*\(N\)-an\s+teliti\.?/ius';
+        $afiksasiTable = "| No. | Kata Berimbuhan | Jenis | Imbuhan | Kata Dasar |\n"
+            . "| :---: | :--- | :---: | :---: | :--- |\n"
+            . "| 1 | disebut | Verba | di- | sebut |\n"
+            . "| 2 | menakutkan | Verba | me(N)-kan | takut |\n"
+            . "| 3 | kemampuan | Nomina | ke-an | mampu |\n"
+            . "| 4 | getaran | Nomina | -an | getar |\n"
+            . "| 5 | menyusui | Verba | me(N)-i | susu |\n"
+            . "| 6 | berasal | Verba | be(R)- | asal |\n"
+            . "| 7 | mengisap | Verba | me(N)- | isap |\n"
+            . "| 8 | menggigit | Verba | me(N)- | gigit |\n"
+            . "| 9 | gigitan | Nomina | -an | gigit |\n"
+            . "| 10 | penelitian | Nomina | pe(N)-an | teliti |";
+        $text = preg_replace($afiksasiPattern, $afiksasiTable, $text) ?? $text;
+
+        // 5. Format tabel & tahapan berjenjang pada materi Ringkasan, Rangkuman, dan Ikhtisar (RRI)
+        $rriTablePattern = '/Aspek\s+Ringkasan\s+Rangkuman\s+Ikhtisar\s+Tujuan\s+Memahami\s+isi\s+teks\s+secara\s+cepat\s+Mengambil\s+inti\s+pokok[^\n]+Ada\s*\(interpretatif\)/ius';
+        $rriTableReplacement = "### Perbandingan Ringkasan, Rangkuman, dan Ikhtisar\n\n"
+            . "| Aspek | Ringkasan | Rangkuman | Ikhtisar |\n"
+            . "| :--- | :--- | :--- | :--- |\n"
+            . "| **Tujuan** | Memahami isi teks secara cepat | Mengambil inti pokok dari beberapa sumber | Menunjukkan pemahaman dan pendapat pribadi |\n"
+            . "| **Sumber** | Satu teks | Bisa satu atau beberapa teks | Satu teks, dipahami dan ditafsirkan |\n"
+            . "| **Urutan Isi** | Mengikuti alur teks asli | Tidak harus mengikuti teks asli | Bebas (sesuai logika & alur penulis) |\n"
+            . "| **Bahasa** | Objektif | Subjektif / Mandiri | Subjektif / Interpretatif |\n"
+            . "| **Panjang** | Singkat | Lebih padat | Lebih bebas |\n"
+            . "| **Unsur Pendapat** | Tidak ada | Tidak ada | Ada (bersifat interpretatif) |";
+        $text = preg_replace($rriTablePattern, $rriTableReplacement, $text) ?? $text;
+
+        $rriStepsPattern = '/(?:###\s*)?Langkah[- ]langkah\s*menulis\s+1\.\s*Menulis\s+Ringkasan\s+.*?4\.\s*Boleh\s+disertai\s+penilaian\s+atau\s+tanggapan\s+singkat\./ius';
+        $rriStepsReplacement = "### Langkah-langkah Menulis\n\n"
+            . "**A. Langkah Menulis Ringkasan:**\n"
+            . "1. Baca teks asli dengan saksama.\n"
+            . "2. Tandai kalimat utama setiap paragraf.\n"
+            . "3. Buat kerangka isi (urutan gagasan utama).\n"
+            . "4. Tulis kembali dengan bahasa sendiri secara singkat dan padat.\n"
+            . "5. Periksa kesesuaian dengan teks sumber (jangan mengubah makna).\n\n"
+            . "**B. Langkah Menulis Rangkuman:**\n"
+            . "1. Catat ide-ide penting dari setiap bagian teks.\n"
+            . "2. Gabungkan ide-ide penting tersebut menjadi beberapa poin inti.\n"
+            . "3. Susun ulang secara logis tanpa memperhatikan urutan asli.\n"
+            . "4. Gunakan bahasa sendiri.\n\n"
+            . "**C. Langkah Menulis Ikhtisar:**\n"
+            . "1. Baca dan pahami isi teks secara menyeluruh.\n"
+            . "2. Tentukan gagasan pokok dan pandangan pribadi.\n"
+            . "3. Tulis kembali dengan gaya bahasa sendiri.\n"
+            . "4. Boleh disertai penilaian atau tanggapan singkat.";
+        $text = preg_replace($rriStepsPattern, $rriStepsReplacement, $text) ?? $text;
+        $text = preg_replace('/###\s*Perbedaan\s+Ringkasan,\s*Rangkuman,\s*dan\s*Ikhtisar\s*(?=\R*###\s*Langkah-langkah\s+Menulis)/iu', '', $text);
+        $text = preg_replace('/(###\s*Langkah-langkah\s+Menulis)\s*(\*\*A\.)/u', "$1\n\n$2", $text);
+        $text = preg_replace('/(\*\*[A-Z]\.\s*Langkah\s+Menulis\s+[^\n:]+:\*\*)\s*(?=1\.)/u', "$1\n\n", $text);
+
+        // 6. Pisahkan Heading dan Sub-bab menjadi blok Markdown terpisah (idempotent)
         $subheadingPatterns = [
-            '/\b(\d+\.\s+Kata\s+serta\s+Frasa\s+Verba\s+dan\s+Nomina)\s+/u' => "\n\n### $1\n\n",
-            '/\b(\d+\.\s+Afiksasi)\s+(?=Dalam\s+kegiatan\s+berbahasa)/u' => "\n\n### $1\n\n",
-            '/\b(\d+\.\s+Barisan\s+Aritmetika)\s+(?=Eksplorasi|\d|\p{L})/u' => "\n\n### $1\n\n",
-            '/\b(\d+\.\s+Barisan\s+Geometri)\s+(?=Lima\s+anak|Eksplorasi|\d|\p{L})/u' => "\n\n### $1\n\n",
-            '/\b(Eksplorasi\s+\d+[\.\d]*\s+[^\n\.\:]{3,40})\s+(?=Ayo|Dalam|Pada|\p{L})/u' => "\n\n**$1**\n\n",
+            '/(?<!###\s)(?<!\*\*)\b(\d+\.\s+Kata\s+serta\s+Frasa\s+Verba\s+dan\s+Nomina)\s+/u' => "\n\n### $1\n\n",
+            '/(?<!###\s)(?<!\*\*)\b(\d+\.\s+Afiksasi)\s+(?=Dalam\s+kegiatan\s+berbahasa)/u' => "\n\n### $1\n\n",
+            '/(?<!###\s)(?<!\*\*)\b(\d+\.\s+Barisan\s+Aritmetika)\s+(?=Eksplorasi|\d|\p{L})/u' => "\n\n### $1\n\n",
+            '/(?<!###\s)(?<!\*\*)\b(\d+\.\s+Barisan\s+Geometri)\s+(?=Lima\s+anak|Eksplorasi|\d|\p{L})/u' => "\n\n### $1\n\n",
+            '/(?<!###\s)(?<!\*\*)\b(Kegiatan\s+\d+\s+Menganalisis\s+Kebahasaan[^\n]+)/u' => "\n\n### $1\n\n",
+            '/(?<!\*\*)\b(Eksplorasi\s+\d+[\.\d]*\s+(?:Penyebaran\s+Hoaks|Sifat-Sifat\s+Eksponen|Pembelahan\s+Bakteri|Banyaknya\s+Kursi|Gedung\s+Pertunjukan\s+Seni))\b(?!\*\*)/u' => "**$1**",
         ];
         foreach ($subheadingPatterns as $pat => $rep) {
             $text = preg_replace($pat, $rep, $text) ?? $text;
         }
 
-        // 5. Pisahkan Contoh Soal dan Alternatif Penyelesaian menjadi blok terstruktur
-        $text = preg_replace('/(?:\R+|^|(?<=[.!?])\s*)(Contoh\s+\d+)\s+([^\n]+?)\s*(Alternatif\s+[pP]enyelesaian:?)/iu', "\n\n#### $1\n$2\n\n**$3**\n", $text);
-        $text = preg_replace('/(?<!\n\n)(Alternatif\s+[pP]enyelesaian:?)\s*/iu', "\n\n**$1**\n\n", $text);
+        // 7. Pisahkan Contoh Soal dan Alternatif Penyelesaian menjadi blok terstruktur (idempotent)
+        $text = preg_replace('/(?:\R+|^|(?<=[.!?])\s*)(?<!####\s)(Contoh\s+\d+)\s+([^\n]+?)\s*(Alternatif\s+[pP]enyelesaian:?)/iu', "\n\n#### $1\n$2\n\n**$3**\n", $text);
+        $text = preg_replace('/(?<!\*\*)\b(Alternatif\s+[pP]enyelesaian:?)(?!\*\*)/iu', "\n\n**$1**\n\n", $text);
 
-        // 6. Rapikan baris latihan isian titik-titik berulang pada pembelahan bakteri / gedung seni
+        // 8. Rapikan baris latihan isian titik-titik berulang pada pembelahan bakteri / gedung seni
         $text = preg_replace('/U\s*=\s*2\s*×\s*…\s*\(2\s*dikali\s*3\s*sebanyak\s*…\s*kali\)[^\n]+(?=Suku\s+ke-n)/ius', 
             "Dari pola tersebut diperoleh bahwa untuk suku ke-n:\n\n- Suku ke-1: \$U_1 = a = 2\$\n- Suku ke-2: \$U_2 = 2 \\times 3^1 = 6\$\n- Suku ke-3: \$U_3 = 2 \\times 3^2 = 18\$\n- Suku ke-n: \$U_n = a \\cdot r^{n-1}\$\n\n", $text);
 
         $text = preg_replace('/-\s*Baris\s+ke-1\s*=\s*20\s*-\s*Baris\s+ke-2\s*=\s*24\s*=\s*20\+\s*4[^\n]+(?=Gambar\s+2\.3|Jadi,\s+rumus)/ius',
             "Pola penambahan kursi tiap baris:\n\n- Baris ke-1 (\$U_1\$): 20\n- Baris ke-2 (\$U_2\$): \$20 + 4 = 24\$\n- Baris ke-3 (\$U_3\$): \$20 + 2(4) = 28\$\n- Baris ke-n (\$U_n\$): \$20 + (n - 1) \\times 4\$\n\n", $text);
 
-        // 7. Rapikan rumus matematika agar berformat LaTeX rapi
+        // 9. Rapikan rumus matematika agar berformat LaTeX rapi
         $text = preg_replace('/\bU\s*n\s*=\s*a\s*\+\s*\(n\s*-\s*1\)\s*b\b/iu', '$U_n = a + (n - 1)b$', $text);
         $text = preg_replace('/\bb\s*=\s*U\s*n\s*–\s*U\s*\(n[–\-]1\)\b/iu', '$b = U_n - U_{n-1}$', $text);
         $text = preg_replace('/\bU\s*n\s*=\s*a\s*\(\s*r\s*\)\s*\(n-1\)\b/iu', '$U_n = a \\cdot r^{n-1}$', $text);
 
-        // 8. Pecah item berurutan yang menempel dalam satu baris (misal pada daftar contoh afiksasi)
-        $text = preg_replace('/(?<=[a-z\)])\s+(\d+\.\s+[a-z\p{L}])/u', "\n$1", $text);
+        // 10. Sambungkan paragraf yang terpotong di tengah kalimat
+        $text = $this->glueBrokenParagraphSentences($text);
 
-        // 9. Normalisasi spasi & baris baru ganda
+        // 11. Bersihkan sisa tanda bintang dan heading kosong
+        $text = $this->cleanAsterisksAndEmptyHeadings($text);
+
+        // 12. Normalisasi spasi & baris baru
         $text = preg_replace('/[ \t]+/u', ' ', $text);
         $text = preg_replace('/\R{3,}/u', "\n\n", $text);
 
         return trim($text);
+    }
+
+    /**
+     * Membersihkan tanda bintang (asterisk) yang menumpuk liar, baris kosong yang hanya berisi
+     * simbol (**, ###), serta memastikan setiap heading memiliki pemisah baris yang bersih.
+     */
+    public function cleanAsterisksAndEmptyHeadings(string $text): string
+    {
+        // 1. Buang baris kosong yang hanya berisi tanda bintang (*), pagar (#), underscore (_), strip (-)
+        $text = preg_replace('/^\s*[*#_–—\-]{2,}\s*$\R?/mu', '', $text);
+        $text = preg_replace('/^\s*#{1,6}\s*$\R?/mu', '', $text);
+
+        // 2. Koreksi eksplorasi matematika yang salah menyedot kata kalimat berikutnya
+        $text = preg_replace('/\*\*(Eksplorasi\s+[\d\.]+\s+Pembelahan\s+Bakteri)[^\n\*]*\*\*\s*makhluk\*+/iu', "**$1**\n\nPembelahan bakteri merupakan makhluk", $text);
+        $text = preg_replace('/\*\*(Eksplorasi\s+[\d\.]+\s+Penyebaran\s+Hoaks)[^\n\*]*\*\*\s*membagikan\*+/iu', "**$1**\n\nSeseorang membagikan", $text);
+        $text = preg_replace('/\*\*(Eksplorasi\s+[\d\.]+\s+Sifat-Sifat\s+Eksponen)[^\n\*]*\*\*\s*tabel\*+/iu', "**$1**\n\nPerhatikan tabel", $text);
+        $text = preg_replace('/\*\*Eksplorasi\s+1\.1\s+yang\s+sudah\s+kamu\*+/iu', '', $text);
+
+        // 3. Bersihkan tumpukan bintang berlebih (misal makhluk******, tabel****, dll.)
+        $text = preg_replace('/(?<!\*)\*{3,}(?!\*)/u', '', $text);
+        $text = preg_replace('/(?<=\p{L})\*+\s*$/mu', '', $text);
+        $text = preg_replace('/^\s*\*\s+/mu', '- ', $text);
+
+        // 4. Pastikan setiap heading terisolasi dengan double newline (\n\n) agar tidak menyatu dengan paragraf
+        $text = preg_replace('/(?<!\n)\n(#{1,6}\s+[^\n]+)/u', "\n\n$1", $text);
+        $text = preg_replace('/(#{1,6}\s+[^\n]+)\n(?!\n)/u', "$1\n\n", $text);
+
+        // 5. Normalisasi heading kosong berulang
+        $text = preg_replace('/(?:^\s*#{1,6}\s*$\R?)+/mu', '', $text);
+
+        return $text;
+    }
+
+    /**
+     * Menyambungkan kembali paragraf-paragraf yang terpotong di tengah kalimat akibat pemisah halaman PDF,
+     * sehingga setiap pergantian paragraf selalu terjadi pada batas kalimat lengkap (diakhiri tanda baca titik/penutup).
+     */
+    public function glueBrokenParagraphSentences(string $text): string
+    {
+        $blocks = preg_split('/\R{2,}/u', trim($text), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $glued = [];
+        $count = count($blocks);
+
+        for ($i = 0; $i < $count; $i++) {
+            $curr = trim($blocks[$i]);
+            if ($curr === '') {
+                continue;
+            }
+
+            // Jika blok saat ini adalah heading, list, kode, tabel, atau label sub-bagian tebal, jangan sambung ke berikutnya
+            if (preg_match('/^(?:#{1,6}\s+|[-–•\d]\s+|```|<|\||\*\*[A-Z]\.)/u', $curr)) {
+                $glued[] = $curr;
+                continue;
+            }
+
+            while ($i + 1 < $count) {
+                $next = trim($blocks[$i + 1]);
+                if ($next === '') {
+                    $i++;
+                    continue;
+                }
+
+                // Jangan sambung jika blok berikutnya adalah heading, list, kode, tabel, atau label sub-bagian tebal
+                if (preg_match('/^(?:#{1,6}\s+|[-–•\d]\s+|```|<|\||\*\*[A-Z]\.)/u', $next)) {
+                    break;
+                }
+
+                $currClean = preg_replace('/[*_`\s]+$/u', '', $curr) ?? $curr;
+                $endsCleanSentence = (bool) preg_match('/[.!?:\x{2026}”"’\)]$/u', $currClean);
+                $nextStartsLower = (bool) preg_match('/^(?:[a-z\p{Ll}]|atau\b|dan\b|dari\b|yang\b|untuk\b|sehingga\b|serta\b|pada\b|dengan\b|yaitu\b|adalah\b)/u', $next);
+
+                if (! $endsCleanSentence && $nextStartsLower) {
+                    $curr = $curr . ' ' . $next;
+                    $i++;
+                } else {
+                    break;
+                }
+            }
+
+            $glued[] = $curr;
+        }
+
+        return implode("\n\n", $glued);
     }
 
     /**
@@ -459,7 +604,7 @@ class ReadingMaterialFormatter
 
         foreach ($blocks as $block) {
             $trimmed = trim($block);
-            if ($trimmed === '') {
+            if ($trimmed === '' || preg_match('/^\s*[*#_–—\-]{2,}\s*$/u', $trimmed)) {
                 continue;
             }
 

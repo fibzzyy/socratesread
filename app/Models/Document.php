@@ -111,4 +111,9 @@ class Document extends Model
     {
         return $this->hasMany(ReadingCoachMessage::class);
     }
+
+    public function getFormattedBodyHtmlAttribute(): string
+    {
+        return app(\App\Services\ReadingMaterialFormatter::class)->toHtml((string) $this->body);
+    }
 }

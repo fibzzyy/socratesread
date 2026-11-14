@@ -777,7 +777,7 @@
                 if (data.formattedBodyHtml) {
                     if (bodyEl) bodyEl.innerHTML = data.formattedBodyHtml;
                 } else {
-                    const paragraphs = body.split(/\r?\n\r?\n/).filter(p => p.trim() !== '');
+                    const paragraphs = body.split(/\r?\n\r?\n/).map(p => p.trim()).filter(p => p !== '' && !/^[*#_–—\-]{2,}$/.test(p));
                     if (paragraphs.length === 0) {
                         if (bodyEl) bodyEl.innerHTML = `<p>${formatInlineMarkdown(body)}</p>`;
                     } else {

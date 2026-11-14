@@ -165,4 +165,54 @@ class CuratedReadingAndClassroomCleanTest extends TestCase
         $this->assertStringNotContainsString('Melipat kertas Siapkan kertas', $formatted);
         $this->assertStringNotContainsString('2 dikali 3 sebanyak … kali', $formatted);
     }
+
+    public function test_paragraph_continuity_nested_steps_and_asterisk_cleaner(): void
+    {
+        $formatter = app(ReadingMaterialFormatter::class);
+
+        // 1. Verifikasi penyambungan kalimat yang terpotong di tengah penjelasan akibat pemisah halaman
+        $brokenSentenceText = "Wayang kulit di Timur, wayang wong di Jawa Tengah, dan wayang golek di Jawa Barat. Wayang kulit dibuat\n\n"
+            . "dari kulit hewan ternak, misalnya kulit kerbau, sapi, atau kambing.\n\n"
+            . "Wayang motekar adalah sejenis pertunjukan teater bayang-bayang\n\n"
+            . "atau serupa wayang kulit. Namun, jika wayang kulit memiliki bayangan hitam, wayang motekar berwarna-warni.";
+
+        $glued = $formatter->glueBrokenParagraphSentences($brokenSentenceText);
+        $this->assertStringContainsString('Wayang kulit dibuat dari kulit hewan ternak', $glued);
+        $this->assertStringContainsString('teater bayang-bayang atau serupa wayang kulit. Namun,', $glued);
+
+        // 2. Verifikasi pembersihan simbol asterisk liar & heading kosong
+        $dirtySymbolsText = "### Judul Bagian\n\n**\n\n**\n\nEksplorasi 2.4 Pembelahan Bakteri merupakan makhluk******\n\n"
+            . "###\n\n###\n\nAlternatif penyelesaian:\n\n**\n\n**\n\n(substitusi nilai a)";
+
+        $cleaned = $formatter->cleanAsterisksAndEmptyHeadings($dirtySymbolsText);
+        $this->assertStringNotContainsString("\n**\n", $cleaned);
+        $this->assertStringNotContainsString("\n###\n", $cleaned);
+        $this->assertStringNotContainsString('******', $cleaned);
+
+        // 3. Verifikasi struktur langkah-langkah bertingkat RRI
+        $rriText = "Langkah-langkahmenulis\n1. Menulis Ringkasan\n"
+            . "1. Baca teks asli dengan saksama. 2. Tandai kalimat utama setiap paragraf. 3. Buat kerangka isi. 4. Tulis kembali. 5. Periksa kesesuaian.\n"
+            . "2. Menulis Rangkuman\n"
+            . "1. Catat ide-ide penting. 2. Gabungkan ide-ide penting. 3. Susun ulang secara logis. 4. Gunakan bahasa sendiri.\n"
+            . "3. Menulis Ikhtisar\n"
+            . "1. Baca dan pahami isi teks. 2. Tentukan gagasan pokok. 3. Tulis kembali. 4. Boleh disertai penilaian atau tanggapan singkat.";
+
+        $formattedRri = $formatter->restructureAndFormatPedagogy($rriText, 'Ringkasan Rangkuman Ikhtisar');
+        $this->assertStringContainsString('### Langkah-langkah Menulis', $formattedRri);
+        $this->assertStringContainsString('**A. Langkah Menulis Ringkasan:**', $formattedRri);
+        $this->assertStringContainsString('**B. Langkah Menulis Rangkuman:**', $formattedRri);
+        $this->assertStringContainsString('**C. Langkah Menulis Ikhtisar:**', $formattedRri);
+
+        // 4. Verifikasi Document::formatted_body_html accessor menghasilkan markup paragraf terindeks
+        $doc = new Document([
+            'title' => 'Materi Uji Paragraf',
+            'body' => "Paragraf pertama menjelaskan konsep dasar.\n\nParagraf kedua menguraikan implementasi nyata.",
+        ]);
+
+        $html = $doc->formatted_body_html;
+        $this->assertStringContainsString('data-paragraph-index="1"', $html);
+        $this->assertStringContainsString('data-paragraph-index="2"', $html);
+        $this->assertStringContainsString('¶1', $html);
+        $this->assertStringContainsString('¶2', $html);
+    }
 }
