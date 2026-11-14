@@ -67,6 +67,12 @@
             <rect x="8" y="8" width="13" height="13" rx="2" />
             <path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3" />
             @break
+        @case('qr-code')
+            <rect x="3" y="3" width="6" height="6" rx="1" />
+            <rect x="15" y="3" width="6" height="6" rx="1" />
+            <rect x="3" y="15" width="6" height="6" rx="1" />
+            <path d="M15 15h3v3h-3zm6 0v.01M15 21v.01M18 21h3v-3m0-3h-.01" />
+            @break
         @case('trash-2')
             <path d="M3 6h18" />
             <path d="M8 6V4h8v2" />
