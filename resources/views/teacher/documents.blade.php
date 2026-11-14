@@ -226,17 +226,24 @@
                             </select>
                         </div>
                         <span class="text-slate-300">|</span>
+                        @php
+                            $maxCapacity = $document->maxRecommendedQuizQuestions();
+                            $idealRec = $document->idealRecommendedQuizQuestions();
+                            $counts = [5, 10, 15, 20, 25, 30, 40, 50];
+                        @endphp
                         <div class="flex items-center gap-1">
                             <span class="text-[10px] text-slate-400 font-bold">📝</span>
-                            <select name="quiz_question_count" class="text-[11px] font-semibold py-0.5 px-1 rounded border-0 bg-transparent text-slate-700 hover:text-blue-600 cursor-pointer focus:ring-0" title="Ubah Jumlah Soal Kuis Socrates (5 - 100 Soal)">
-                                <option value="5" @selected(($document->quiz_question_count ?? 10) == 5)>5 Soal</option>
-                                <option value="10" @selected(($document->quiz_question_count ?? 10) == 10)>10 Soal</option>
-                                <option value="15" @selected(($document->quiz_question_count ?? 10) == 15)>15 Soal</option>
-                                <option value="20" @selected(($document->quiz_question_count ?? 10) == 20)>20 Soal</option>
-                                <option value="25" @selected(($document->quiz_question_count ?? 10) == 25)>25 Soal</option>
-                                <option value="30" @selected(($document->quiz_question_count ?? 10) == 30)>30 Soal</option>
-                                <option value="50" @selected(($document->quiz_question_count ?? 10) == 50)>50 Soal</option>
-                                <option value="100" @selected(($document->quiz_question_count ?? 10) == 100)>100 Soal</option>
+                            <select name="quiz_question_count" class="text-[11px] font-semibold py-0.5 px-1 rounded border-0 bg-transparent text-slate-700 hover:text-blue-600 cursor-pointer focus:ring-0" title="Ubah Jumlah Soal Kuis Socrates (5 - {{ $maxCapacity }} Soal disarankan)">
+                                @foreach($counts as $cnt)
+                                    @php
+                                        $isDisabled = $cnt > $maxCapacity;
+                                        $isIdeal = $cnt === $idealRec;
+                                        $isSelected = ($document->quiz_question_count ?? 10) == $cnt;
+                                    @endphp
+                                    <option value="{{ $cnt }}" @selected($isSelected) @disabled($isDisabled) class="{{ $isDisabled ? 'text-slate-400 bg-slate-100' : '' }}">
+                                        {{ $cnt }} Soal{{ $isIdeal ? ' (Rekomendasi AI ✨)' : ($isDisabled ? ' (Materi terlalu ringkas)' : '') }}
+                                    </option>
+                                @endforeach
                             </select>
                         </div>
                         <span class="quiz-saved-pill hidden text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">✓ Tersimpan</span>

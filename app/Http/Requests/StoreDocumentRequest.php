@@ -19,7 +19,7 @@ class StoreDocumentRequest extends FormRequest
             'category' => ['required', 'string', 'max:80'],
             'target_grade' => ['nullable', 'string', 'in:all,10,11,12'],
             'quiz_duration_minutes' => ['nullable', 'integer', 'min:1', 'max:180'],
-            'quiz_question_count' => ['nullable', 'integer', 'min:5', 'max:100'],
+            'quiz_question_count' => ['nullable', 'integer', 'min:5', 'max:50'],
             'page_scope' => ['nullable', 'string', 'in:all,range'],
             'page_start' => ['nullable', 'integer', 'min:1'],
             'page_end' => ['nullable', 'integer', 'min:1'],

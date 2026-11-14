@@ -703,7 +703,7 @@ INSTRUCTIONS;
      */
     public function ensureQuizQuestionsForDocument(Document $document, int $targetCount): void
     {
-        $targetCount = min(100, max(5, $targetCount));
+        $targetCount = min(50, max(5, $targetCount));
         $existingQuestions = $document->quizQuestions()->orderBy('sequence')->get();
         $existingCount = $existingQuestions->count();
 
@@ -750,7 +750,7 @@ INSTRUCTIONS;
         }
 
         if (count($toInsert) < $needed) {
-            $poolTarget = min(100, $targetCount + $existingCount + 10);
+            $poolTarget = min(50, max($targetCount, $existingCount + $needed + 5));
             $heuristics = $this->generateHeuristicQuizQuestions($document->body, $document->title, $document->category, $poolTarget);
 
             foreach ($heuristics as $item) {
@@ -786,10 +786,10 @@ INSTRUCTIONS;
      */
     public function generateQuizQuestions(string $body, string $title, ?string $category = null, int $count = 10): array
     {
-        $count = min(100, max(5, $count));
+        $count = min(50, max(5, $count));
 
         $domainQuestions = $this->generateStructuredKnowledgeQuiz($body, $title, $category, $count);
-        if (! empty($domainQuestions) && count($domainQuestions) >= min($count, 10)) {
+        if (! empty($domainQuestions) && count($domainQuestions) >= $count) {
             return array_slice($domainQuestions, 0, $count);
         }
 
@@ -3084,7 +3084,126 @@ INSTRUCTIONS;
                     'explanation' => 'Barisan aritmetika memodelkan pertumbuhan linier dengan selisih tetap ($b$), sangat sesuai untuk alokasi fisik tetap dan kenaikan nominal berkala.',
                 ],
             ];
-            $items = $seqPool;
+
+            $geoPool = [
+                [
+                    'bloom' => 'C1',
+                    'question' => 'Karakteristik fundamental yang membedakan barisan geometri dari barisan lainnya adalah...',
+                    'correct' => 'Perbandingan (rasio) antara dua suku yang berurutan selalu bernilai tetap ($r = \frac{U_n}{U_{n-1}}$)',
+                    'distractors' => [
+                        'Selisih antara dua suku yang berurutan selalu bernilai sama ($b = U_n - U_{n-1}$)',
+                        'Setiap suku diperoleh dari penjumlahan suku sebelumnya dengan bilangan kuadrat',
+                        'Jumlah seluruh suku selalu bernilai bilangan bulat genap',
+                    ],
+                    'explanation' => 'Barisan geometri dicirikan oleh nilai perbandingan atau rasio $r$ yang konstan antardua suku yang berurutan: $r = \frac{U_2}{U_1} = \frac{U_3}{U_2} = \frac{U_n}{U_{n-1}}$.',
+                ],
+                [
+                    'bloom' => 'C1',
+                    'question' => 'Pada barisan geometri dengan suku pertama $a$ dan rasio $r$, rumus umum untuk menentukan suku ke-$n$ ($U_n$) adalah...',
+                    'correct' => '$U_n = a \cdot r^{n-1}$',
+                    'distractors' => [
+                        '$U_n = a + (n - 1)r$',
+                        '$U_n = a \cdot r^n$',
+                        '$U_n = \frac{a}{r^{n-1}}$',
+                    ],
+                    'explanation' => 'Suku ke-$n$ barisan geometri diturunkan dari pengalian rasio $r$ sebanyak $(n - 1)$ kali terhadap suku pertama $a$, yaitu $U_n = a \cdot r^{n-1}$.',
+                ],
+                [
+                    'bloom' => 'C2',
+                    'question' => 'Diketahui suatu barisan bilangan: $2, 6, 18, 54, \dots$. Berapakah nilai rasio ($r$) pada barisan tersebut?',
+                    'correct' => '$r = 3$',
+                    'distractors' => [
+                        '$r = 4$',
+                        '$r = 2$',
+                        '$r = 6$',
+                    ],
+                    'explanation' => 'Rasio dihitung dengan membagi suku kedua dengan suku pertama: $r = \frac{U_2}{U_1} = \frac{6}{2} = 3$.',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Suatu barisan geometri memiliki suku pertama $a = 4$ dan rasio $r = 2$. Nilai suku ke-5 ($U_5$) dari barisan tersebut adalah...',
+                    'correct' => '$U_5 = 64$',
+                    'distractors' => [
+                        '$U_5 = 32$',
+                        '$U_5 = 128$',
+                        '$U_5 = 40$',
+                    ],
+                    'explanation' => 'Dengan rumus $U_n = a \cdot r^{n-1}$, maka $U_5 = 4 \cdot 2^{5-1} = 4 \cdot 2^4 = 4 \cdot 16 = 64$.',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Dalam contoh pembelahan bakteri pada materi, satu sel membelah menjadi 3 setiap 2 jam. Jika mula-mula terdapat 2 sel bakteri, berapakah banyak bakteri setelah 6 jam (terjadi 3 kali pembelahan)?',
+                    'correct' => '54 bakteri',
+                    'distractors' => [
+                        '18 bakteri',
+                        '36 bakteri',
+                        '162 bakteri',
+                    ],
+                    'explanation' => 'Mula-mula $a = 2$, rasio pembelahan $r = 3$. Setelah 6 jam (3 fase pembelahan), jumlah bakteri adalah suku ke-4: $U_4 = a \cdot r^3 = 2 \cdot 3^3 = 2 \cdot 27 = 54$ bakteri.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Suku pertama dari suatu barisan geometri adalah $4$ dan suku ke-4 adalah $108$. Nilai rasio ($r$) dari barisan tersebut adalah...',
+                    'correct' => '$r = 3$',
+                    'distractors' => [
+                        '$r = 2$',
+                        '$r = 4$',
+                        '$r = 9$',
+                    ],
+                    'explanation' => 'Menggunakan rumus $U_4 = a \cdot r^3 \implies 108 = 4 \cdot r^3 \implies r^3 = 27 \implies r = 3$.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Seutas tali dipotong menjadi 5 bagian membentuk barisan geometri. Potongan terpendek $a = 16\text{ cm}$ dan potongan terpanjang $U_5 = 81\text{ cm}$. Berapakah panjang potongan tali ke-3 ($U_3$)?',
+                    'correct' => '$36\text{ cm}$',
+                    'distractors' => [
+                        '$24\text{ cm}$',
+                        '$48\text{ cm}$',
+                        '$54\text{ cm}$',
+                    ],
+                    'explanation' => '$16 \cdot r^4 = 81 \implies r^4 = \frac{81}{16} = (\frac{3}{2})^4 \implies r = \frac{3}{2}$. Maka $U_3 = 16 \cdot (\frac{3}{2})^2 = 16 \cdot \frac{9}{4} = 36\text{ cm}$.',
+                ],
+                [
+                    'bloom' => 'C2',
+                    'question' => 'Pada ilustrasi pembagian kue di materi, setiap anak mengambil setengah dari kue yang diterimanya. Pola bagian kue yang berurutan membentuk barisan geometri dengan nilai rasio...',
+                    'correct' => '$r = \frac{1}{2}$',
+                    'distractors' => [
+                        '$r = 2$',
+                        '$r = -\frac{1}{2}$',
+                        '$r = \frac{1}{4}$',
+                    ],
+                    'explanation' => 'Setiap anak berikutnya menerima setengah dari bagian anak sebelumnya, sehingga perbandingannya bernilai tetap $r = \frac{1}{2}$ (barisan geometri turun).',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'question' => 'Perbedaan paling mendasar dalam pola pertumbuhan nilai antara barisan aritmetika dengan barisan geometri terletak pada...',
+                    'correct' => 'Barisan aritmetika bertambah secara aditif (selisih tetap $+b$), sedangkan barisan geometri bertambah secara multiplikatif (faktor pengali tetap $\times r$)',
+                    'distractors' => [
+                        'Barisan aritmetika selalu menghasilkan angka lebih besar daripada barisan geometri',
+                        'Barisan geometri tidak memerlukan suku pertama untuk menentukan suku-suku berikutnya',
+                        'Barisan aritmetika hanya berlaku pada bilangan genap sedangkan geometri pada bilangan ganjil',
+                    ],
+                    'explanation' => 'Pertumbuhan aritmetika bersifat linier dengan penambahan beda konstan, sedangkan pertumbuhan geometri bersifat eksponensial dengan perkalian rasio konstan.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'question' => 'Apakah perbedaan konseptual antara istilah "barisan" dengan istilah "deret" dalam matematika?',
+                    'correct' => 'Barisan adalah susunan urutan bilangan berpola ($U_1, U_2, \dots$), sedangkan deret adalah jumlah kumulatif suku-suku barisan tersebut ($S_n = U_1 + U_2 + \dots + U_n$)',
+                    'distractors' => [
+                        'Barisan hanya memiliki satu suku, sedangkan deret memiliki banyak suku berulang',
+                        'Barisan menggunakan rasio sedangkan deret selalu menggunakan beda',
+                        'Barisan bernilai positif sedangkan deret selalu menghasilkan bilangan negatif',
+                    ],
+                    'explanation' => 'Barisan merupakan urutan daftar nilai teratur, sedangkan deret merepresentasikan operasi penjumlahan total dari suku-suku barisan tersebut.',
+                ],
+            ];
+
+            $prefersGeometry = (str_contains($bodyLower, 'geometri') || str_contains($titleLower, 'geometri') || str_contains($bodyLower, 'rasio'))
+                && ! (str_contains($bodyLower, 'aritmetika') && ! str_contains($bodyLower, 'rasio'));
+
+            $items = $prefersGeometry
+                ? array_merge($geoPool, $seqPool)
+                : array_merge($seqPool, $geoPool);
         }
 
         if (empty($items)) {
@@ -3132,11 +3251,11 @@ INSTRUCTIONS;
      */
     public function generateHeuristicQuizQuestions(string $body, string $title, ?string $category = null, int $count = 10): array
     {
-        $count = min(100, max(5, $count));
+        $count = min(50, max(5, $count));
 
         // 1. Prioritaskan pemetaan domain pengetahuan terstruktur (bebas templat kaku, opsi terdistribusi unik, dan analitis)
         $domainQuestions = $this->generateStructuredKnowledgeQuiz($body, $title, $category, $count);
-        if (! empty($domainQuestions) && count($domainQuestions) >= min($count, 10)) {
+        if (! empty($domainQuestions) && count($domainQuestions) >= $count) {
             return array_slice($domainQuestions, 0, $count);
         }
 
@@ -3167,6 +3286,20 @@ INSTRUCTIONS;
 
         $selectedItems = [];
         $usedQuestions = [];
+        if (! empty($domainQuestions)) {
+            foreach ($domainQuestions as $dq) {
+                $qKey = mb_strtolower(trim($dq['question']));
+                $usedQuestions[$qKey] = true;
+                $selectedItems[] = [
+                    'bloom_level' => $dq['bloom_level'] ?? 'C2',
+                    'question' => $dq['question'],
+                    'correct' => '',
+                    'distractors' => [],
+                    'explanation' => $dq['explanation'] ?? '',
+                    'preformatted' => $dq,
+                ];
+            }
+        }
         $bloomCycle = ['C1', 'C2', 'C3', 'C4', 'C5'];
 
         // Distribusi merata lintas kalimat sekaligus menyeimbangkan jenjang Bloom C1–C5 (termasuk Mengevaluasi)
@@ -3252,6 +3385,13 @@ INSTRUCTIONS;
         $globalUsedDistractors = [];
         foreach (array_slice($selectedItems, 0, $count) as $index => $built) {
             $seq = $index + 1;
+            if (! empty($built['preformatted'])) {
+                $pf = $built['preformatted'];
+                $pf['sequence'] = $seq;
+                $questions[] = $pf;
+                continue;
+            }
+
             $options = $this->buildUniqueQuizOptions(
                 $built['correct'],
                 $built['distractors'],

@@ -145,7 +145,7 @@ class DocumentController extends Controller
                 $wordCount = preg_match_all('/[\p{L}\p{N}]+/u', $cleanedBody, $words) ? count($words[0]) : 1;
                 $estimatedMinutes = min(60, max(1, (int) ceil($wordCount / 200)));
                 $quizMinutes = max(1, min(180, (int) ($request->input('quiz_duration_minutes') ?: 15)));
-                $quizCount = max(5, min(100, (int) ($request->input('quiz_question_count') ?: 10)));
+                $quizCount = max(5, min(50, (int) ($request->input('quiz_question_count') ?: 10)));
 
                 $document = Document::query()->create([
                     'title' => $title,
@@ -234,7 +234,7 @@ class DocumentController extends Controller
 
         $validated = $request->validate([
             'quiz_duration_minutes' => ['nullable', 'integer', 'between:1,180'],
-            'quiz_question_count' => ['nullable', 'integer', 'between:5,100'],
+            'quiz_question_count' => ['nullable', 'integer', 'between:5,50'],
         ]);
 
         $updates = [];

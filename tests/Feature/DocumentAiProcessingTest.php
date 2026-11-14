@@ -288,4 +288,49 @@ TEXT;
         $this->assertStringContainsString('gedung pertunjukan', $challenges[2]['question']);
         $this->assertStringContainsString('Rudi', $challenges[3]['question']);
     }
+
+    public function test_domain_6_barisan_geometri_and_quiz_count_expansion_to_15(): void
+    {
+        $mockModel = Mockery::mock(LanguageModel::class);
+        $mockModel->shouldReceive('isConfigured')->andReturn(false);
+        $processor = new DocumentAiProcessor($mockModel);
+
+        $geoText = <<<'TEXT'
+2. Barisan Geometri
+Lima anak berbagi kue dengan aturan berikut: rasio kue adalah setengah.
+Rasio adalah hal yang penting dalam Barisan Geometri.
+Rumus umum menentukan suku ke-n pada barisan geometri adalah Un = a * r^(n-1).
+Contoh 3: Suku pertama adalah 4 dan suku ke-4 adalah 108. Rasio adalah 3.
+Contoh 4: Seutas tali dibagi menjadi 5 bagian: potongan terpendek a = 16 cm dan terpanjang U5 = 81 cm.
+Pembelahan bakteri: satu sel membelah menjadi 3 setiap 2 jam.
+TEXT;
+
+        $quiz = $processor->generateHeuristicQuizQuestions($geoText, 'PO14', 'MATEMATIKA', 15);
+        $this->assertCount(15, $quiz);
+
+        $geoKeywordsFound = 0;
+        foreach ($quiz as $q) {
+            $this->assertNotEmpty($q['question']);
+            $this->assertCount(4, $q['options']);
+            if (str_contains(mb_strtolower($q['question']), 'geometri') || str_contains(mb_strtolower($q['question']), 'rasio') || str_contains(mb_strtolower($q['question']), 'bakteri')) {
+                $geoKeywordsFound++;
+            }
+        }
+        $this->assertGreaterThanOrEqual(5, $geoKeywordsFound);
+    }
+
+    public function test_document_model_max_recommended_quiz_questions_and_ideal_recommendation(): void
+    {
+        $shortDoc = new \App\Models\Document(['body' => str_repeat('Teks materi ringkas barisan. ', 100)]); // ~3000 chars
+        $this->assertEquals(15, $shortDoc->maxRecommendedQuizQuestions());
+        $this->assertEquals(10, $shortDoc->idealRecommendedQuizQuestions());
+
+        $medDoc = new \App\Models\Document(['body' => str_repeat('Teks materi sedang modul barisan aritmetika. ', 200)]); // ~8800 chars
+        $this->assertEquals(25, $medDoc->maxRecommendedQuizQuestions());
+        $this->assertEquals(15, $medDoc->idealRecommendedQuizQuestions());
+
+        $longDoc = new \App\Models\Document(['body' => str_repeat('Teks materi panjang bab lengkap barisan dan deret buku matematika siswa. ', 300)]); // ~21000 chars
+        $this->assertEquals(50, $longDoc->maxRecommendedQuizQuestions());
+        $this->assertEquals(20, $longDoc->idealRecommendedQuizQuestions());
+    }
 }
