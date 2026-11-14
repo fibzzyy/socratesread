@@ -1331,6 +1331,63 @@ INSTRUCTIONS;
             ], $seqChallenges);
         }
 
+        // Domain 7: Sistem Operasi — Sinkronisasi Proses, Race Condition & Deadlock (P11)
+        if (
+            str_contains($bodyLower, 'sinkronisasi proses')
+            || str_contains($bodyLower, 'deadlock')
+            || str_contains($bodyLower, 'race condition')
+            || str_contains($titleLower, 'p11')
+            || (isset($category) && str_contains(mb_strtolower($category), 'sistem operasi'))
+        ) {
+            $osChallenges = [
+                [
+                    'bloom' => 'C3',
+                    'difficulty' => 'easy',
+                    'question' => 'Jelaskan bagaimana mekanisme Mutual Exclusion mencegah terjadinya race condition ketika beberapa proses mengakses memori bersama, serta apa akibatnya jika mekanisme ini diabaikan!',
+                    'rubric' => 'Mutual Exclusion menjamin bahwa ketika satu proses sedang mengeksekusi critical section (mengakses atau memanipulasi data bersama), tidak ada proses lain yang diperbolehkan masuk ke critical section tersebut. Jika diabaikan, beberapa proses akan melakukan operasi baca-tulis secara tumpang tindih sehingga nilai data akhir menjadi tidak konsisten (terjadi race condition).',
+                    'reference_excerpt' => 'Mutual exclusion: Hanya satu proses boleh berada di critical section pada satu saat. Jika dilanggar, data rusak karena race condition.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'difficulty' => 'medium',
+                    'question' => 'Bandingkan cara kerja dan skenario penggunaan antara binary semaphore (mutex) dengan counting semaphore dalam pengelolaan sumber daya sistem operasi!',
+                    'rubric' => 'Mutex adalah kunci kepemilikan biner (nilai 0 atau 1) di mana hanya thread yang mengunci yang berhak membuka kunci, ideal untuk melindungi data bersama tunggal. Counting semaphore menggunakan nilai integer arbitrer untuk mengontrol akses ke kumpulan beberapa unit sumber daya yang identik (misalnya kuota 5 koneksi database simultan).',
+                    'reference_excerpt' => 'Mutex digunakan untuk melindungi data (critical section biner), sedangkan semaphore dipakai untuk membatasi kuota jumlah akses dan memberi sinyal antarproses.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'difficulty' => 'medium',
+                    'question' => 'Analisislah empat syarat mutlak terjadinya deadlock (syarat Coffman) dan uraikan bagaimana cara memutus syarat Circular Wait agar deadlock tidak pernah terjadi!',
+                    'rubric' => 'Empat syarat Coffman: Mutual Exclusion, Hold and Wait, No Preemption, dan Circular Wait. Untuk memutus Circular Wait, sistem operasi dapat menerapkan penomoran urutan linier secara global pada setiap sumber daya dan mewajibkan setiap proses hanya boleh meminta sumber daya dalam urutan menaik (strictly increasing order). Hal ini menjamin siklus saling tunggu tidak akan pernah terbentuk.',
+                    'reference_excerpt' => 'Empat syarat deadlock: Mutual exclusion, Hold and wait, No preemption, dan Circular wait. Mencegah deadlock cukup dengan memastikan salah satu syarat tidak pernah terpenuhi.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'difficulty' => 'hard',
+                    'question' => 'Mengapa Algoritma Banker (Banker\'s Algorithm) jarang diterapkan secara praktis pada sistem operasi multitasking modern serbaguna meskipun terbukti secara matematis mampu menghindari deadlock?',
+                    'rubric' => 'Banker\'s Algorithm memerlukan pengetahuan pasti di awal (apriori) mengenai jumlah maksimum sumber daya yang akan dialokasikan dan diminta oleh setiap proses selama masa hidupnya. Pada OS multitasking modern, aplikasi berjalan secara dinamis, sering meminta atau melepaskan resource secara tak terduga, dan jumlah proses terus berubah, sehingga kondisi safe state tidak dapat diverifikasi secara statis tanpa penurunan drastis pada efisiensi performa CPU.',
+                    'reference_excerpt' => 'Penghindaran deadlock membutuhkan informasi apriori tentang alokasi sumber daya maksimum yang jarang diketahui secara pasti pada sistem dinamis.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'difficulty' => 'hard',
+                    'question' => 'Evaluasi trade-off (kelebihan dan kekurangan) antara pendekatan pencegahan deadlock yang ketat dengan pendekatan Algoritma Ostrich dalam sistem operasi server produksi!',
+                    'rubric' => 'Pencegahan ketat menjamin sistem bebas dari macet total (deadlock), namun harus membayar biaya performa (overhead) tinggi setiap saat, utilisasi resource menjadi rendah, dan throughput menurun. Pendekatan Algoritma Ostrich (mengabaikan masalah) memprioritaskan performa tinggi dan kesederhanaan kernel karena frekuensi deadlock dalam praktiknya sangat jarang; jika terjadi, penanganannya diserahkan kepada restart proses atau intervensi administrator.',
+                    'reference_excerpt' => 'Pendekatan Ostrich dipilih karena biaya pencegahan dan deteksi deadlock yang terus-menerus jauh lebih merugikan performa dibanding dampak kejadian deadlock yang jarang.',
+                ],
+            ];
+
+            return array_map(fn ($item) => [
+                'type' => 'essay',
+                'question' => $item['question'],
+                'context' => null,
+                'rubric' => $item['rubric'],
+                'reference_excerpt' => $item['reference_excerpt'],
+                'difficulty' => $item['difficulty'],
+                'difficulty_weight' => TeacherChallenge::weightForDifficulty($item['difficulty']),
+            ], $osChallenges);
+        }
+
         return null;
     }
 
@@ -3504,6 +3561,126 @@ INSTRUCTIONS;
             $items = $prefersGeometry
                 ? array_merge($geoPool, $seqPool)
                 : array_merge($seqPool, $geoPool);
+        } elseif (
+            str_contains($bodyLower, 'sinkronisasi')
+            || str_contains($bodyLower, 'deadlock')
+            || str_contains($bodyLower, 'race condition')
+            || str_contains($titleLower, 'p11')
+            || (isset($category) && str_contains(mb_strtolower($category), 'sistem operasi'))
+        ) {
+            $osPool = [
+                [
+                    'bloom' => 'C1',
+                    'question' => 'Apakah yang dimaksud dengan kondisi perlombaan (race condition) dalam sistem operasi?',
+                    'correct' => 'Situasi ketika beberapa proses mengakses dan memanipulasi data bersama secara bersamaan, sehingga hasil akhirnya bergantung pada urutan eksekusi proses',
+                    'distractors' => [
+                        'Kondisi ketika dua proses saling menunggu sumber daya yang sedang ditahan oleh proses lain tanpa batas waktu',
+                        'Mekanisme penguncian berkas yang menjamin hanya satu pengguna yang dapat menyunting dokumen',
+                        'Strategi sistem operasi untuk mempercepat alokasi memori fisik ke dalam swap space',
+                    ],
+                    'explanation' => 'Race condition terjadi saat output atau nilai akhir data bersama menjadi tidak konsisten karena beberapa proses mengakses dan memodifikasi data secara bersaing tanpa sinkronisasi.',
+                ],
+                [
+                    'bloom' => 'C1',
+                    'question' => 'Sebutkan empat kondisi mutlak (syarat Coffman) yang harus terpenuhi secara simultan agar deadlock dapat terjadi!',
+                    'correct' => 'Mutual Exclusion, Hold and Wait, No Preemption, dan Circular Wait',
+                    'distractors' => [
+                        'Mutual Exclusion, Progress, Bounded Waiting, dan Critical Section',
+                        'Race Condition, Starvation, Aging, dan Context Switching',
+                        'Paging, Segmentation, Swapping, dan Fragmentation',
+                    ],
+                    'explanation' => 'Deadlock hanya dapat terjadi jika keempat syarat Coffman (Mutual Exclusion, Hold and Wait, No Preemption, dan Circular Wait) terpenuhi secara bersamaan.',
+                ],
+                [
+                    'bloom' => 'C2',
+                    'question' => 'Tiga kriteria mutlak apakah yang wajib dipenuhi oleh solusi penanganan critical section yang benar?',
+                    'correct' => 'Mutual Exclusion, Progress (Kemajuan), dan Bounded Waiting (Batas Waktu Menunggu)',
+                    'distractors' => [
+                        'Throughput, Turnaround Time, dan Response Time',
+                        'Atomicity, Consistency, Isolation, dan Durability',
+                        'Authentication, Authorization, Accounting, dan Non-repudiation',
+                    ],
+                    'explanation' => 'Solusi critical section wajib menjamin Mutual Exclusion (hanya satu proses masuk), Progress (pemilihan proses berikutnya tidak dihambat proses di luar critical section), dan Bounded Waiting (tidak ada proses mengalami starvation).',
+                ],
+                [
+                    'bloom' => 'C2',
+                    'question' => 'Bagaimanakah perbedaan mendasar antara mekanisme Mutex (Mutual Exclusion) dan Semaphore?',
+                    'correct' => 'Mutex bertindak sebagai kunci kepemilikan biner tunggal, sedangkan Semaphore menggunakan variabel integer (penghitung) untuk mengatur kuota akses banyak sumber daya',
+                    'distractors' => [
+                        'Mutex hanya bekerja pada kernel Linux, sedangkan Semaphore hanya bekerja pada sistem operasi Windows',
+                        'Mutex tidak pernah menyebabkan blocking, sedangkan Semaphore selalu mematikan proses yang menunggu',
+                        'Semaphore hanya dapat digunakan untuk berkas teks, sedangkan Mutex khusus untuk memori RAM',
+                    ],
+                    'explanation' => 'Mutex adalah gembok biner kepemilikan tunggal (hanya thread pengunci yang berhak membuka), sedangkan counting semaphore mengontrol kuota akses ke beberapa sumber daya identik melalui nilai integer.',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Dalam implementasi sistem berkas di lingkungan Linux, fungsi `flock(fd, LOCK_EX)` diterapkan untuk tujuan apa?',
+                    'correct' => 'Memperoleh kunci eksklusif (exclusive lock) pada berkas sehingga proses lain tidak dapat membaca maupun menulis ke berkas tersebut secara bersamaan',
+                    'distractors' => [
+                        'Membuka izin akses berkas secara publik kepada seluruh grup pengguna sistem',
+                        'Menghapus berkas yang mengalami deadlock secara otomatis dari sistem operasi',
+                        'Mengonversi berkas teks menjadi format biner terenkripsi',
+                    ],
+                    'explanation' => 'Fungsi flock() dengan flag LOCK_EX mengunci berkas secara eksklusif, mencegah proses konkuren lain mengakses berkas selama proses kritis berlangsung.',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Dalam strategi pencegahan deadlock (deadlock prevention), bagaimana cara paling efektif untuk memutus syarat Circular Wait (Tunggu Melingkar)?',
+                    'correct' => 'Menetapkan penomoran urutan linier untuk setiap sumber daya dan mewajibkan setiap proses meminta sumber daya secara berurutan naik strictly ascending',
+                    'distractors' => [
+                        'Mengizinkan proses merebut sumber daya milik proses lain secara paksa setiap 5 detik',
+                        'Mematikan seluruh proses yang sedang berjalan begitu pemakaian CPU mencapai 80%',
+                        'Menghapus batasan critical section sehingga semua proses dapat menulis memori bersama',
+                    ],
+                    'explanation' => 'Dengan menetapkan nomor urut global pada seluruh resource dan mewajibkan proses meminta resource dengan nomor berurutan naik, siklus lingkar rantai permintaan tidak akan pernah terbentuk.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Dua proses, Proses A dan Proses B, memerlukan Berkas 1 dan Berkas 2. Proses A memegang Berkas 1 lalu meminta Berkas 2, sedangkan Proses B memegang Berkas 2 lalu meminta Berkas 1. Analisis kondisi yang terjadi pada sistem!',
+                    'correct' => 'Terjadi deadlock akibat terbentuknya kondisi saling menunggu melingkar (Circular Wait) di mana kedua proses terhenti selamanya',
+                    'distractors' => [
+                        'Terjadi race condition karena kedua berkas saling menimpa data dalam milidetik yang sama',
+                        'Sistem beroperasi optimal karena kedua proses menjalankan paralelisasi I/O secara seimbang',
+                        'Proses B secara otomatis mengambil alih Berkas 1 karena memiliki prioritas sistem lebih tinggi',
+                    ],
+                    'explanation' => 'Situasi ini merupakan contoh klasik Circular Wait: Proses A menunggu Berkas 2 yang ditahan B, dan Proses B menunggu Berkas 1 yang ditahan A, sehingga kedua proses macet total (deadlock).',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Analisis mengapa pendekatan penghindaran deadlock (deadlock avoidance) seperti Algoritma Banker (Banker\'s Algorithm) jarang diterapkan secara praktis pada sistem operasi modern umum?',
+                    'correct' => 'Karena memerlukan informasi apriori tentang alokasi maksimal sumber daya yang akan diminta setiap proses di masa depan yang sulit diprediksi pada sistem dinamis',
+                    'distractors' => [
+                        'Karena algoritma tersebut membutuhkan perangkat keras komputer kuantum berharga mahal',
+                        'Karena sistem operasi modern tidak lagi mengenal konsep proses dan memori bersama',
+                        'Karena algoritma tersebut hanya dapat dieksekusi oleh perbankan berlisensi resmi',
+                    ],
+                    'explanation' => 'Banker\'s Algorithm menuntut proses menyatakan klaim maksimal kebutuhan sumber daya di awal secara pasti, sedangkan dalam sistem operasi multitasking dinamis, kebutuhan aplikasi tidak dapat dipastikan sebelumnya.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'question' => 'Banyak sistem operasi modern (seperti Linux dan Windows) memilih menerapkan pendekatan "Algoritma Ostrich" terhadap deadlock. Evaluasi alasan mendasar di balik keputusan desain ini!',
+                    'correct' => 'Frekuensi terjadinya deadlock sangat jarang dibandingkan biaya penurunan performa sistem jika mekanisme deteksi dan pencegahan harus dijalankan terus-menerus',
+                    'distractors' => [
+                        'Sistem operasi modern telah memiliki chip anti-deadlock bawaan sehingga perangkat lunak tidak perlu menanganinya',
+                        'Pengembang sistem operasi sengaja membiarkan deadlock agar pengguna terdorong membeli memori RAM yang lebih besar',
+                        'Algoritma Ostrich mampu memperbaiki kerusakan data akibat race condition secara otomatis tanpa reboot',
+                    ],
+                    'explanation' => 'Algoritma Ostrich (mengabaikan masalah) dipilih karena overhead pemantauan deadlock setiap siklus instruksi jauh lebih merugikan kinerja daripada membiarkan deadlock langka terjadi dan diatasi dengan me-restart proses terdampak.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'question' => 'Sebuah aplikasi perbankan mengalami ketidakkonsistenan saldo rekening ketika dua transaksi tarik tunai bersamaan dijalankan pada akun yang sama. Evaluasi solusi manakah yang paling tepat untuk mengatasi masalah tersebut!',
+                    'correct' => 'Mengimplementasikan mekanisme locking atomik (seperti mutex atau database row lock) pada baris saldo akun selama proses baca-tulis berlangsung',
+                    'distractors' => [
+                        'Menaikkan alokasi bandwidth internet server agar transaksi selesai lebih cepat',
+                        'Menonaktifkan logging transaksi pada basis data agar tidak memperlambat CPU',
+                        'Mengalihkan sistem penyimpanan saldo ke berkas teks biasa tanpa proteksi akses',
+                    ],
+                    'explanation' => 'Ketidakkonsistenan saldo adalah akibat klasik dari race condition pada data bersama; solusinya adalah melindungi critical section (baca dan perbarui saldo) menggunakan locking atomik.',
+                ],
+            ];
+            $items = $osPool;
         }
 
         if (empty($items)) {
@@ -3843,6 +4020,9 @@ INSTRUCTIONS;
             if (preg_match('/(?:logicodix|subtema:|@[a-z0-9_]+|\b\d{4}\s*·|masukan\s+perintah\s*:\s*$|masukkan\s+perintah\s*:\s*$)/iu', $line)) {
                 continue;
             }
+            if (preg_match('/\b(?:politeknik|universitas|fakultas|jurusan teknologi informasi|program studi d3|prodi|dosen pengampu|nip\.?\s*\d+|bobot mif|\b\d+\s*sks\b|semester\s*\/\s*ta|alokasi waktu|tahapan pbl|logbook\s+minggu|paraf dosen|fathushahib)\b/iu', $line)) {
+                continue;
+            }
             $line = preg_replace('/\s*Proposal Perancangan Aplikasi:\s*SocratesRead AI\s*/iu', ' ', $line) ?? $line;
             $line = preg_replace('/\bDDo\s+S\b/u', 'DDoS', $line) ?? $line;
             $line = trim($line);
@@ -4145,6 +4325,9 @@ INSTRUCTIONS;
                 return true;
             }
             if (preg_match('/^(?:setelah\s+mempelajari|diharapkan\s+kamu|kamu\s+diharapkan|ayo,?\s+bereksplorasi|ayo,?\s+berkolaborasi|ayo,?\s+berpikir|jawablah\s+pertanyaan|peta\s+materi|kementerian\s+pendidikan|tabel\s+\d+|gambar\s+\d+)/iu', $t)) {
+                return true;
+            }
+            if (preg_match('/\b(?:politeknik|universitas|fakultas|jurusan|program studi|prodi|dosen|pengampu|nip|sks|semester|ta ganjil|ta genap|pertemuan ke-|alokasi waktu|mif-\d+|logbook|paraf dosen|pbl fase|fathushahib)\b/iu', $t)) {
                 return true;
             }
             if (preg_match('/\b(?:yang|dan|atau|dari|untuk|pada|dengan|dalam|oleh|sebagai|adalah|merupakan|yaitu|yakni|bahwa)$/iu', $t)) {

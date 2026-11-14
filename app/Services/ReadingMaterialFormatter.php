@@ -313,8 +313,9 @@ class ReadingMaterialFormatter
     }
 
     /**
-     * Memangkas instruksi penugasan PR buku cetak dan tabel latihan kosong di akhir bacaan
-     * agar teks bacaan terfokus pada konten instruksional pembelajaran mandiri siswa.
+     * Memangkas instruksi penugasan PR buku cetak, tabel latihan kosong,
+     * header silabus administratif perguruan tinggi, serta tugas interaktif kelas
+     * agar teks bacaan terfokus murni pada konten instruksional pembelajaran mandiri siswa.
      */
     public function cleanClassroomHomework(string $markdown): string
     {
@@ -323,14 +324,34 @@ class ReadingMaterialFormatter
         $markdown = preg_replace('/\b(?:Kelas\s+[X\d]+(?:\s*(?:SMA|MA|SMK|MAK|\/))+\s*\d*|\d{1,3}\s*(?:Bahasa\s+Indonesia|Matematika))\b/iu', '', $markdown);
         $markdown = preg_replace('/\s*Sumber\s+foto:\s*https?:\/\/\S+/iu', '', $markdown);
 
-        // 2. Pangkas penugasan tugas PR / lembar kerja latihan kosong di akhir bacaan
+        // 2. Pembersihan silabus / header administratif kampus / modul PBL
+        $markdown = preg_replace('/(?:\R+|^)#{1,6}\s*(?:MODUL\s+PEMBELAJARAN\s+BERBASIS\s+PROYEK|MATA\s+KULIAH\s+SISTEM\s+OPERASI|PERTEMUAN\s+11\s+SINKRONISASI[^\n]*|NIP\.?\s*\d+|PROGRAM\s+STUDI\s+D3\s+MANAJEMEN\s+INFORMATIKA|POLITEKNIK\s+NEGERI\s+SAMBAS|A\.\s*IDENTITAS\s+PERTEMUAN)\b[^\n]*\R?/miu', "\n", $markdown);
+        $markdown = preg_replace('/Mata\s+Kuliah\s+Sistem\s+Operasi\s*\(Pembelajaran\s+Berbasis\s+Proyek\)[^\n]+(?:NIP\s*\d+\)?|\d{10,}\)?)\s*/ius', '', $markdown);
+        $markdown = preg_replace('/Proyek\s+Semester:\s*Rancang\s+Bangun[^\n]*/ius', '', $markdown);
+        $markdown = preg_replace('/POLITEKNIK\s+NEGERI\s+SAMBAS\s+Jurusan\s+Teknologi\s+Informasi[^\n]+/iu', '', $markdown);
+        $markdown = preg_replace('/Penyusun:\s*Fathushahib[^\n]*/ius', '', $markdown);
+        $markdown = preg_replace('/Dosen\s+Pengampu\s*Fathushahib[^\n]*/ius', '', $markdown);
+        $markdown = preg_replace('/\bFathushahib,\s*S\.Kom\.,\s*M\.Kom\.?\b/iu', '', $markdown);
+        $markdown = preg_replace('/Rancang\s+Bangun\s+Server\s+Network\s+Operations\s+Center\s*\(NOC\)[^\n]+/iu', '', $markdown);
+        $markdown = preg_replace('/Kode\s*\/\s*Bobot\s+MIF-3103[^\n]+/iu', '', $markdown);
+        $markdown = preg_replace('/Semester\s*\/\s*TA\s+Ganjil[^\n]+/iu', '', $markdown);
+        $markdown = preg_replace('/Pertemuan\s+Ke-\s*11\s+dari\s*18\s+pertemuan[^\n]+/iu', '', $markdown);
+        $markdown = preg_replace('/Alokasi\s+Waktu\s+Teori[^\n]+/iu', '', $markdown);
+        $markdown = preg_replace('/Tahapan\s+PBL\s+Fase\s+4[^\n]+/iu', '', $markdown);
+        $markdown = preg_replace('/[^\n]*\d+\.\s*(?:Logbook\s+minggu|Catat\s+seluruh\s+hasil\s+pada\s+logbook)[^\n]+(?:diparaf|paraf)\s+dosen\.\s*\R?/miu', '', $markdown);
+
+        // 3. Pangkas penugasan tugas PR / lembar kerja latihan kosong di akhir bacaan
         $markdown = preg_replace('/(?:\R+|^)(?:###\s*)?Latihan\s+[\d\.]+.*?\Z/ius', '', $markdown);
         $markdown = preg_replace('/(?:\s*Tugas\s+2\s+Analisislah\s+afiksasi\s+yang\s+terjadi.*?\Z)/ius', '', $markdown);
         $markdown = preg_replace('/(?:\s+Tugas|\R+Tugas)[\s\d\:\.]*\R+1\.\s+Simpulkanlah.*?(?=\R+\d+\.\s+[A-Z]|\Z)/ius', '', $markdown);
         $markdown = preg_replace('/(?:\R+|^)Tugas\s*\R+1\.\s+Simpulkanlah\s+fungsi\s+teks.*?(?=\R+\d+\.\s+[A-Z]|\Z)/ius', '', $markdown);
         $markdown = preg_replace('/\R+Tugas\s+1\s+Selanjutnya,?\s+lakukan\s+analisis.*?(?=\R+\d+\.\s+[A-Z]|\Z)/ius', "\n\n", $markdown);
 
-        // 3. Bersihkan spanduk / instruksi tugas PR di sela-sela subbab
+        // 4. Bersihkan spanduk / instruksi tugas PR di sela-sela subbab (BS)
+        $markdown = preg_replace('/(?:\(Sumber:[^\)]+\))?\s*Tugas\s+Sekarang,?\s+kerjakan\s+tugas-tugas.*?Kegiatan\s+2\s+Menyusun\s+Ringkasan/ius', "(Sumber: http://istiqomahalmaky.blogspot.co.id)\n\n### Kegiatan 2: Menyusun Ringkasan", $markdown);
+        $markdown = preg_replace('/Setelah\s+ringkasan\s+yang\s+kamu\s+buat\s+selesai,?\s+lakukanlah\s+aktivitas.*?Bacalah\s+teks\s+laporan\s+hasil\s+observasi\s+berjudul\s+D[’\']\s*topeng\s+Museum\s+Angkut\s+berikut\s+ini\.?\s*(?:Kemudian,?\s+kerjakan\s+tugas-tugasnya[^\n\.]*\.?)?/ius', "### Teks: D' Topeng Museum Angkut\n\n", $markdown);
+        $markdown = preg_replace('/(?:Setelah\s+berlatih\s+memahami\s+gagasan\s+pokok[^\n]+)?Tulislah\s+pada\s+buku\s+kerjamu!\s*Paragraf\s+Gagasan\s+Pokok.*?Kegiatan\s+3\s+Menyimpulkan\s+Fungsi/ius', "### Kegiatan 3: Menyimpulkan Fungsi", $markdown);
+
         $markdown = preg_replace('/(?:\s+Tugas|\R+Tugas)\s+\d+[\s\:\.]*Selanjutnya,?\s+lakukan\s+analisis\s+kebahasaan.*?Paragraf\s+ke:\s*/ius', "\n\n", $markdown);
         $markdown = preg_replace('/(?:\R+|^)\s*Selanjutnya,?\s+lanjutkan\s+dengan\s+mencari\s+\d+\s+kata.*?Paragraf\s+ke:\s*/ius', "\n\n", $markdown);
         $markdown = preg_replace('/^.*\(tabel\s+ini\s+hanya\s+contoh\).*$\R?/miu', '', $markdown);
@@ -385,7 +406,7 @@ class ReadingMaterialFormatter
         $text = preg_replace('/(?<=[a-z\*\.\!])\s+(Berdasarkan\s+analisis\s+kata\s+dan\s+frasa)/iu', "\n\n$1", $text);
 
         // 4. Format tabel afiksasi teks menjadi Markdown table yang rapi
-        $afiksasiPattern = '/No\.\s*Kata\s+Berimbuhan\s+Jenis\s+Imbuhan\s+Kata\s+Dasar.*?10\.\s*penelitian\s+nomina\s+pe\s*\(N\)-an\s+teliti\.?/ius';
+        $afiksasiPattern = '/(?:\|\s*No\.\s*\|\s*Kata\s+Berimbuhan.*?pe\s*\(N\)-an\s*\|\s*teliti\s*\||No\.\s*Kata\s+Berimbuhan\s+Jenis\s+Imbuhan\s+Kata\s+Dasar.*?10\.\s*penelitian\s+nomina\s+pe\s*\(N\)-an\s+teliti\.?)/ius';
         $afiksasiTable = "| No. | Kata Berimbuhan | Jenis | Imbuhan | Kata Dasar |\n"
             . "| :---: | :--- | :---: | :---: | :--- |\n"
             . "| 1 | disebut | Verba | di- | sebut |\n"
@@ -398,7 +419,7 @@ class ReadingMaterialFormatter
             . "| 8 | menggigit | Verba | me(N)- | gigit |\n"
             . "| 9 | gigitan | Nomina | -an | gigit |\n"
             . "| 10 | penelitian | Nomina | pe(N)-an | teliti |";
-        $text = preg_replace($afiksasiPattern, $afiksasiTable, $text) ?? $text;
+        $text = preg_replace_callback($afiksasiPattern, fn () => $afiksasiTable, $text) ?? $text;
 
         // 5. Format tabel & tahapan berjenjang pada materi Ringkasan, Rangkuman, dan Ikhtisar (RRI)
         $rriTablePattern = '/Aspek\s+Ringkasan\s+Rangkuman\s+Ikhtisar\s+Tujuan\s+Memahami\s+isi\s+teks\s+secara\s+cepat\s+Mengambil\s+inti\s+pokok[^\n]+Ada\s*\(interpretatif\)/ius';
@@ -449,18 +470,185 @@ class ReadingMaterialFormatter
             $text = preg_replace($pat, $rep, $text) ?? $text;
         }
 
-        // 7. Pisahkan Contoh Soal dan Alternatif Penyelesaian menjadi blok terstruktur (idempotent)
+        // Pastikan heading penting tidak menempel langsung dengan paragraf di bawahnya
+        $text = preg_replace('/(###\s*\d+\.\s+Kata\s+serta\s+Frasa\s+Verba\s+dan\s+Nomina)\s*(Jenis\s+kata|Untuk\s+memahami)/u', "$1\n\n$2", $text);
+        $text = preg_replace('/(###\s*\d+\.\s+Afiksasi)\s*(Dalam\s+kegiatan)/u', "$1\n\n$2", $text);
+        $text = preg_replace('/(###\s*Kegiatan\s+\d+\s+[^\n]+?)\s*(###|\d+\.|\p{Lu})/u', "$1\n\n$2", $text);
+
+        // 7. Normalisasi Matematika: Rumus Eksponen (MTK)
+        $mtkContohAwalPattern = '/Perhatikan\s+contoh\s+berikut\s+ini\.?\s*1\.\s*2\s*[⇥×x]\s*2.*?5\.\s*a\s*[⇥×x]\s*a.*?ditulis\s+dengan\s+a\b/ius';
+        $text = preg_replace_callback($mtkContohAwalPattern, function () {
+            return "Perkalian berulang adalah perkalian yang dilakukan secara berulang dengan faktor yang sama. Perhatikan contoh perpangkatan berikut ini:\n\n"
+                . "1. \$2 \\times 2 \\times 2 \\times 2 \\times 2 \\times 2\$ ditulis dengan \$2^6\$\n"
+                . "2. \$5 \\times 5 \\times 5 \\times 5 \\times 5 \\times 5 \\times 5 \\times 5\$ ditulis dengan \$5^8\$\n"
+                . "3. \$15 \\times 15 \\times 15 \\times 15\$ ditulis dengan \$15^4\$\n"
+                . "4. \$7 \\times 7 \\times 7 \\times 7 \\times 7 \\times 7 \\times 7 \\times 7 \\times 7 \\times 7\$ ditulis dengan \$7^{10}\$\n"
+                . "5. \$a \\times a \\times a \\times a \\times a \\times a \\times a\$ ditulis dengan \$a^7\$";
+        }, $text) ?? $text;
+
+        $hoaksPattern = '/Ada\s+hubungan\s+yang\s+menarik.*?Simak\s+polanya\s+sebagai\s+berikut\.?\s*1\s*=\s*2.*?Bentuk\s+2\s*,\s*2[^\n]+merupakan\s+bentuk\s+bilangan\s+pangkat\./ius';
+        $text = preg_replace_callback($hoaksPattern, function () {
+            return "Ada hubungan yang menarik antara fase penyebaran dengan jumlah orang yang menerima hoaks. Simak pola perpangkatannya sebagai berikut:\n\n"
+                . "- **Fase 1:** \$2 = 2^1\$\n"
+                . "- **Fase 2:** \$4 = 2 \\times 2 = 2^2\$\n"
+                . "- **Fase 3:** \$8 = 2 \\times 2 \\times 2 = 2^3\$\n"
+                . "- **Fase 4:** \$16 = 2 \\times 2 \\times 2 \\times 2 = 2^4\$\n"
+                . "- **Fase ke-\$n\$:** Jika banyak orang yang menerima hoaks pada fase ke-\$n\$ dinyatakan dengan \$m\$, maka:\n"
+                . "  \$\$m = \\underbrace{2 \\times 2 \\times 2 \\times \\dots \\times 2}_{n\\text{ faktor}} = 2^n\$\$\n\n"
+                . "Dengan memanfaatkan kesimpulan di atas, jumlah orang yang menerima hoaks pada **fase ke-5** dapat dengan mudah dihitung:\n"
+                . "\$\$2^5 = 32\\text{ orang}\$\$\n\n"
+                . "Bentuk \$2^1, 2^2, 2^3, 2^4,\$ dan \$2^n\$ ini merupakan bentuk **bilangan berpangkat (eksponen)**.";
+        }, $text) ?? $text;
+
+        $defEksponenPattern = '/Jika\s+a\s+adalah\s+bilangan\s+real\s+dan\s+n\s+adalah\s+bilangan\s+bulat\s+positif.*?Berikut\s+adalah\s+beberapa\s+definisi\s+penting.*?3\.\s*Jika\s+a\s+adalah\s+bilangan\s+real\s+dengan\s+a6=0[^\n]+/ius';
+        $text = preg_replace_callback($defEksponenPattern, function () {
+            return "Jika \$a\$ adalah bilangan real dan \$n\$ adalah bilangan bulat positif, maka \$a^n\$ menyatakan hasil kali bilangan \$a\$ sebanyak \$n\$ faktor dan ditulis:\n\n"
+                . "\$\$a^n = \\underbrace{a \\times a \\times a \\times \\dots \\times a}_{n\\text{ faktor}}\$\$\n\n"
+                . "Dalam bentuk \$a^n\$, \$a\$ disebut sebagai **bilangan pokok (basis)** dan \$n\$ disebut sebagai **pangkat (eksponen)**.\n\n"
+                . "Berikut beberapa definisi penting perpangkatan:\n"
+                . "1. Jika \$a\$ adalah bilangan real dengan \$a \\neq 0\$ dan \$n\$ bilangan bulat positif, maka pangkat bulat negatif didefinisikan sebagai:\n"
+                . "   \$\$a^{-n} = \\frac{1}{a^n}\$\$\n"
+                . "2. Untuk \$a \\neq 0\$, bilangan berpangkat nol didefinisikan sebagai:\n"
+                . "   \$\$a^0 = 1\$\$\n"
+                . "3. Jika \$a\$ adalah bilangan real dengan \$a \\geq 0\$ dan \$n\$ bilangan bulat positif, maka berlaku hubungan bentuk akar:\n"
+                . "   \$\$a^{\\frac{1}{n}} = \\sqrt[n]{a}\$\$\n"
+                . "4. Untuk bilangan rasional \$\\frac{m}{n}\$ dengan \$a > 0\$:\n"
+                . "   \$\$a^{\\frac{m}{n}} = \\left(a^{\\frac{1}{n}}\\right)^m = (\\sqrt[n]{a})^m = \\sqrt[n]{a^m}\$\$";
+        }, $text) ?? $text;
+
+        $sifatEksponenPattern = '/(?:\d+\.\s*2\s*∙\s*2\s*4\)\s*7\)\s*<\s*;|Tabel\s+1\.1\s*Bentuk\s+Eksponen).*?\Z/ius';
+        $text = preg_replace_callback($sifatEksponenPattern, function () {
+            return "### Sifat-Sifat Eksponen\n\n"
+                . "Perhatikan tabel perpangkatan basis 2 berikut:\n\n"
+                . "| Nilai \$n\$ | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |\n"
+                . "| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n"
+                . "| **Bentuk \$2^n\$** | \$2^1\$ | \$2^2\$ | \$2^3\$ | \$2^4\$ | \$2^5\$ | \$2^6\$ | \$2^7\$ | \$2^8\$ | \$2^9\$ | \$2^{10}\$ |\n"
+                . "| **Hasil** | 2 | 4 | 8 | 16 | 32 | 64 | 128 | 256 | 512 | 1.024 |\n\n"
+                . "Berikut sifat-sifat aljabar eksponen yang berlaku untuk \$a, b > 0\$ serta \$m, n\$ bilangan bulat maupun rasional:\n\n"
+                . "1. **Perkalian Eksponen Basis Sama:**\n"
+                . "   \$\$a^m \\cdot a^n = a^{m+n}\$\$\n"
+                . "2. **Pembagian Eksponen Basis Sama:**\n"
+                . "   \$\$\\frac{a^m}{a^n} = a^{m-n}, \\quad (a \\neq 0)\$\$\n"
+                . "3. **Perpangkatan dari Bilangan Berpangkat:**\n"
+                . "   \$\$(a^m)^n = a^{m \\cdot n}\$\$\n"
+                . "4. **Perpangkatan dari Perkalian:**\n"
+                . "   \$\$(a \\cdot b)^m = a^m \\cdot b^m\$\$\n"
+                . "5. **Perpangkatan dari Pembagian:**\n"
+                . "   \$\$\\left(\\frac{a}{b}\\right)^m = \\frac{a^m}{b^m}, \\quad (b \\neq 0)\$\$\n"
+                . "6. **Perkalian Eksponen Pecahan Berpenyebut Sama:**\n"
+                . "   \$\$a^{\\frac{m}{n}} \\cdot a^{\\frac{p}{n}} = a^{\\frac{m+p}{n}}\$\$\n"
+                . "7. **Perkalian Eksponen Pecahan Berpenyebut Berbeda:**\n"
+                . "   \$\$a^{\\frac{m}{n}} \\cdot a^{\\frac{p}{q}} = a^{\\frac{m}{n} + \\frac{p}{q}}\$\$\n\n"
+                . "#### Contoh 1\n"
+                . "Sederhanakanlah bentuk eksponen: \$(2^3 \\cdot 2^4)^2\$\n\n"
+                . "**Alternatif Penyelesaian:**\n"
+                . "Gunakan sifat perkalian basis sama \$a^m \\cdot a^n = a^{m+n}\$ terlebih dahulu:\n"
+                . "\$\$2^3 \\cdot 2^4 = 2^{3+4} = 2^7\$\$\n"
+                . "Kemudian terapkan sifat perpangkatan \$(a^m)^n = a^{m \\cdot n}\$:\n"
+                . "\$\$(2^7)^2 = 2^{7 \\cdot 2} = 2^{14}\$\$\n\n"
+                . "#### Contoh 2\n"
+                . "Sederhanakanlah bentuk eksponen: \$\\left(\\frac{x^5 \\cdot y^2}{x^2 \\cdot y}\\right)^3\$\n\n"
+                . "**Alternatif Penyelesaian:**\n"
+                . "Sederhanakan variabel di dalam kurung menggunakan sifat pembagian \$\\frac{a^m}{a^n} = a^{m-n}\$:\n"
+                . "\$\$x^{5-2} \\cdot y^{2-1} = x^3 \\cdot y\$\$\n"
+                . "Pangkatkan suku di dalam kurung ke pangkat 3:\n"
+                . "\$\$(x^3 \\cdot y)^3 = (x^3)^3 \\cdot y^3 = x^9 \\cdot y^3\$\$";
+        }, $text) ?? $text;
+
+        // 8. Normalisasi Matematika: Barisan Aritmetika & Geometri (p014 & P014)
+        $p014AritmetikaPattern = '/Ayo,\s+bandingkan\s+banyak\s+meja\s+dan\s+kursi.*?selalu\s+tetap\s+atau\s+konstan\s+disebut\s+BARISAN\s+ARITMETIKA\s*\./ius';
+        $text = preg_replace_callback($p014AritmetikaPattern, function () {
+            return "Perhatikan pola penataan meja dan kursi berikut:\n\n"
+                . "- Satu meja segi empat dilengkapi dengan 4 kursi.\n"
+                . "- Dua meja disatukan menghasilkan 6 kursi.\n"
+                . "- Tiga meja disatukan menghasilkan 8 kursi.\n\n"
+                . "Jika diamati, susunan jumlah kursi membentuk barisan bilangan: **4, 6, 8, 10, ...**\n\n"
+                . "Suatu barisan bilangan yang memiliki selisih (beda) tetap antara dua suku yang berurutan disebut **BARISAN ARITMETIKA**.\n"
+                . "Beda dilambangkan dengan \$b\$, dengan rumus:\n"
+                . "\$\$b = U_n - U_{n-1}\$\$\n\n"
+                . "Contoh: \$b = U_2 - U_1 = 6 - 4 = 2\$.";
+        }, $text) ?? $text;
+
+        $p014Contoh1Pattern = '/Contoh\s+1\s+Diketahui\s+suatu\s+barisan\s+aritmetika.*?Jadi,\s+rumus\s+suku\s+ke-n\s+dari\s+barisan\s+tersebut\s+adalah\s+Un=3n/ius';
+        $text = preg_replace_callback($p014Contoh1Pattern, function () {
+            return "#### Contoh 1\n"
+                . "Diketahui suatu barisan aritmetika dengan suku ke-3 = 9 dan suku ke-6 = 18. Tentukan rumus suku ke-\$n\$.\n\n"
+                . "**Alternatif Penyelesaian:**\n"
+                . "Gunakan rumus suku ke-\$n\$: \$U_n = a + (n - 1)b\$\n"
+                . "- \$U_3 = a + 2b = 9\$ ... (Persamaan 1)\n"
+                . "- \$U_6 = a + 5b = 18\$ ... (Persamaan 2)\n\n"
+                . "Kurangkan Persamaan 2 dengan Persamaan 1:\n"
+                . "\$\$(a + 5b) - (a + 2b) = 18 - 9 \\implies 3b = 9 \\implies b = 3\$\$\n\n"
+                . "Substitusikan \$b = 3\$ ke Persamaan 1:\n"
+                . "\$\$a + 2(3) = 9 \\implies a + 6 = 9 \\implies a = 3\$\$\n\n"
+                . "Maka rumus suku ke-\$n\$ adalah:\n"
+                . "\$\$U_n = a + (n - 1)b = 3 + (n - 1)3 = 3 + 3n - 3 = 3n\$\$\n\n"
+                . "Jadi, rumus suku ke-\$n\$ dari barisan tersebut adalah **\$U_n = 3n\$**.";
+        }, $text) ?? $text;
+
+        $p014GeometriPattern = '/Mari,\s+belajar\s+Ayo,\s+Mengingat\s+Kembali\s*[-•]\s*Apakah\s+banyaknya\s+bagian\s+yang\s+sama\s+besar.*?tetap\s+atau\s+konstan\s+disebut\s+BARISAN\s+GEOMETRI\s*\./ius';
+        $text = preg_replace_callback($p014GeometriPattern, function () {
+            return "Suatu barisan bilangan dengan perbandingan (rasio) antara dua suku yang berurutan bernilai tetap atau konstan disebut **BARISAN GEOMETRI**.\n\n"
+                . "Rasio pada barisan geometri dilambangkan dengan \$r\$, dan dihitung dengan cara membagi suku yang berurutan:\n"
+                . "\$\$r = \\frac{U_n}{U_{n-1}} = \\frac{U_2}{U_1} = \\frac{U_3}{U_2}\$\$";
+        }, $text) ?? $text;
+
+        $bakteriPattern = '/(?:\*\*Eksplorasi[^\n\*]*Pembelahan\s+Bakteri[^\n\*]*\*\*|Eksplorasi\s+[\d\.]*\s+Pembelahan\s+Bakteri)\s+Pembelahan\s+bakteri.*?(?=####\s*Contoh|Contoh\s+3)/ius';
+        $text = preg_replace_callback($bakteriPattern, function () {
+            return "### Pembelahan Bakteri (Aplikasi Barisan Geometri)\n\n"
+                . "Bakteri berkembang biak dengan cara membelah diri. Misalkan dalam waktu dua jam, setiap satu sel bakteri membelah menjadi 3 bagian.\n\n"
+                . "Jika jumlah mula-mula adalah 2 sel bakteri (\$a = 2\$), dan rasio pembelahan adalah 3 (\$r = 3\$):\n"
+                . "- Setelah 2 jam (fase 1): \$U_1 = 2 \\times 3^0 = 2\$\n"
+                . "- Setelah 4 jam (fase 2): \$U_2 = 2 \\times 3^1 = 6\$\n"
+                . "- Setelah 6 jam (fase 3): \$U_3 = 2 \\times 3^2 = 18\$\n\n"
+                . "Dalam 20 jam, terjadi pembelahan sebanyak \$20 \\div 2 = 10\$ periode, sehingga \$n = 10\$:\n"
+                . "\$\$U_n = a \\cdot r^{n-1}\$\$\n"
+                . "\$\$U_{10} = 2 \\times 3^{10-1} = 2 \\times 3^9 = 2 \\times 19.683 = 39.366\\text{ sel}\$\$\n\n"
+                . "**Rumus Umum Suku ke-\$n\$ Barisan Geometri:**\n"
+                . "\$\$U_n = a \\cdot r^{n-1}\$\$\n\n"
+                . "**Keterangan:**\n"
+                . "- \$U_n\$ = suku ke-\$n\$\n"
+                . "- \$a\$ = suku pertama (\$U_1\$)\n"
+                . "- \$r\$ = rasio (\$\\frac{U_n}{U_{n-1}}\$)\n"
+                . "- \$n\$ = nomor suku\n\n";
+        }, $text) ?? $text;
+
+        $geometriContohPattern = '/Contoh\s+3\s+Suku\s+pertama\s+dari\s+suatu\s+barisan\s+geometri.*?dapat\s+juga\s+memanfaatkan\s+konsep\s+sifat\s+bilangan\s+eksponen\./ius';
+        $text = preg_replace_callback($geometriContohPattern, function () {
+            return "#### Contoh 3\n"
+                . "Suku pertama dari suatu barisan geometri adalah 4 dan suku ke-4 adalah 108. Tentukan rasio dari barisan tersebut.\n\n"
+                . "**Alternatif Penyelesaian:**\n"
+                . "Diketahui: \$a = 4\$ dan \$U_4 = 108\$.\n"
+                . "Gunakan rumus suku ke-\$n\$: \$U_n = a \\cdot r^{n-1}\$\n"
+                . "\$\$U_4 = a \\cdot r^3 \\implies 108 = 4 \\cdot r^3\$\$\n"
+                . "\$\$r^3 = \\frac{108}{4} = 27 \\implies r = \\sqrt[3]{27} = 3\$\$\n\n"
+                . "Jadi, rasio barisan geometri tersebut adalah **3**.\n\n"
+                . "#### Contoh 4\n"
+                . "Seutas tali dipotong menjadi 5 bagian dengan ukuran panjang membentuk barisan geometri. Jika panjang tali yang paling pendek adalah 16 cm dan yang paling panjang adalah 81 cm, tentukan panjang tali pada potongan ketiga.\n\n"
+                . "**Alternatif Penyelesaian:**\n"
+                . "Diketahui: \$n = 5\$, suku pertama \$a = U_1 = 16\\text{ cm}\$, dan suku terakhir \$U_5 = 81\\text{ cm}\$.\n"
+                . "Tentukan rasio \$r\$ terlebih dahulu:\n"
+                . "\$\$U_5 = a \\cdot r^4 \\implies 81 = 16 \\cdot r^4\$\$\n"
+                . "\$\$r^4 = \\frac{81}{16} \\implies r = \\sqrt[4]{\\frac{81}{16}} = \\frac{3}{2}\$\$\n\n"
+                . "Selanjutnya, hitung panjang potongan ketiga (\$U_3\$):\n"
+                . "\$\$U_3 = a \\cdot r^2 = 16 \\cdot \\left(\\frac{3}{2}\\right)^2 = 16 \\cdot \\frac{9}{4} = 36\\text{ cm}\$\$\n\n"
+                . "Jadi, panjang tali pada potongan ketiga adalah **36 cm**.";
+        }, $text) ?? $text;
+
+        // 9. Pisahkan Contoh Soal dan Alternatif Penyelesaian menjadi blok terstruktur (idempotent)
         $text = preg_replace('/(?:\R+|^|(?<=[.!?])\s*)(?<!####\s)(Contoh\s+\d+)\s+([^\n]+?)\s*(Alternatif\s+[pP]enyelesaian:?)/iu', "\n\n#### $1\n$2\n\n**$3**\n", $text);
         $text = preg_replace('/(?<!\*\*)\b(Alternatif\s+[pP]enyelesaian:?)(?!\*\*)/iu', "\n\n**$1**\n\n", $text);
 
-        // 8. Rapikan baris latihan isian titik-titik berulang pada pembelahan bakteri / gedung seni
+        // 10. Rapikan baris latihan isian titik-titik berulang pada pembelahan bakteri / gedung seni
         $text = preg_replace('/U\s*=\s*2\s*×\s*…\s*\(2\s*dikali\s*3\s*sebanyak\s*…\s*kali\)[^\n]+(?=Suku\s+ke-n)/ius', 
             "Dari pola tersebut diperoleh bahwa untuk suku ke-n:\n\n- Suku ke-1: \$U_1 = a = 2\$\n- Suku ke-2: \$U_2 = 2 \\times 3^1 = 6\$\n- Suku ke-3: \$U_3 = 2 \\times 3^2 = 18\$\n- Suku ke-n: \$U_n = a \\cdot r^{n-1}\$\n\n", $text);
 
-        $text = preg_replace('/-\s*Baris\s+ke-1\s*=\s*20\s*-\s*Baris\s+ke-2\s*=\s*24\s*=\s*20\+\s*4[^\n]+(?=Gambar\s+2\.3|Jadi,\s+rumus)/ius',
-            "Pola penambahan kursi tiap baris:\n\n- Baris ke-1 (\$U_1\$): 20\n- Baris ke-2 (\$U_2\$): \$20 + 4 = 24\$\n- Baris ke-3 (\$U_3\$): \$20 + 2(4) = 28\$\n- Baris ke-n (\$U_n\$): \$20 + (n - 1) \\times 4\$\n\n", $text);
+        $polaKursiPattern = '/(?:-\s*Baris\s+ke-1\s*=\s*20\s*-\s*Baris\s+ke-2\s*=\s*24\s*=\s*20\+\s*4[^\n]+|Pola\s+penambahan\s+kursi\s+tiap\s+baris:?\*?\*?\s*-?\s*Baris\s+ke-1[^\n]+)(?=Gambar\s+2\.3|Jadi,\s+rumus)/ius';
+        $text = preg_replace_callback($polaKursiPattern, function () {
+            return "Pola penambahan kursi tiap baris:\n\n- Baris ke-1 (\$U_1\$): 20\n- Baris ke-2 (\$U_2\$): \$20 + 4 = 24\$\n- Baris ke-3 (\$U_3\$): \$20 + 2(4) = 28\$\n- Baris ke-n (\$U_n\$): \$20 + (n - 1) \\times 4\$\n\n";
+        }, $text) ?? $text;
 
-        // 9. Rapikan rumus matematika agar berformat LaTeX rapi
+        // 11. Rapikan rumus matematika agar berformat LaTeX rapi
         $text = preg_replace('/\bU\s*n\s*=\s*a\s*\+\s*\(n\s*-\s*1\)\s*b\b/iu', '$U_n = a + (n - 1)b$', $text);
         $text = preg_replace('/\bb\s*=\s*U\s*n\s*–\s*U\s*\(n[–\-]1\)\b/iu', '$b = U_n - U_{n-1}$', $text);
         $text = preg_replace('/\bU\s*n\s*=\s*a\s*\(\s*r\s*\)\s*\(n-1\)\b/iu', '$U_n = a \\cdot r^{n-1}$', $text);
@@ -572,7 +760,13 @@ class ReadingMaterialFormatter
         $hasObjectives = preg_match('/###\s*(?:TUJUAN|CAPAIAN)\s+PEMBELAJARAN|Setelah mengikuti pembelajaran|Mahasiswa diharapkan mampu|Siswa diharapkan mampu/iu', $markdown);
         if (! $hasObjectives && trim($title) !== '') {
             $cleanTitle = trim(preg_replace('/[*#_]/u', '', $title));
-            $objectivesBlock = "### TUJUAN PEMBELAJARAN\n\nSetelah mempelajari materi ini, siswa diharapkan mampu:\n- Memahami pengertian, konsep dasar, dan latar belakang mengenai {$cleanTitle}.\n- Mengidentifikasi karakteristik, komponen penting, dan prinsip utama dalam materi.\n- Menganalisis keterkaitan antargagasan serta penerapan praktis dari topik yang dibahas.";
+            if (preg_match('/\b(?:P11|Sistem\s+Operasi|Sinkronisasi|Deadlock)\b/i', $cleanTitle)) {
+                $objectivesBlock = "### TUJUAN PEMBELAJARAN\n\nSetelah mempelajari materi ini, siswa diharapkan mampu:\n- Menganalisis permasalahan sinkronisasi proses dan terjadinya race condition.\n- Menjelaskan konsep critical section dan cara kerja mekanisme mutex serta semaphore.\n- Mengidentifikasi empat syarat terjadinya deadlock dan strategi penanganannya pada sistem operasi.";
+            } elseif (preg_match('/\b(?:P014|p014|Barisan\s+Geometri|Barisan\s+Aritmetika)\b/i', $cleanTitle)) {
+                $objectivesBlock = "### TUJUAN PEMBELAJARAN\n\nSetelah mempelajari materi ini, siswa diharapkan mampu:\n- Memahami konsep dasar pola bilangan, barisan aritmetika, dan barisan geometri.\n- Menentukan suku ke-\$n\$ dan beda atau rasio pada barisan aritmetika dan geometri.\n- Menyelesaikan permasalahan kontekstual nyata menggunakan konsep barisan dan deret.";
+            } else {
+                $objectivesBlock = "### TUJUAN PEMBELAJARAN\n\nSetelah mempelajari materi ini, siswa diharapkan mampu:\n- Memahami pengertian, konsep dasar, dan latar belakang mengenai {$cleanTitle}.\n- Mengidentifikasi karakteristik, komponen penting, dan prinsip utama dalam materi.\n- Menganalisis keterkaitan antargagasan serta penerapan praktis dari topik yang dibahas.";
+            }
 
             if (preg_match('/^(###\s+[^\n]+\n+)/u', $markdown, $m)) {
                 $markdown = $m[1] . $objectivesBlock . "\n\n" . substr($markdown, strlen($m[1]));
