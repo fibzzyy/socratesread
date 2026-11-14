@@ -80,6 +80,31 @@
                         @endif
                     </div>
                 </div>
+                @if ($classroom->is_active)
+                    <details class="border-t border-slate-100 pt-3">
+                        <summary class="w-fit cursor-pointer text-sm text-slate-600 hover:text-slate-900">Tampilkan QR untuk bergabung</summary>
+                        <div class="mt-3 flex flex-wrap items-center gap-3">
+                            <canvas width="224" height="224" class="size-48 rounded border border-slate-200 bg-white p-1" data-class-qr-code data-join-url="{{ route('classrooms.index', ['join_code' => $classroom->join_code, 'scan' => 1], false) }}" aria-label="QR untuk bergabung ke kelas {{ $classroom->name }}"></canvas>
+                            <p class="max-w-[190px] text-sm leading-5 text-slate-500" data-qr-status>Scan dengan kamera ponsel untuk membuka halaman gabung kelas.</p>
+                        </div>
+                        <button type="button" class="mt-3 inline-flex min-h-9 items-center rounded-md border border-slate-200 px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50" data-open-qr-presentation aria-controls="class-qr-presentation-{{ $classroom->id }}" data-join-url="{{ route('classrooms.index', ['join_code' => $classroom->join_code, 'scan' => 1], false) }}" data-class-name="{{ $classroom->name }}" data-grade="{{ $classroom->targetGradeLabel() }}" data-join-code="{{ $classroom->join_code }}">
+                            Besarkan QR
+                        </button>
+                    </details>
+                    <dialog id="class-qr-presentation-{{ $classroom->id }}" class="m-auto h-[96vh] w-[96vw] max-w-none border-0 bg-white p-0 text-slate-900 backdrop:bg-slate-950/80" data-qr-presentation>
+                        <div class="relative flex h-full flex-col items-center justify-center gap-3 px-5 py-8 text-center sm:gap-5">
+                            <div class="absolute right-4 top-4 flex items-center gap-2 sm:right-6 sm:top-6">
+                                <button type="button" class="rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50" data-qr-fullscreen>Layar penuh</button>
+                                <button type="button" class="rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50" data-close-qr-presentation>Tutup</button>
+                            </div>
+                            <p class="text-sm text-slate-500" data-presentation-grade></p>
+                            <h2 class="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl" data-presentation-title></h2>
+                            <canvas width="680" height="680" class="max-h-[62vh] max-w-[78vw] rounded-lg border border-slate-200 bg-white p-2 sm:max-h-[68vh]" style="width:min(68vmin,680px);height:min(68vmin,680px)" data-presentation-qr aria-label="QR kelas untuk dipindai siswa"></canvas>
+                            <p class="text-sm text-slate-600">Arahkan kamera ponsel ke QR untuk bergabung</p>
+                            <p class="font-mono text-sm tracking-[.16em] text-slate-500" data-presentation-code></p>
+                        </div>
+                    </dialog>
+                @endif
                 <div class="border-t border-slate-100 pt-4">
                     <a href="{{ route('teacher.classrooms.members', $classroom) }}" class="challenge-button flex min-h-12 w-full min-w-0 justify-center px-4 text-sm" aria-label="Lihat {{ $classroom->students_count }} anggota kelas {{ $classroom->name }}">
                         <x-icon name="users" class="size-4" />
