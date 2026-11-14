@@ -1,20 +1,20 @@
 @extends('layouts.student')
 
-@section('title', 'Challenge Socrates - Evaluasi Bacaan')
-@section('breadcrumb', 'Challenge Socrates')
+@section('title', 'Tantangan Socrates - Evaluasi Bacaan')
+@section('breadcrumb', 'Tantangan Socrates')
 
 @section('content')
     <div class="quizzes-page">
     <section class="stage-heading quizzes-hero" aria-labelledby="quizzes-heading">
         <div>
-            <p class="eyebrow">EVALUASI PEMAHAMAN BACAAN · CHALLENGE SOCRATES</p>
-            <h1 id="quizzes-heading">Challenge <span>Socrates</span></h1>
+            <p class="eyebrow">EVALUASI PEMAHAMAN BACAAN · TANTANGAN SOCRATES</p>
+            <h1 id="quizzes-heading">Tantangan <span>Socrates</span></h1>
             <p class="welcome-subtitle">Pilih materi bacaan yang ingin Anda kerjakan tantangannya. Setiap tantangan menguji kecepatan dan ketepatan analisis dengan batas waktu tertentu.</p>
         </div>
         <span class="quizzes-hero-rule" aria-hidden="true"></span>
         <div class="quizzes-hero-note inline-flex items-center gap-2 rounded-2xl bg-white border border-slate-200/80 px-4 py-2.5 text-xs font-bold text-slate-700 shadow-2xs">
             <x-icon name="book-open-text" class="w-4 h-4 text-indigo-600" />
-            <span>Challenge Terjadwal & Terpandu AI</span>
+            <span>Tantangan Terjadwal & Terpandu AI</span>
         </div>
     </section>
 
@@ -224,17 +224,17 @@
 
                 <!-- Action Footer -->
                 <div class="quiz-card-actions p-4 bg-slate-50/70 flex-1 flex flex-col gap-3">
-                    <!-- 1. Challenge Socrates Section -->
+                    <!-- 1. Tantangan Socrates Section -->
                     <div class="space-y-1.5">
                         <div class="flex items-center justify-between">
-                            <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-700">1. Challenge Socrates (Pilihan Ganda)</span>
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-700">1. Tantangan Socrates (Pilihan Ganda)</span>
                             <span class="text-[10px] text-slate-400 font-semibold">⏱️ {{ $item['duration_minutes'] }}m</span>
                         </div>
                         @if ($isCompleted)
                             <a href="{{ route('quiz.timed', ['document' => $doc->id]) }}"
                                class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition">
                                 <x-icon name="lock" class="w-3.5 h-3.5" />
-                                <span>Review Challenge Socrates (Skor: {{ $item['score'] }}/100)</span>
+                                <span>Review Tantangan Socrates (Skor: {{ $item['score'] }}/100)</span>
                             </a>
                         @elseif ($isInProgress)
                             <a href="{{ route('quiz.timed', ['document' => $doc->id]) }}"

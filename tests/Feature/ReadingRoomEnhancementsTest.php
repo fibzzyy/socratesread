@@ -76,7 +76,7 @@ class ReadingRoomEnhancementsTest extends TestCase
 
         $lockedRes = $this->actingAs($student)->get(route('reading', ['document' => $document->id]));
         $lockedRes->assertOk();
-        $lockedRes->assertSee('1. Challenge Socrates (Terbuka setelah 2m)');
+        $lockedRes->assertSee('1. Tantangan Socrates (Terbuka setelah 2m)');
         $lockedRes->assertSee('2. Tantangan Guru (Terbuka setelah 2m)');
         $lockedRes->assertSee('data-reading-mode-btn="book"', false);
 
@@ -84,7 +84,7 @@ class ReadingRoomEnhancementsTest extends TestCase
         $session->update(['started_at' => now()->subSeconds(125)]);
         $unlockedRes = $this->actingAs($student)->get(route('reading', ['document' => $document->id]));
         $unlockedRes->assertOk();
-        $unlockedRes->assertSee('1. Challenge Socrates (PG');
+        $unlockedRes->assertSee('1. Tantangan Socrates (PG');
         $unlockedRes->assertSee('2. Tantangan Guru (Analisis');
 
         // Menekan selesai membaca (100%) mengembalikan completed_at dan status terkunci

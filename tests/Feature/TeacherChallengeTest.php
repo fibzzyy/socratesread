@@ -247,7 +247,7 @@ class TeacherChallengeTest extends TestCase
         $response = $this->actingAs($student)->get(route('student.teacher-challenges.show', $document));
         $response->assertOk();
         $response->assertSee('Tidak Ada Tantangan dari Guru');
-        $response->assertSee('Challenge Socrates');
+        $response->assertSee('Tantangan Socrates');
 
         // Pastikan tidak melakukan auto-seed soal
         $this->assertEquals(0, $document->fresh()->teacherChallenges()->count());

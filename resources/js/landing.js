@@ -493,6 +493,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => {
             introOverlay.classList.add('is-hidden');
             document.body.classList.remove('overflow-hidden');
+            try { localStorage.setItem('socratesread_intro_seen', 'true'); } catch (e) {}
             sessionStorage.setItem('socratesread_intro_seen', 'true');
 
             if (introOwlPopup) {
@@ -537,6 +538,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (bookStage) bookStage.classList.add('is-open');
         introOverlay.classList.add('is-hidden');
         document.body.classList.remove('overflow-hidden');
+        try { localStorage.setItem('socratesread_intro_seen', 'true'); } catch (e) {}
         sessionStorage.setItem('socratesread_intro_seen', 'true');
     }
 
@@ -782,8 +784,16 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Check if user already saw the intro in this session
-    if (sessionStorage.getItem('socratesread_intro_seen') === 'true') {
+    // Check if user already saw the intro (persisted in localStorage & sessionStorage)
+    const hasSeenIntro = (() => {
+        try {
+            return localStorage.getItem('socratesread_intro_seen') === 'true' || sessionStorage.getItem('socratesread_intro_seen') === 'true';
+        } catch (e) {
+            return false;
+        }
+    })();
+
+    if (hasSeenIntro) {
         if (introOverlay) {
             introOverlay.classList.add('is-hidden');
         }
