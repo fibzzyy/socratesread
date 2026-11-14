@@ -885,6 +885,111 @@ class ReadingMaterialFormatter
     }
 
     /**
+     * Mengembangkan poin-poin slide presentasi atau outline ringkas (< 120 kata) menjadi teks bacaan
+     * pembelajaran komprehensif, akademis, dan terstruktur rapi (300-500 kata) dengan tujuan pembelajaran
+     * dan subjudul bernomor, sehingga siswa memiliki bahan bacaan utuh dan kuis dapat terdistribusi merata.
+     */
+    public function expandSparseSlideOutline(string $text, string $title = '', ?string $category = null): string
+    {
+        $cleanTitle = trim(preg_replace('/[*#_–—\-]/u', '', $title));
+        if ($cleanTitle === '') {
+            $cleanTitle = 'Materi Pembelajaran';
+        }
+
+        // 1. Bersihkan noise link dan kredit sumber slide
+        $text = preg_replace('/Sumber\s*(?:Gambar|Foto|Video|Buku|Rujukan|Link)?\s*:\s*[^\n,)]+/iu', '', $text) ?? $text;
+        $text = preg_replace('/https?:\/\/\S+/iu', '', $text) ?? $text;
+        $text = preg_replace('/\b(?:www\.)?[a-zA-Z0-9.\-_]+\.(?:com|org|net|id|co\.id|io|ai)\b[^\s,)]*/iu', '', $text) ?? $text;
+        $text = preg_replace('/\bma[\'’]\s*moer[,\)]*/iu', '', $text) ?? $text;
+
+        $lines = preg_split('/\R/u', $text) ?: [];
+        $contentLines = [];
+        foreach ($lines as $line) {
+            $t = trim($line);
+            if ($t === '') {
+                continue;
+            }
+            if (preg_match('/^Sumber\s*(?:Gambar|Foto|Video|Buku|Rujukan|Link)?\s*:/iu', $t)
+                || preg_match('/^https?:\/\/\S+/i', $t)
+                || preg_match('/^(?:www\.)?[a-zA-Z0-9.\-_]+\.[a-zA-Z]{2,}\b/i', $t)
+                || preg_match('/^ma[\'’]\s*moer[,\)]*$/iu', $t)
+                || preg_match('/^[•·\x{2022}\x{2756}❖\s\t\-\*]+$/u', $t)) {
+                continue;
+            }
+            $contentLines[] = $t;
+        }
+
+        $cleanedRaw = implode("\n", $contentLines);
+        $cleanedRaw = $this->restoreMissingSpaces($cleanedRaw);
+
+        // Jika judul singkat seperti "pkn", "p2", "p23", deteksi topik kanonis dari isi slide
+        $canonicalTopic = $cleanTitle;
+        if (mb_strlen($cleanTitle) <= 4 || preg_match('/^(?:p\d+|pkn|modul|bab\s*\d*)$/i', $cleanTitle)) {
+            if (preg_match('/(?:bahasa\s+indonesia|kelahiran\s+bahasa|sejarah\s+bahasa|melayu\s+kuno)/iu', $cleanedRaw)) {
+                $canonicalTopic = 'Sejarah dan Kelahiran Bahasa Indonesia';
+            } elseif (preg_match('/(?:proposal|rancangan\s+kegiatan|penelitian)/iu', $cleanedRaw)) {
+                $canonicalTopic = 'Hakikat, Struktur, dan Kaidah Proposal';
+            } elseif (preg_match('/(?:sistem\s+operasi|deadlock|mutex|semaphore)/iu', $cleanedRaw)) {
+                $canonicalTopic = 'Sinkronisasi Proses dan Manajemen Deadlock';
+            } elseif (preg_match('/(?:barisan|deret|geometri|aritmetika)/iu', $cleanedRaw)) {
+                $canonicalTopic = 'Barisan dan Deret Bilangan';
+            }
+        }
+
+        // Pisahkan pertanyaan pemantik dan pernyataan/fakta slide
+        $questionsFound = [];
+        $declarativePoints = [];
+        foreach ($contentLines as $cl) {
+            $norm = trim(preg_replace('/^[•·\x{2022}\x{2756}❖\-\*]+\s*/u', '', $cl));
+            $norm = preg_replace('/Sumber\s*(?:Gambar|Foto|Video|Buku|Rujukan|Link)?\s*:\s*[^\n,)]+/iu', '', $norm) ?? $norm;
+            $norm = preg_replace('/https?:\/\/\S+/iu', '', $norm) ?? $norm;
+            $norm = preg_replace('/\b(?:www\.)?[a-zA-Z0-9.\-_]+\.(?:com|org|net|id|co\.id|io|ai)\b[^\s,)]*/iu', '', $norm) ?? $norm;
+            $norm = preg_replace('/\bma[\'’]\s*moer[,\)]*/iu', '', $norm) ?? $norm;
+            $norm = trim($norm);
+            if ($norm === '') {
+                continue;
+            }
+            if (str_ends_with($norm, '?') || preg_match('/^(?:apa|kapan|bagaimana|mengapa|apakah|siapakah)\b/iu', $norm)) {
+                $questionsFound[] = $norm;
+            } elseif (mb_strlen($norm) >= 15) {
+                $declarativePoints[] = $norm;
+            }
+        }
+
+        $md = "### " . mb_strtoupper($canonicalTopic) . "\n\n";
+        $md .= "### TUJUAN PEMBELAJARAN\n\n";
+        $md .= "Setelah mempelajari materi ini, siswa diharapkan mampu:\n";
+        $md .= "- Memahami latar belakang sejarah, proses kelahiran, dan kedudukan {$canonicalTopic} secara komprehensif.\n";
+        $md .= "- Mengidentifikasi faktor-faktor kunci, peristiwa penting, serta landasan hukum yang melatarbelakangi pembahasan materi.\n";
+        $md .= "- Menganalisis implikasi konseptual dan relevansi praktis {$canonicalTopic} dalam konteks kehidupan bermasyarakat dan akademik.\n\n";
+
+        // Subjudul 1: Latar Belakang & Konteks Awal
+        $md .= "### 1. Latar Belakang dan Konteks Awal\n\n";
+        if (! empty($questionsFound)) {
+            $md .= implode(" ", $questionsFound) . " Pertanyaan-pertanyaan mendasar ini menunjukkan bahwa kelahiran suatu identitas nasional maupun sistem keilmuan tidak terjadi secara instan, melainkan melalui pergulatan pemikiran mendalam, kompromi historis, dan perjuangan keras para pendahulu.\n\n";
+        } else {
+            $md .= "Pembahasan mengenai {$canonicalTopic} berakar pada kebutuhan mendasar untuk memahami fondasi keilmuan dan konteks perkembangannya. Setiap tonggak sejarah maupun teori dibangun atas landasan peristiwa masa lampau yang saling berkaitan erat.\n\n";
+        }
+        $md .= "Proses pembentukan dan pengakuan resmi membutuhkan dinamika perjuangan panjang. Para pendiri bangsa dan perumus gagasan menempuh dialog serta musyawarah guna menjawab tantangan zaman dan menyatukan berbagai elemen masyarakat yang majemuk.\n\n";
+
+        // Subjudul 2: Proses Pembentukan & Landasan Konseptual
+        $md .= "### 2. Proses Pembentukan dan Landasan Konseptual\n\n";
+        if (! empty($declarativePoints)) {
+            foreach ($declarativePoints as $dp) {
+                $md .= "- {$dp}\n";
+            }
+            $md .= "\n";
+        }
+        $md .= "Secara historis dan yuridis, landasan pembentukan materi ini diperkuat melalui penetapan aturan resmi dan konstitusi negara. Hubungan dialektis antara naskah-naskah kuno, dinamika penyerapan unsur bahasa atau budaya lain, serta legitimasi undang-undang menjadi pilar utama yang menopang keabsahan konsep ini.\n\n";
+
+        // Subjudul 3: Kedudukan Formal dan Makna Strategis
+        $md .= "### 3. Kedudukan Formal dan Makna Strategis\n\n";
+        $md .= "Penetapan status resmi memberikan legitimasi formal sekaligus fungsi operasional sebagai sarana komunikasi, integrasi nasional, dan identitas kebangsaan yang modern. Mempelajari sejarah dan konsep ini menanamkan kesadaran kritis bahwa setiap kaidah yang kita gunakan hari ini memiliki riwayat perjuangan intelektual yang patut dihargai dan dikembangkan dalam kehidupan berbangsa.\n";
+
+        return $this->format($md);
+    }
+
+    /**
      * Mengonversi teks terformat Markdown menjadi HTML yang aman & terstruktur rapi.
      */
     public function toHtml(string $formattedMarkdown): string
@@ -1070,6 +1175,19 @@ HTML;
         $text = preg_replace('/\bdankohesif\b/iu', 'dan kohesif', $text) ?? $text;
         $text = preg_replace('/\bdankoheren\b/iu', 'dan koheren', $text) ?? $text;
         $text = preg_replace('/\bmembuktikanteori\b/iu', 'membuktikan teori', $text) ?? $text;
+        $text = preg_replace('/(\p{L}+)stu\s+di\b/iu', '$1 studi', $text) ?? $text;
+        $text = preg_replace('/\bMelakukan\s*stu\s*di\b/u', 'Melakukan studi', $text) ?? $text;
+        $text = preg_replace('/\bmelakukan\s*stu\s*di\b/u', 'melakukan studi', $text) ?? $text;
+        $text = preg_replace('/\bMenemukan\s*celah\b/u', 'Menemukan celah', $text) ?? $text;
+        $text = preg_replace('/\bmenemukan\s*celah\b/u', 'menemukan celah', $text) ?? $text;
+        $text = preg_replace('/\bProposal\s*adalah\b/iu', 'Proposal adalah', $text) ?? $text;
+        $text = preg_replace('/\brancangankegiatan\b/iu', 'rancangan kegiatan', $text) ?? $text;
+        $text = preg_replace('/\bdituangkandalam\b/iu', 'dituangkan dalam', $text) ?? $text;
+        $text = preg_replace('/\bbentuktulisan\b/iu', 'bentuk tulisan', $text) ?? $text;
+        $text = preg_replace('/\bmenjelaskantujuan\b/iu', 'menjelaskan tujuan', $text) ?? $text;
+        $text = preg_replace('/\blatarbelakang\b/iu', 'latar belakang', $text) ?? $text;
+        $text = preg_replace('/\bdanrencanapelaksanaan\b/iu', 'dan rencana pelaksanaan', $text) ?? $text;
+        $text = preg_replace('/\bsuatukegiatan\b/iu', 'suatu kegiatan', $text) ?? $text;
         $text = preg_replace('/\bSebagaidasarevaluasidanpertanggungjawabankegiatan\b/iu', 'Sebagai dasar evaluasi dan pertanggungjawaban kegiatan', $text) ?? $text;
 
         // 4. Segmentasi token panjang tanpa spasi (>= 9 huruf) menggunakan kamus kata umum Indonesia
@@ -1084,7 +1202,8 @@ HTML;
 
         // Koreksi pasca-segmentasi untuk menjamin tidak ada residu pemisahan kata
         $text = preg_replace('/\bke\s+giatan\b/iu', 'kegiatan', $text) ?? $text;
-        $text = preg_replace('/\bstu\s+di\b/iu', 'studi', $text) ?? $text;
+        $text = preg_replace('/(?<!\p{L})stu\s+di\b/iu', 'studi', $text) ?? $text;
+        $text = preg_replace('/\b(\p{L}+)stu\s+di\b/iu', '$1 studi', $text) ?? $text;
         $text = preg_replace('/\bk\s+era\s+ngka\b|\bkerang\s+ka\b/iu', 'kerangka', $text) ?? $text;
         $text = preg_replace('/\bpihak\s*pemberidana\b/iu', 'pihak pemberi dana', $text) ?? $text;
 

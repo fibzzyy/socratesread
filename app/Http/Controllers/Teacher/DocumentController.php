@@ -113,6 +113,7 @@ class DocumentController extends Controller
                 ? trim($request->string('curated_body')->toString())
                 : $extracted['text'];
 
+            $isSparse = $aiProcessor->isSparseOutline($sourceText);
             $processed = $aiProcessor->process($sourceText, $title, $category);
             $enableTeacherChallenges = $request->has('has_teacher_challenges_toggle')
                 ? $request->boolean('enable_teacher_challenges')
@@ -120,6 +121,9 @@ class DocumentController extends Controller
 
             $formatter = app(ReadingMaterialFormatter::class);
             $cleanedBody = ! empty($processed['cleaned_body']) ? (string) $processed['cleaned_body'] : $sourceText;
+            if ($isSparse && $aiProcessor->isSparseOutline($cleanedBody)) {
+                $cleanedBody = $formatter->expandSparseSlideOutline($cleanedBody, $title, $category);
+            }
             $cleanedBody = $formatter->format($cleanedBody);
 
             $excerpt = ! empty($processed['excerpt']) ? trim((string) $processed['excerpt']) : '';
@@ -146,7 +150,8 @@ class DocumentController extends Controller
                 $processed,
                 $filePath,
                 $enableTeacherChallenges,
-                $aiProcessor
+                $aiProcessor,
+                $formatter
             ): void {
                 $wordCount = preg_match_all('/[\p{L}\p{N}]+/u', $cleanedBody, $words) ? count($words[0]) : 1;
                 $estimatedMinutes = min(60, max(1, (int) ceil($wordCount / 200)));
@@ -168,12 +173,15 @@ class DocumentController extends Controller
                 ]);
 
                 foreach ($questions as $idx => $q) {
+                    $prompt = $formatter->restoreMissingSpaces(! empty($q['prompt']) ? (string) $q['prompt'] : "Jelaskan konsep utama materi \"{$title}\"!");
+                    $hint = $formatter->restoreMissingSpaces(! empty($q['hint']) ? (string) $q['hint'] : 'Uraikan jawaban berdasarkan teks materi bacaan.');
+                    $context = ! empty($q['context']) ? $formatter->restoreMissingSpaces((string) $q['context']) : null;
                     $document->questions()->create([
                         'sequence' => $q['sequence'] ?? ($idx + 1),
                         'skill' => ! empty($q['skill']) ? (string) $q['skill'] : 'Pemahaman Konsep',
-                        'prompt' => ! empty($q['prompt']) ? (string) $q['prompt'] : "Jelaskan konsep utama materi \"{$title}\"!",
-                        'context' => $q['context'] ?? null,
-                        'hint' => ! empty($q['hint']) ? (string) $q['hint'] : 'Uraikan jawaban berdasarkan teks materi bacaan.',
+                        'prompt' => $prompt,
+                        'context' => $context,
+                        'hint' => $hint,
                     ]);
                 }
 
@@ -184,13 +192,16 @@ class DocumentController extends Controller
 
                     foreach ($teacherChallengeItems as $tcIdx => $tc) {
                         $difficulty = $tc['difficulty'] ?? 'medium';
+                        $questionText = $formatter->restoreMissingSpaces(! empty($tc['question']) ? (string) $tc['question'] : "Analisis gagasan kritis pada materi \"{$title}\"!");
+                        $rubric = $formatter->restoreMissingSpaces(! empty($tc['rubric']) ? (string) $tc['rubric'] : 'Analisis pemahaman mendalam, bukti dari teks, dan penalaran logis.');
+                        $refExcerpt = ! empty($tc['reference_excerpt']) ? $formatter->restoreMissingSpaces((string) $tc['reference_excerpt']) : null;
                         $document->teacherChallenges()->create([
                             'sequence' => $tcIdx + 1,
                             'type' => $tc['type'] ?? 'essay',
-                            'question' => ! empty($tc['question']) ? (string) $tc['question'] : "Analisis gagasan kritis pada materi \"{$title}\"!",
+                            'question' => $questionText,
                             'context' => null,
-                            'rubric' => ! empty($tc['rubric']) ? (string) $tc['rubric'] : 'Analisis pemahaman mendalam, bukti dari teks, dan penalaran logis.',
-                            'reference_excerpt' => ! empty($tc['reference_excerpt']) ? (string) $tc['reference_excerpt'] : null,
+                            'rubric' => $rubric,
+                            'reference_excerpt' => $refExcerpt,
                             'difficulty' => $difficulty,
                             'difficulty_weight' => $tc['difficulty_weight'] ?? \App\Models\TeacherChallenge::weightForDifficulty($difficulty),
                         ]);
@@ -198,18 +209,27 @@ class DocumentController extends Controller
                 }
 
                 foreach ($quizQuestions as $idx => $qq) {
-                    $options = is_array($qq['options'] ?? null) && count($qq['options']) >= 2 ? $qq['options'] : [
+                    $questionText = $formatter->restoreMissingSpaces(! empty($qq['question']) ? (string) $qq['question'] : "Pertanyaan pemahaman konsep materi \"{$title}\"");
+                    $rawOptions = is_array($qq['options'] ?? null) && count($qq['options']) >= 2 ? $qq['options'] : [
                         ['key' => 'A', 'text' => 'Pernyataan benar sesuai konsep materi'],
                         ['key' => 'B', 'text' => 'Pernyataan pelengkap konteks pembahasan'],
                         ['key' => 'C', 'text' => 'Pernyataan kontras dari simpulan materi'],
                         ['key' => 'D', 'text' => 'Pernyataan yang bertentangan dengan materi'],
                     ];
+                    $cleanedOptions = [];
+                    foreach ($rawOptions as $opt) {
+                        $cleanedOptions[] = [
+                            'key' => (string) ($opt['key'] ?? 'A'),
+                            'text' => $formatter->restoreMissingSpaces((string) ($opt['text'] ?? '')),
+                        ];
+                    }
+                    $explanation = ! empty($qq['explanation']) ? $formatter->restoreMissingSpaces((string) $qq['explanation']) : 'Pembahasan berdasarkan fakta dan konsep utama materi bacaan.';
                     $document->quizQuestions()->create([
                         'sequence' => $qq['sequence'] ?? ($idx + 1),
-                        'question' => ! empty($qq['question']) ? (string) $qq['question'] : "Pertanyaan pemahaman konsep materi \"{$title}\"",
-                        'options' => $options,
+                        'question' => $questionText,
+                        'options' => $cleanedOptions,
                         'correct_answer' => ! empty($qq['correct_answer']) ? (string) $qq['correct_answer'] : 'A',
-                        'explanation' => ! empty($qq['explanation']) ? (string) $qq['explanation'] : 'Pembahasan berdasarkan fakta dan konsep utama materi bacaan.',
+                        'explanation' => $explanation,
                     ]);
                 }
             });

@@ -25,6 +25,21 @@ class DocumentAiProcessor
     }
 
     /**
+     * Mendeteksi apakah materi yang diunggah berupa poin slide presentasi / catatan ringkas (< 120 kata atau < 650 karakter).
+     */
+    public function isSparseOutline(string $text): bool
+    {
+        $clean = trim($text);
+        if ($clean === '') {
+            return true;
+        }
+        $wordCount = preg_match_all('/[\p{L}\p{N}]+/u', $clean, $words) ? count($words[0]) : 0;
+        $charCount = mb_strlen($clean);
+
+        return $wordCount < 120 || $charCount < 650;
+    }
+
+    /**
      * @return array{
      *     cleaned_body: string,
      *     excerpt: string,
@@ -35,19 +50,31 @@ class DocumentAiProcessor
     public function process(string $rawText, string $title, ?string $category = null): array
     {
         $cleanedFullBody = $this->cleanText($rawText);
+        $isSparse = $this->isSparseOutline($cleanedFullBody);
 
         if ($this->languageModel->isConfigured()) {
             @set_time_limit(180);
             try {
-                $aiResult = $this->processWithAi($cleanedFullBody, $title, $category);
+                $aiResult = $this->processWithAi($cleanedFullBody, $title, $category, $isSparse);
                 if ($aiResult !== null) {
-                    // Jangan pernah membiarkan AI memotong atau meringkas isi teks materi asli
-                    $aiBodyLen = mb_strlen(trim((string) ($aiResult['cleaned_body'] ?? '')));
+                    $aiBody = trim((string) ($aiResult['cleaned_body'] ?? ''));
+                    $aiBodyLen = mb_strlen($aiBody);
                     $fullLen = mb_strlen(trim($cleanedFullBody));
-                    if ($aiBodyLen < (int) ($fullLen * 0.85)) {
-                        $aiResult['cleaned_body'] = $cleanedFullBody;
+
+                    if ($isSparse) {
+                        // Untuk outline slide presentasi, terima teks bacaan jika AI menyediakannya
+                        if ($aiBodyLen > 0) {
+                            $aiResult['cleaned_body'] = $this->formatter->format($aiBody);
+                        } else {
+                            $aiResult['cleaned_body'] = $this->formatter->expandSparseSlideOutline($cleanedFullBody, $title, $category);
+                        }
                     } else {
-                        $aiResult['cleaned_body'] = $this->formatter->format($aiResult['cleaned_body']);
+                        // Jangan pernah membiarkan AI memotong atau meringkas isi teks materi asli
+                        if ($aiBodyLen < (int) ($fullLen * 0.85)) {
+                            $aiResult['cleaned_body'] = $cleanedFullBody;
+                        } else {
+                            $aiResult['cleaned_body'] = $this->formatter->format($aiResult['cleaned_body']);
+                        }
                     }
 
                     // Pastikan excerpt bukan pertanyaan retoris
@@ -66,7 +93,7 @@ class DocumentAiProcessor
             }
         }
 
-        return $this->processWithHeuristics($cleanedFullBody, $title, $category);
+        return $this->processWithHeuristics($cleanedFullBody, $title, $category, $isSparse);
     }
 
     /**
@@ -132,9 +159,17 @@ class DocumentAiProcessor
      *     quiz_questions: array<int, array{sequence: int, question: string, options: array<int, array{key: string, text: string}>, correct_answer: string, explanation: string}>
      * }|null
      */
-    protected function processWithAi(string $formattedBody, string $title, ?string $category = null): ?array
+    protected function processWithAi(string $formattedBody, string $title, ?string $category = null, bool $isSparse = false): ?array
     {
         $sampleText = $this->buildFullCoverageContext($formattedBody, 9000);
+
+        $sparseSchema = $isSparse
+            ? "  \"cleaned_body\": \"Teks pembelajaran komprehensif (minimal 350-500 kata) yang mengelaborasi poin-poin materi secara terstruktur dengan diawali judul materi, dilanjutkan '### TUJUAN PEMBELAJARAN', lalu minimal 3 subjudul bernomor (### 1. ..., ### 2. ..., ### 3. ...) yang kaya penjelasan akademis,\",\n"
+            : '';
+
+        $sparseRule = $isSparse
+            ? "\n5. ATURAN KHUSUS EXPAND OUTLINE SLIDE/CATATAN SINGKAT:\n   - Teks materi yang diunggah berupa poin slide presentasi / outline singkat (< 120 kata). Siswa membutuhkan bahan bacaan yang utuh dan mendalam.\n   - Kamu WAJIB menyusun teks bacaan lengkap pada field 'cleaned_body' (minimal 350-500 kata) secara terstruktur rapi dengan subjudul bernomor (### 1. ..., ### 2. ..., ### 3. ...) berdasarkan topik '{$title}' dan mata pelajaran '{$category}'.\n   - Seluruh 10 soal kuis pilihan ganda (quiz_questions) dan 5 butir esai analitis (questions) WAJIB disusun berdasarkan teks bacaan yang telah kamu kembangkan di 'cleaned_body' tersebut agar materi, kuis, dan esai selaras sempurna."
+            : '';
 
         $instructions = <<<INSTRUCTIONS
 PENTING: LANGSUNG mulai output dengan karakter '{' tanpa salam, kata pengantar, analisis, atau monolog pembuka. Jawab HANYA dalam format JSON valid.
@@ -144,7 +179,7 @@ Tugasmu adalah membaca KESELURUHAN isi materi bacaan (dari paragraf awal hingga 
 
 Format output WAJIB HANYA berupa JSON valid tanpa teks lain:
 {
-  "excerpt": "Ringkasan intisari materi 2-3 kalimat yang padat dan jelas...",
+{$sparseSchema}  "excerpt": "Ringkasan intisari materi 2-3 kalimat yang padat dan jelas...",
   "questions": [
     {
       "s": "C4 Menganalisis",
@@ -182,6 +217,7 @@ ATURAN KETAT:
    - DILARANG KERAS menggunakan kata rujukan buta seperti "pada teks di atas", "dalam cerita di atas", atau "pada bacaan ini" tanpa menyertakan teksnya.
    - Jika pertanyaan menganalisis penggalan teks, cerita, draf yang salah, atau kasus tertentu: KUTIPAN TEKS TERSEBUT WAJIB DISERTAKAN LANGSUNG di dalam kalimat pertanyaan (misal: 'Perhatikan cuplikan berikut: "[kutipan]". Berdasarkan cuplikan tersebut, analisislah...') atau dituliskan lengkap pada field "c" (context) agar soal berdiri sendiri (self-contained) dan jelas bagi siswa.
    - Jika materi Matematika / Sains, gunakan notasi rumus LaTeX standar ($...$) agar sistem merender simbol matematika secara rapi.
+{$sparseRule}
 INSTRUCTIONS;
 
         $messages = [
@@ -947,9 +983,12 @@ INSTRUCTIONS;
      *     quiz_questions: array<int, array{sequence: int, question: string, options: array<int, array{key: string, text: string}>, correct_answer: string, explanation: string}>
      * }
      */
-    public function processWithHeuristics(string $rawText, string $title, ?string $category = null): array
+    public function processWithHeuristics(string $rawText, string $title, ?string $category = null, bool $isSparse = false): array
     {
         $body = $this->cleanText($rawText);
+        if ($isSparse || $this->isSparseOutline($body)) {
+            $body = $this->formatter->expandSparseSlideOutline($body, $title, $category);
+        }
 
         return [
             'cleaned_body' => $body,

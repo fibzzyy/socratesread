@@ -397,4 +397,81 @@ TEXT;
         $unrelatedTc = $processor->generateStructuredTeacherChallenges($unrelatedLhoText, 'LHO Karang', 'Bahasa Indonesia');
         $this->assertNull($unrelatedTc, 'Unrelated LHO should not trigger wayang or kebahasaan structured challenges');
     }
+
+    public function test_sparse_slide_outline_is_automatically_expanded_into_structured_reading_with_diverse_questions(): void
+    {
+        $mockModel = Mockery::mock(LanguageModel::class);
+        $mockModel->shouldReceive('isConfigured')->andReturn(false);
+
+        $processor = new DocumentAiProcessor($mockModel);
+
+        $sparseSlideText = <<<TEXT
+❖ Kapan bahasa Indonesia lahir, bagaimana proses kelahirannya, dan peristiwa-peristiwa apa saja yang melatarbelakanginya?
+❖ Lahirnya bahasa Indonesia tentu bukanlah hal yang mudah, pasti penuh tantangan, pemikiran, dan perjuangan keras.
+❖ Bahasa Indonesia diresmikan penggunaannya satu hari setelah Proklamasi Kemerdekaan Indonesia, tepatnya pada tanggal 18 Agustus 1945, bersamaan dengan mulai berlakunya Undang-undang Dasar Republik Indonesia 1945.
+Naskah Melayu kuno dengan pengaruh Arab
+Sumber: aperofublic.com Sumber: bersamawisata.com
+TEXT;
+
+        $this->assertTrue($processor->isSparseOutline($sparseSlideText));
+
+        $result = $processor->process($sparseSlideText, 'pkn', 'BAHASA INDONESIA');
+
+        // Harus dielaborasi menjadi teks komprehensif berbobot akademis (> 250 kata / > 1000 karakter)
+        $this->assertGreaterThan(200, str_word_count($result['cleaned_body']));
+        $this->assertGreaterThan(1000, mb_strlen($result['cleaned_body']));
+        $this->assertStringContainsString('TUJUAN PEMBELAJARAN', $result['cleaned_body']);
+        $this->assertStringContainsString('18 Agustus 1945', $result['cleaned_body']);
+        $this->assertStringNotContainsString('aperofublic.com', $result['cleaned_body']);
+
+        // Excerpt harus informatif dan bukan pertanyaan retoris
+        $this->assertNotEmpty($result['excerpt']);
+        $this->assertFalse(str_ends_with(trim($result['excerpt']), '?'));
+
+        // 10 Soal Kuis dan 5 Tantangan Guru terdistribusi rapi
+        $this->assertCount(10, $result['quiz_questions']);
+        $this->assertCount(5, $result['teacher_challenges']);
+    }
+
+    public function test_normal_long_document_preserves_100_percent_verbatim_content(): void
+    {
+        $mockModel = Mockery::mock(LanguageModel::class);
+        $mockModel->shouldReceive('isConfigured')->andReturn(false);
+
+        $processor = new DocumentAiProcessor($mockModel);
+
+        $longText = str_repeat("Ini adalah kalimat materi lengkap buku teks yang wajib dipertahankan seutuhnya tanpa pemotongan. ", 30);
+
+        $this->assertFalse($processor->isSparseOutline($longText));
+
+        $result = $processor->process($longText, 'Buku Siswa Bab 3', 'Bahasa Indonesia');
+
+        // Teks materi asli wajib dipertahankan
+        $this->assertStringContainsString('Ini adalah kalimat materi lengkap buku teks', $result['cleaned_body']);
+        $this->assertCount(10, $result['quiz_questions']);
+    }
+
+    public function test_glued_words_in_quiz_and_challenges_are_restored(): void
+    {
+        $formatter = app(\App\Services\ReadingMaterialFormatter::class);
+
+        $gluedSentence = 'Proposaladalahrancangankegiatanyangdituangkandalambentuktulisanmenjelaskantujuan, latarbelakang, danrencanapelaksanaan';
+        $cleaned = $formatter->restoreMissingSpaces($gluedSentence);
+
+        $this->assertStringContainsString('Proposal adalah', $cleaned);
+        $this->assertStringContainsString('rancangan kegiatan', $cleaned);
+        $this->assertStringContainsString('dituangkan dalam', $cleaned);
+        $this->assertStringContainsString('bentuk tulisan', $cleaned);
+        $this->assertStringContainsString('menjelaskan tujuan', $cleaned);
+        $this->assertStringContainsString('latar belakang', $cleaned);
+
+        $optionWithGlued = 'Menemukan pengetahuan baru, membuktikanteori, atau memecahkan masalah';
+        $cleanedOpt = $formatter->restoreMissingSpaces($optionWithGlued);
+        $this->assertStringContainsString('membuktikan teori', $cleanedOpt);
+
+        $studiWithGlued = 'Melakukanstu di pustaka untuk menemukancelah penelitian';
+        $cleanedStudi = $formatter->restoreMissingSpaces($studiWithGlued);
+        $this->assertStringContainsString('Melakukan studi pustaka', $cleanedStudi);
+        $this->assertStringContainsString('menemukan celah penelitian', $cleanedStudi);
+    }
 }
