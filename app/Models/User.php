@@ -81,6 +81,17 @@ class User extends Authenticatable
         return route('avatar', ['user' => $this->id, 'v' => $this->updated_at?->timestamp]);
     }
 
+    public function initials(): string
+    {
+        return mb_strtoupper(
+            collect(explode(' ', (string) $this->name))
+                ->filter()
+                ->take(2)
+                ->map(fn ($part) => mb_substr($part, 0, 1))
+                ->implode('')
+        ) ?: 'U';
+    }
+
     /**
      * Hitung tahun kelulusan otomatis berdasarkan tahun masuk dan jenjang kelas saat mendaftar.
      * Contoh:

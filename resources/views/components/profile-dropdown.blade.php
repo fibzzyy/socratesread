@@ -8,7 +8,7 @@
 <div class="profile-dropdown-container relative inline-block text-left" data-dropdown-scope>
     {{-- Trigger Button (Radix / shadcn style with focus-visible ring & concentric avatar ring) --}}
     <button type="button"
-            class="profile-dropdown-trigger group relative flex items-center gap-2.5 p-1 pl-1.5 pr-3 rounded-full border border-slate-200/90 bg-white/95 hover:bg-slate-50 hover:border-slate-300 transition-all duration-150 shadow-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 active:scale-98 cursor-pointer select-none"
+            class="profile-dropdown-trigger group relative flex items-center gap-1.5 sm:gap-2.5 p-1 pl-1 sm:pl-1.5 pr-2 sm:pr-3 min-h-[38px] sm:min-h-[42px] rounded-full border border-slate-200/90 bg-white/95 hover:bg-slate-50 hover:border-slate-300 transition-all duration-150 shadow-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 active:scale-98 cursor-pointer select-none"
             aria-expanded="false"
             aria-haspopup="menu"
             aria-label="Menu akun {{ $user->name }}"
@@ -43,7 +43,7 @@
     </button>
 
     {{-- Dropdown Menu Content (shadcn/ui Popover & DropdownMenu spec) --}}
-    <div class="profile-dropdown-menu absolute right-0 top-full mt-2.5 w-[calc(100vw-2rem)] sm:w-80 max-w-[340px] bg-white rounded-2xl shadow-2xl shadow-slate-900/15 border border-slate-200/80 ring-1 ring-slate-900/5 z-50 overflow-hidden transform transition-all duration-150 origin-top-right opacity-0 scale-95 pointer-events-none"
+    <div class="profile-dropdown-menu absolute right-0 top-full mt-2 w-[calc(100vw-2rem)] sm:w-80 max-w-[340px] max-h-[calc(100vh-5rem)] overflow-y-auto bg-white rounded-2xl shadow-2xl shadow-slate-900/15 border border-slate-200/80 ring-1 ring-slate-900/5 z-50 transform transition-all duration-150 origin-top-right opacity-0 scale-95 pointer-events-none"
          role="menu"
          aria-orientation="vertical"
          tabindex="-1"

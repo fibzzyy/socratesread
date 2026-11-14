@@ -290,6 +290,11 @@ h1, h2, h3, p { margin-top: 0; }
         opacity: 1;
         pointer-events: auto;
     }
+    .menu-open .topbar,
+    .menu-open .reading-topbar {
+        z-index: 10 !important;
+        pointer-events: none;
+    }
     .topbar {
         height: 64px;
         padding-right: 24px;
@@ -2892,13 +2897,6 @@ body { color: var(--ink); background: var(--canvas); }
 
 /* My Class: compact layout aligned to the shared content column */
 .page-content:has(.my-class-page) { padding: 0 0 24px; }
-.main-content:has(.my-class-page) > .topbar {
-    height: 72px;
-    min-height: 72px;
-    padding-inline: max(40px, calc((100% - 1100px) / 2 + 40px));
-    background: #fff;
-    z-index: 30;
-}
 .main-content:has(.my-class-page) > .topbar .topbar-title,
 .main-content:has(.my-class-page) > .topbar .breadcrumb { font-size: 14px; }
 .main-content:has(.my-class-page) > .topbar .breadcrumb { color: #4f5b7d; }
@@ -3019,14 +3017,139 @@ body { color: var(--ink); background: var(--canvas); }
     --success: #268b68; --warning: #e9a23b;
     background: var(--background);
 }
-.page-content:has(.quizzes-page) { width: 100%; max-width: 1600px; padding: 12px 36px 22px; background: transparent; }
-.main-content:has(.quizzes-page) { background: linear-gradient(180deg, #eef3fc 0, #f7f9fc 390px); }
-.main-content:has(.quizzes-page) > .topbar { margin: 18px 30px 0; height: 68px; padding-inline: 24px; border: 1px solid var(--border); border-radius: 999px; background: #ffffffed; box-shadow: none !important; filter: none !important; backdrop-filter: none !important; }
-.quiz-topbar .breadcrumb, .progress-topbar .breadcrumb { display: flex; align-items: center; gap: 2px; }
-.quiz-topbar .quiz-home-link, .progress-topbar .quiz-home-link { display: inline-grid; width: 28px; height: 32px; margin-right: 8px; color: var(--navy-dark); place-items: center; }
-.quiz-topbar .quiz-home-link svg, .progress-topbar .quiz-home-link svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-.quiz-topbar .today-label, .progress-topbar .today-label { display: inline-flex; align-items: center; gap: 9px; color: var(--navy-primary); font-size: 13px; }
-.quiz-topbar .today-label .lucide-icon, .progress-topbar .today-label .lucide-icon { width: 17px; height: 17px; }
+.page-content:has(.quizzes-page),
+.page-content:has(.my-class-page),
+.page-content:has(.achievements-page),
+.page-content:has(.progress-overview) { width: 100%; max-width: 1600px; padding: 12px 36px 22px; background: transparent; }
+.main-content:has(.quizzes-page),
+.main-content:has(.my-class-page),
+.main-content:has(.achievements-page),
+.main-content:has(.progress-overview),
+.main-content:has(.stage-two-content),
+.dashboard-page .main-content { background: linear-gradient(180deg, #eef3fc 0, #f7f9fc 390px); }
+.topbar,
+.student-topbar-pill,
+.main-content:has(.quizzes-page) > .topbar,
+.main-content:has(.my-class-page) > .topbar,
+.main-content:has(.achievements-page) > .topbar,
+.main-content:has(.progress-overview) > .topbar,
+.main-content:has(.stage-two-content) > .topbar,
+.dashboard-page .topbar {
+    position: sticky;
+    z-index: 40;
+    top: 14px;
+    margin: 14px 30px 18px;
+    height: 68px;
+    padding-inline: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border: 1px solid var(--border, #e5eaf2);
+    border-radius: 999px;
+    background: #ffffffed;
+    backdrop-filter: blur(14px);
+    box-shadow: 0 4px 20px rgba(16, 38, 74, 0.04) !important;
+}
+
+.topbar .breadcrumb,
+.student-topbar-pill .breadcrumb,
+.quiz-topbar .breadcrumb,
+.progress-topbar .breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+    color: #526987;
+    white-space: nowrap;
+}
+
+.topbar .breadcrumb a,
+.student-topbar-pill .breadcrumb a {
+    color: #526987;
+    text-decoration: none;
+    transition: color .15s ease;
+}
+
+.topbar .breadcrumb a:hover,
+.student-topbar-pill .breadcrumb a:hover {
+    color: #2563eb;
+}
+
+.topbar .breadcrumb span,
+.student-topbar-pill .breadcrumb span {
+    margin: 0 4px;
+    color: #cbd5e1;
+}
+
+.topbar .breadcrumb strong,
+.student-topbar-pill .breadcrumb strong {
+    color: #10264a;
+    font-weight: 700;
+}
+
+.topbar .quiz-home-link,
+.topbar .topbar-home-link,
+.student-topbar-pill .quiz-home-link,
+.student-topbar-pill .topbar-home-link,
+.quiz-topbar .quiz-home-link,
+.progress-topbar .quiz-home-link {
+    display: inline-grid;
+    width: 28px;
+    height: 32px;
+    margin-right: 6px;
+    color: var(--navy-dark, #10264a);
+    place-items: center;
+    text-decoration: none;
+    transition: color .15s ease, transform .15s ease;
+}
+
+.topbar .quiz-home-link:hover,
+.topbar .topbar-home-link:hover,
+.student-topbar-pill .quiz-home-link:hover,
+.student-topbar-pill .topbar-home-link:hover {
+    color: #2563eb;
+    transform: scale(1.08);
+}
+
+.topbar .quiz-home-link svg,
+.topbar .topbar-home-link svg,
+.student-topbar-pill .quiz-home-link svg,
+.student-topbar-pill .topbar-home-link svg,
+.quiz-topbar .quiz-home-link svg,
+.progress-topbar .quiz-home-link svg {
+    width: 21px;
+    height: 21px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.topbar .today-label,
+.student-topbar-pill .today-label,
+.quiz-topbar .today-label,
+.progress-topbar .today-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    color: var(--navy-primary, #193a68);
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.topbar .today-label .lucide-icon,
+.topbar .today-label svg,
+.student-topbar-pill .today-label .lucide-icon,
+.student-topbar-pill .today-label svg,
+.quiz-topbar .today-label .lucide-icon,
+.progress-topbar .today-label .lucide-icon {
+    width: 17px;
+    height: 17px;
+    color: #356ae6;
+}
+
 .quiz-profile-chevron { display: inline-grid; width: 16px; height: 34px; color: var(--navy-primary); place-items: center; }
 .quiz-profile-chevron .lucide-icon { width: 14px; height: 14px; }
 .quizzes-page .stage-heading.quizzes-hero { position: relative; min-height: 220px; align-items: center; margin: 0 0 12px; padding: 0; overflow: visible; isolation: isolate; }
@@ -3088,8 +3211,44 @@ body { color: var(--ink); background: var(--canvas); }
     .quizzes-hero::after { width: 52%; height: 210px; right: 0; }
 }
 @media (max-width: 767px) {
-    .page-content:has(.quizzes-page) { padding: 18px 20px 24px; }
-    .main-content:has(.quizzes-page) > .topbar { margin: 8px 16px 0; height: 64px; padding-inline: 14px; }
+    .page-content:has(.quizzes-page),
+    .page-content:has(.my-class-page),
+    .page-content:has(.achievements-page),
+    .page-content:has(.progress-overview) { padding: 18px 20px 24px; }
+    .topbar,
+    .student-topbar-pill,
+    .reading-topbar,
+    .main-content:has(.quizzes-page) > .topbar,
+    .main-content:has(.my-class-page) > .topbar,
+    .main-content:has(.achievements-page) > .topbar,
+    .main-content:has(.progress-overview) > .topbar,
+    .main-content:has(.stage-two-content) > .topbar,
+    .dashboard-page .topbar {
+        position: sticky;
+        top: 8px;
+        margin: 8px 12px 14px;
+        height: 60px;
+        padding-inline: 12px;
+        gap: 8px;
+    }
+    .topbar .today-label,
+    .student-topbar-pill .today-label,
+    .reading-topbar .today-label,
+    .quiz-topbar .today-label,
+    .progress-topbar .today-label {
+        display: none !important;
+    }
+    .topbar .breadcrumb span,
+    .topbar .breadcrumb a:not(.topbar-home-link):not(.quiz-home-link) {
+        display: none;
+    }
+    .topbar .breadcrumb strong {
+        font-size: 13px;
+        max-width: 140px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
     .quizzes-page .stage-heading.quizzes-hero { min-height: 0; margin: 12px 0 10px; padding: 0; }
     .quizzes-hero::after { position: relative; display: block; top: auto; right: auto; width: 100%; max-width: 340px; height: clamp(130px, 38vw, 180px); margin: 0 auto; transform: none; background-position: center; }
     .quizzes-hero > div:first-child { max-width: none; }
@@ -3109,13 +3268,11 @@ body { color: var(--ink); background: var(--canvas); }
     .quizzes-stats > article { align-items: flex-start; flex-direction: column; }
 }
 @media (max-width: 1024px) {
-    .main-content:has(.my-class-page) > .topbar { padding-inline: 28px; }
     .my-class-page { padding-inline: 28px; }
     .my-class-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .page-content:has(.my-class-page) > .page-footer { padding-inline: 28px; }
 }
 @media (max-width: 767px) {
-    .main-content:has(.my-class-page) > .topbar { padding-inline: 20px; }
     .my-class-page { padding: 6px 20px 32px; }
     .page-content:has(.my-class-page) > .page-footer { padding-inline: 20px; }
     .my-class-heading { align-items: flex-start; flex-direction: column; gap: 10px; margin: 6px 0 16px; }
@@ -3146,9 +3303,8 @@ body { color: var(--ink); background: var(--canvas); }
     --progress-border: #e5eaf2;
     color: var(--progress-ink);
 }
-.page-content:has(.progress-overview) { padding-top: 8px; background: transparent; }
+.page-content:has(.progress-overview) { padding-top: 14px; background: transparent; }
 .main-content:has(.progress-overview) { --navy-dark: #10264a; --navy-primary: #193a68; background: linear-gradient(180deg, #eff4fc 0, #f7f9fc 390px); }
-.main-content:has(.progress-overview) > .topbar { margin: 0; height: 68px; padding: 0 39px; border: 0; border-bottom: 1px solid #dce5f1; border-radius: 0; color: #233c63; background: #fff; box-shadow: none; filter: none; backdrop-filter: none; }
 .progress-topbar .breadcrumb,
 .progress-topbar .breadcrumb strong,
 .progress-topbar .today-label { color: #526987; }
@@ -3233,7 +3389,6 @@ body { color: var(--ink); background: var(--canvas); }
     .progress-class-list { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
 }
 @media (max-width: 767px) {
-    .main-content:has(.progress-overview) > .topbar { margin: 0; height: 64px; padding-inline: 20px; }
     .page-content:has(.progress-overview) { padding: 20px 20px 24px; }
     .progress-overview .stage-heading.progress-hero { min-height: 180px; align-items: flex-start; margin-bottom: 20px; padding-top: 8px; }
     .progress-overview .stage-heading h1 { font-size: 32px; }

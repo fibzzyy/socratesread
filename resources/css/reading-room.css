@@ -58,17 +58,23 @@
 
 /* Top bar */
 .reading-topbar {
+    position: sticky;
+    top: 14px;
+    z-index: 40;
     box-sizing: border-box;
     display: flex;
     height: 68px;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    padding: 0;
+    margin: 14px 30px 18px;
+    padding: 0 24px;
     color: #4F5B7D;
-    border-bottom: 1px solid rgb(220 232 250 / 75%);
-    background: rgb(248 251 255 / 74%);
-    backdrop-filter: blur(12px);
+    border: 1px solid var(--reading-border, #dce8fa);
+    border-radius: 999px;
+    background: #ffffffed;
+    backdrop-filter: blur(14px);
+    box-shadow: 0 4px 20px rgba(16, 38, 74, 0.04);
 }
 .reading-topbar-date { font-size: 13px; font-weight: 500; line-height: 1.4; }
 .reading-topbar-actions { display: flex; align-items: center; gap: 10px; }
@@ -293,7 +299,7 @@
 
 @media (max-width: 767px) {
     .reading-page-content { padding-right: 20px; padding-left: 20px; }
-    .reading-topbar { height: 64px; gap: 8px; }
+    .reading-topbar { margin: 8px 16px 0; height: 64px; padding-inline: 14px; gap: 8px; border-radius: 999px; }
     .reading-topbar-date { font-size: 12px; }
     .reading-topbar-actions { gap: 8px; }
     .reading-stat-chip { display: none; }

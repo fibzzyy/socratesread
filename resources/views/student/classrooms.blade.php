@@ -75,7 +75,7 @@
             </article>
             <article class="my-class-stat">
                 <span class="my-class-stat-icon my-class-stat-blue"><x-icon name="trophy" /></span>
-                <div><p>Total Tantangan Selesai</p><div class="my-class-stat-value"><strong>{{ $completedChallenges }}</strong></div><small>Challenge Socrates &amp; Tantangan Guru</small></div>
+                <div><p>Total Tantangan Selesai</p><div class="my-class-stat-value"><strong>{{ $completedChallenges }}</strong></div><small>Tantangan Socrates &amp; Tantangan Guru</small></div>
             </article>
             <article class="my-class-stat">
                 <span class="my-class-stat-icon my-class-stat-blue"><x-icon name="library" /></span>

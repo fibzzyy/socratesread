@@ -17,6 +17,13 @@
         href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
         rel="stylesheet">
 
+    <script>
+        try {
+            localStorage.removeItem('socratesread_theme');
+            document.documentElement.classList.remove('dark');
+        } catch (e) {}
+    </script>
+
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
         .font-serif-reading {
@@ -314,14 +321,13 @@
                 <a href="#filosofi"
                     class="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors whitespace-nowrap focus-visible:ring-2 focus-visible:ring-blue-600 rounded">Filosofi</a>
                 <a href="#fitur"
-                    class="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors whitespace-nowrap focus-visible:ring-2 focus-visible:ring-blue-600 rounded">Fitur
-                    Utama</a>
+                    class="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors whitespace-nowrap focus-visible:ring-2 focus-visible:ring-blue-600 rounded">Fitur Utama</a>
                 <a href="#demo-sokratik"
-                    class="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors whitespace-nowrap focus-visible:ring-2 focus-visible:ring-blue-600 rounded">Uji
-                    Daya Nalar</a>
+                    class="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors whitespace-nowrap focus-visible:ring-2 focus-visible:ring-blue-600 rounded">Uji Daya Nalar</a>
                 <a href="#ruang-guru"
-                    class="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors whitespace-nowrap focus-visible:ring-2 focus-visible:ring-blue-600 rounded">Untuk
-                    Guru</a>
+                    class="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors whitespace-nowrap focus-visible:ring-2 focus-visible:ring-blue-600 rounded">Portal Guru</a>
+                <a href="#faq"
+                    class="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors whitespace-nowrap focus-visible:ring-2 focus-visible:ring-blue-600 rounded">FAQ</a>
             </nav>
 
             <!-- Actions & Auth -->
@@ -372,17 +378,17 @@
 
         <!-- Mobile & Tablet Drawer Navigation -->
         <div id="landing-mobile-nav"
-            class="hidden lg:hidden border-t border-slate-200 bg-white/95 backdrop-blur-md px-4 pt-3 pb-6 space-y-3">
+            class="hidden lg:hidden border-t border-slate-200 bg-white/95 backdrop-blur-md px-4 pt-3 pb-6 space-y-2">
             <a href="#filosofi"
                 class="block px-3 py-2 rounded-lg text-base font-medium text-slate-700 hover:bg-slate-50">Filosofi</a>
             <a href="#fitur"
-                class="block px-3 py-2 rounded-lg text-base font-medium text-slate-700 hover:bg-slate-50">Fitur
-                Utama</a>
+                class="block px-3 py-2 rounded-lg text-base font-medium text-slate-700 hover:bg-slate-50">Fitur Utama</a>
             <a href="#demo-sokratik"
-                class="block px-3 py-2 rounded-lg text-base font-medium text-slate-700 hover:bg-slate-50">Uji Daya
-                Nalar</a>
+                class="block px-3 py-2 rounded-lg text-base font-medium text-slate-700 hover:bg-slate-50">Uji Daya Nalar</a>
             <a href="#ruang-guru"
-                class="block px-3 py-2 rounded-lg text-base font-medium text-slate-700 hover:bg-slate-50">Untuk Guru</a>
+                class="block px-3 py-2 rounded-lg text-base font-medium text-slate-700 hover:bg-slate-50">Portal Guru</a>
+            <a href="#faq"
+                class="block px-3 py-2 rounded-lg text-base font-medium text-slate-700 hover:bg-slate-50">FAQ</a>
 
             <div class="pt-2 border-t border-slate-100 flex items-center justify-between px-3 py-2">
                 <span class="text-sm font-medium text-slate-600">Efek Suara</span>
@@ -405,7 +411,7 @@
                     <a href="{{ route('login') }}"
                         class="w-full text-center py-2.5 rounded-xl border border-slate-300 font-semibold text-slate-700">Masuk</a>
                     <a href="{{ route('register') }}"
-                        class="w-full text-center py-2.5 rounded-xl bg-blue-600 text-white font-semibold shadow-sm">Daftar
+                        class="w-full text-center py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-sm">Daftar
                         Akun Baru</a>
                 @endguest
             </div>
@@ -433,12 +439,12 @@
                     <!-- Left: Hero Headline & Copy -->
                     <div class="lg:col-span-7 space-y-6 text-center lg:text-left">
 
-                        <!-- Pedagogical Badge (React Island: ShinyText from ReactBits) -->
-                        <div id="react-hero-badge" class="inline-block">
+                        <!-- Pedagogical Badge -->
+                        <div class="inline-block">
                             <div
                                 class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-200/80 text-blue-700 text-xs font-semibold shadow-xs">
                                 <span class="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
-                                <span>Metode Dialektika Sokratik untuk SMA & SMK</span>
+                                <span>Platform Membaca Kritis & Penalaran Sokratik</span>
                             </div>
                         </div>
 
@@ -460,7 +466,7 @@
                         </p>
 
                         <!-- Action Buttons -->
-                        <div class="pt-2 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
+                        <div class="pt-2 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3.5">
                             <div class="relative w-full sm:w-auto inline-block rounded-xl overflow-hidden p-[1.5px] group">
                                 <div id="react-hero-cta-beam" class="absolute inset-0 pointer-events-none z-0"></div>
                                 <a href="#demo-sokratik"
@@ -470,11 +476,11 @@
                                 </a>
                             </div>
 
-                            <button type="button" data-reopen-book
+                            <a href="#cara-kerja"
                                 class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-semibold shadow-xs transition-all focus-visible:ring-2 focus-visible:ring-slate-400">
-                                <x-icon name="rotate-ccw" class="w-4 h-4 text-blue-600" />
-                                <span>Buka Ulang Buku 3D</span>
-                            </button>
+                                <x-icon name="arrow-down" class="w-4 h-4 text-blue-600" />
+                                <span>Pelajari Cara Kerja</span>
+                            </a>
                         </div>
 
                         <!-- Trust / Pedagogical points (Responsive cards: stacked on mobile, 3-col on tablet/desktop) -->
@@ -483,24 +489,20 @@
                             <div
                                 class="p-3 sm:p-3.5 rounded-xl bg-white/80 border border-slate-200/70 shadow-xs flex sm:flex-col items-center sm:items-start gap-3 sm:gap-1">
                                 <span
-                                    class="block text-xl sm:text-2xl font-bold text-slate-900 font-serif-reading shrink-0">3
-                                    Tingkat</span>
-                                <span class="text-xs text-slate-500 font-medium">Bahan ajar kurasi Kelas 10, 11, dan
-                                    12</span>
+                                    class="block text-xl sm:text-2xl font-bold text-slate-900 font-serif-reading shrink-0">3 Jenjang</span>
+                                <span class="text-xs text-slate-500 font-medium">Bahan ajar kurasi Kelas 10, 11, dan 12 SMA/SMK</span>
                             </div>
                             <div
                                 class="p-3 sm:p-3.5 rounded-xl bg-blue-50/60 border border-blue-200/60 shadow-xs flex sm:flex-col items-center sm:items-start gap-3 sm:gap-1">
                                 <span
                                     class="block text-xl sm:text-2xl font-bold text-blue-600 font-serif-reading shrink-0">Reflektif</span>
-                                <span class="text-xs text-slate-500 font-medium">Melatih penalaran analitis
-                                    mandiri</span>
+                                <span class="text-xs text-slate-500 font-medium">Berdialog menguji bukti, bukan hafalan pasif</span>
                             </div>
                             <div
                                 class="p-3 sm:p-3.5 rounded-xl bg-indigo-50/60 border border-indigo-200/60 shadow-xs flex sm:flex-col items-center sm:items-start gap-3 sm:gap-1">
                                 <span
-                                    class="block text-xl sm:text-2xl font-bold text-indigo-600 font-serif-reading shrink-0">Pendamping</span>
-                                <span class="text-xs text-slate-500 font-medium">Dipandu Athena dengan pertanyaan
-                                    bertingkat</span>
+                                    class="block text-xl sm:text-2xl font-bold text-indigo-600 font-serif-reading shrink-0">Tutor AI</span>
+                                <span class="text-xs text-slate-500 font-medium">Athena memandu dengan pertanyaan bertingkat</span>
                             </div>
                         </div>
                     </div>
@@ -555,6 +557,7 @@
                 </div>
             </div>
         </section>
+
 
 
         <!-- ====================================================================
@@ -751,6 +754,59 @@
             </div>
         </section>
 
+        <!-- ====================================================================
+         5.5. CARA KERJA: 3 LANGKAH MENGASAH NALAR
+         ==================================================================== -->
+        <section id="cara-kerja" class="py-16 bg-white border-t border-slate-200/80">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="max-w-3xl mx-auto text-center space-y-3 mb-12">
+                    <span class="text-xs font-bold uppercase tracking-wider text-blue-700 bg-blue-100/70 px-3 py-1 rounded-full">
+                        Alur Belajar Siswa
+                    </span>
+                    <h2 class="font-serif-reading text-3xl sm:text-4xl font-bold text-slate-900">
+                        Bagaimana SocratesRead Mengasah Pikiranmu?
+                    </h2>
+                    <p class="text-slate-600 text-base">
+                        Tiga tahap terstruktur untuk bertransformasi dari pembaca pasif menjadi pemikir analitis mandiri.
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
+                    <!-- Step 1 -->
+                    <div class="p-6 rounded-2xl bg-slate-50 border border-slate-200/80 relative space-y-4 hover:border-blue-300 transition-colors">
+                        <div class="w-10 h-10 rounded-xl bg-blue-600 text-white font-bold text-base flex items-center justify-center shadow-xs">
+                            1
+                        </div>
+                        <h3 class="font-serif-reading text-xl font-bold text-slate-900">Pilih Teks & Tingkat Kelas</h3>
+                        <p class="text-sm text-slate-600 leading-relaxed">
+                            Pilih bacaan kurasi esai filosofis, sains sosial, atau materi dari gurumu yang disesuaikan dengan Fase E & F (Kelas 10, 11, dan 12).
+                        </p>
+                    </div>
+
+                    <!-- Step 2 -->
+                    <div class="p-6 rounded-2xl bg-slate-50 border border-slate-200/80 relative space-y-4 hover:border-blue-300 transition-colors">
+                        <div class="w-10 h-10 rounded-xl bg-indigo-600 text-white font-bold text-base flex items-center justify-center shadow-xs">
+                            2
+                        </div>
+                        <h3 class="font-serif-reading text-xl font-bold text-slate-900">Berdialog dengan Athena</h3>
+                        <p class="text-sm text-slate-600 leading-relaxed">
+                            Alih-alih menyalin rangkuman instan, hadapi pertanyaan reflektif Athena di sela-sela bacaan untuk menguji premis dan fakta pendukung.
+                        </p>
+                    </div>
+
+                    <!-- Step 3 -->
+                    <div class="p-6 rounded-2xl bg-slate-50 border border-slate-200/80 relative space-y-4 hover:border-blue-300 transition-colors">
+                        <div class="w-10 h-10 rounded-xl bg-emerald-600 text-white font-bold text-base flex items-center justify-center shadow-xs">
+                            3
+                        </div>
+                        <h3 class="font-serif-reading text-xl font-bold text-slate-900">Buktikan Daya Nalar</h3>
+                        <p class="text-sm text-slate-600 leading-relaxed">
+                            Selesaikan Socratic Challenge, kumpulkan XP prestasi belajar, dan bangun kemandirian berpikir yang tajam untuk masa depanmu.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
 
         <!-- ====================================================================
          6. INTERACTIVE SOCRATIC SANDBOX (UJI DAYA NALAR)
@@ -851,7 +907,6 @@
             </div>
         </section>
 
-
         <!-- ====================================================================
          7. UNTUK GURU & SEKOLAH
          ==================================================================== -->
@@ -866,12 +921,12 @@
                             Pemberdayaan Pendidik
                         </span>
                         <h2 class="font-serif-reading text-3xl sm:text-4xl font-bold text-slate-900 leading-tight">
-                            Ruang Guru: Pantau Keterlibatan Intelektual Siswa Secara Terukur
+                            Ruang Pendidik: Pantau Keterlibatan Intelektual Siswa Secara Terukur
                         </h2>
                         <p class="text-slate-600 text-base leading-relaxed">
                             Bukan sekadar mencatat siapa yang sudah membaca, SocratesRead memberi guru wawasan mendalam
-                            mengenai seberapa jauh siswa memahami premis teks, pola kesalahan nalar yang sering muncul,
-                            serta kemajuan kohor akademik.
+                            mengenai seberapa jauh pemahaman kritis siswa, sebaran kompetensi nalar Socratic,
+                            serta rekapitulasi progres membaca per kelas.
                         </p>
 
                         <div class="space-y-3">
@@ -888,12 +943,12 @@
                             <div class="flex items-start gap-3">
                                 <x-icon name="chart-no-axes-combined" class="w-5 h-5 text-indigo-600 shrink-0 mt-0.5" />
                                 <span class="text-sm text-slate-700 font-medium">Laporan analitik kemajuan membaca dan
-                                    ekspor rekapitulasi data.</span>
+                                    ekspor rekapitulasi data (.CSV).</span>
                             </div>
                         </div>
 
                         <div class="pt-2">
-                            <a href="{{ route('register') }}"
+                            <a href="{{ route('register', ['role' => 'teacher']) }}"
                                 class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-sm shadow-sm transition-all focus-visible:ring-2 focus-visible:ring-slate-700">
                                 <span>Daftar Sebagai Pendidik</span>
                                 <x-icon name="arrow-right" class="w-4 h-4" />
@@ -907,42 +962,72 @@
                             <div
                                 class="flex items-center justify-between pb-3 border-b border-slate-100 text-xs font-semibold text-slate-500">
                                 <span>SIMULASI DASBOR PENDIDIK</span>
-                                <span class="text-indigo-600">Terpantau Real-time</span>
+                                <span class="inline-flex items-center gap-1.5 text-indigo-600 font-medium">
+                                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    Terpantau Real-time
+                                </span>
+                            </div>
+
+                            <!-- Ringkasan Statistik Singkat Dasbor -->
+                            <div class="grid grid-cols-3 gap-2 py-1 text-center border-b border-slate-100">
+                                <div class="bg-slate-50/80 rounded-xl p-2.5">
+                                    <span class="block text-[11px] text-slate-400 font-medium">Materi Mandiri</span>
+                                    <span class="text-sm font-bold text-slate-800">5 Dokumen</span>
+                                </div>
+                                <div class="bg-slate-50/80 rounded-xl p-2.5">
+                                    <span class="block text-[11px] text-slate-400 font-medium">Siswa Aktif</span>
+                                    <span class="text-sm font-bold text-slate-800">60 Siswa</span>
+                                </div>
+                                <div class="bg-slate-50/80 rounded-xl p-2.5">
+                                    <span class="block text-[11px] text-slate-400 font-medium">Rerata Progres</span>
+                                    <span class="text-sm font-bold text-indigo-600">86%</span>
+                                </div>
                             </div>
 
                             <div class="space-y-3 text-xs">
                                 <div
                                     class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
                                     <div class="flex items-center gap-3">
-                                        <div class="w-2.5 h-2.5 rounded-full bg-emerald-500"></div>
+                                        <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0"></div>
                                         <div>
-                                            <span class="font-bold text-slate-800 block">Kelas X-A · Penalaran Etika
-                                                Sosial</span>
-                                            <span class="text-slate-500">32 Siswa Aktif · Rerata Keterlibatan 88%</span>
+                                            <div class="flex items-center gap-2">
+                                                <span class="font-bold text-slate-800">Kelas X-A · Penalaran Etika Sosial</span>
+                                                <span class="text-[10px] font-mono bg-slate-200/70 text-slate-600 px-1.5 py-0.5 rounded">Kode: SOC-X81A</span>
+                                            </div>
+                                            <span class="text-slate-500 text-[11px]">32 Siswa Aktif · Rerata Keterlibatan 88%</span>
                                         </div>
                                     </div>
                                     <span
-                                        class="text-emerald-700 font-semibold bg-emerald-50 px-2 py-1 rounded">Optimal</span>
+                                        class="text-emerald-700 font-semibold bg-emerald-50 border border-emerald-200/60 px-2 py-1 rounded">Optimal</span>
                                 </div>
 
                                 <div
                                     class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
                                     <div class="flex items-center gap-3">
-                                        <div class="w-2.5 h-2.5 rounded-full bg-blue-500"></div>
+                                        <div class="w-2.5 h-2.5 rounded-full bg-blue-500 shrink-0"></div>
                                         <div>
-                                            <span class="font-bold text-slate-800 block">Kelas XI-C · Analisis Teks
-                                                Sastra</span>
-                                            <span class="text-slate-500">28 Siswa Aktif · Socratic Challenge
-                                                Selesai</span>
+                                            <div class="flex items-center gap-2">
+                                                <span class="font-bold text-slate-800">Kelas XI-C · Analisis Teks Sastra</span>
+                                                <span class="text-[10px] font-mono bg-slate-200/70 text-slate-600 px-1.5 py-0.5 rounded">Kode: LIT-XI4B</span>
+                                            </div>
+                                            <span class="text-slate-500 text-[11px]">28 Siswa Aktif · Socratic Challenge Selesai</span>
                                         </div>
                                     </div>
-                                    <span class="text-blue-700 font-semibold bg-blue-50 px-2 py-1 rounded">Aktif</span>
+                                    <span class="text-blue-700 font-semibold bg-blue-50 border border-blue-200/60 px-2 py-1 rounded">Aktif</span>
                                 </div>
                             </div>
 
-                            <p class="text-[11px] text-slate-400 italic text-center pt-2">
-                                Guru dapat langsung mengevaluasi bagian teks mana yang paling memicu keraguan nalar
-                                siswa.
+                            <!-- Kompetensi Socratic Chips -->
+                            <div class="flex items-center justify-between text-[11px] text-slate-500 bg-indigo-50/50 rounded-xl px-3 py-2 border border-indigo-100/70">
+                                <span class="font-medium text-slate-600">Kompetensi Socratic:</span>
+                                <div class="flex items-center gap-1.5 font-semibold">
+                                    <span class="bg-white text-indigo-700 px-2 py-0.5 rounded shadow-2xs">Penalaran Bukti</span>
+                                    <span class="bg-white text-indigo-700 px-2 py-0.5 rounded shadow-2xs">Klarifikasi Makna</span>
+                                </div>
+                            </div>
+
+                            <p class="text-[11px] text-slate-400 italic text-center pt-1">
+                                Guru dapat memantau daya nalar siswa, mengelola materi bacaan mandiri, dan mengunduh rekapitulasi progres kelas (.CSV).
                             </p>
                         </div>
                     </div>
@@ -952,6 +1037,78 @@
             </div>
         </section>
 
+        <!-- ====================================================================
+         7.5. FAQ (PERTANYAAN YANG SERING DIAJUKAN)
+         ==================================================================== -->
+        <section id="faq" class="py-20 lg:py-24 bg-white border-t border-slate-200/80">
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center space-y-4 mb-14">
+                    <span class="text-xs font-bold uppercase tracking-wider text-blue-700 bg-blue-100/70 px-3 py-1 rounded-full">
+                        Tanya Jawab
+                    </span>
+                    <h2 class="font-serif-reading text-3xl sm:text-4xl font-bold text-slate-900">
+                        Pertanyaan yang Sering Diajukan
+                    </h2>
+                    <p class="text-slate-600 text-base max-w-xl mx-auto">
+                        Semua yang perlu kamu ketahui tentang cara kerja platform dialektika membaca SocratesRead.
+                    </p>
+                </div>
+
+                <div class="space-y-4">
+                    <!-- FAQ 1 -->
+                    <details class="group p-5 rounded-2xl bg-slate-50 border border-slate-200/80 transition-all [&_summary::-webkit-details-marker]:hidden">
+                        <summary class="flex items-center justify-between cursor-pointer font-serif-reading font-bold text-base sm:text-lg text-slate-900">
+                            <span>Apakah SocratesRead gratis digunakan oleh siswa dan sekolah?</span>
+                            <span class="ml-4 transition-transform duration-200 group-open:rotate-180 text-slate-400 group-hover:text-blue-600">
+                                <x-icon name="chevron-down" class="w-5 h-5" />
+                            </span>
+                        </summary>
+                        <p class="mt-3 text-sm text-slate-600 leading-relaxed border-t border-slate-200/60 pt-3">
+                            Ya, SocratesRead dapat diakses untuk mendukung peningkatan literasi kritis di jenjang SMA & SMK. Siswa dapat membaca materi kurasi dan berdialog dengan Athena secara mandiri, sementara guru dapat memanfaatkan portal kelas secara cuma-cuma.
+                        </p>
+                    </details>
+
+                    <!-- FAQ 2 -->
+                    <details class="group p-5 rounded-2xl bg-slate-50 border border-slate-200/80 transition-all [&_summary::-webkit-details-marker]:hidden">
+                        <summary class="flex items-center justify-between cursor-pointer font-serif-reading font-bold text-base sm:text-lg text-slate-900">
+                            <span>Apa perbedaan akun Siswa dan akun Pendidik (Guru)?</span>
+                            <span class="ml-4 transition-transform duration-200 group-open:rotate-180 text-slate-400 group-hover:text-blue-600">
+                                <x-icon name="chevron-down" class="w-5 h-5" />
+                            </span>
+                        </summary>
+                        <p class="mt-3 text-sm text-slate-600 leading-relaxed border-t border-slate-200/60 pt-3">
+                            Akun Siswa berfokus pada ruang baca, dialog interaktif dengan Athena, dan pengerjaan Socratic Challenge. Akun Pendidik dilengkapi fitur manajemen kelas (dengan kode gabung otomatis), pengunggahan dokumen materi ajar mandiri (PDF), dan ekspor rekapitulasi progres membaca kelas dalam format CSV.
+                        </p>
+                    </details>
+
+                    <!-- FAQ 3 -->
+                    <details class="group p-5 rounded-2xl bg-slate-50 border border-slate-200/80 transition-all [&_summary::-webkit-details-marker]:hidden">
+                        <summary class="flex items-center justify-between cursor-pointer font-serif-reading font-bold text-base sm:text-lg text-slate-900">
+                            <span>Mengapa SocratesRead tidak langsung merangkumkan isi bacaan?</span>
+                            <span class="ml-4 transition-transform duration-200 group-open:rotate-180 text-slate-400 group-hover:text-blue-600">
+                                <x-icon name="chevron-down" class="w-5 h-5" />
+                            </span>
+                        </summary>
+                        <p class="mt-3 text-sm text-slate-600 leading-relaxed border-t border-slate-200/60 pt-3">
+                            Merangkum secara instan memanjakan pikiran menjadi pasif. Di era AI generatif, nilai pemikiran manusia justru terletak pada kemampuan menguji premis dan menemukan bukti. Athena menggunakan metode Sokratik untuk memandu siswa menemukan kesimpulan sendiri melalui tanya jawab terarah.
+                        </p>
+                    </details>
+
+                    <!-- FAQ 4 -->
+                    <details class="group p-5 rounded-2xl bg-slate-50 border border-slate-200/80 transition-all [&_summary::-webkit-details-marker]:hidden">
+                        <summary class="flex items-center justify-between cursor-pointer font-serif-reading font-bold text-base sm:text-lg text-slate-900">
+                            <span>Untuk jenjang kelas berapa saja materi bacaan di SocratesRead?</span>
+                            <span class="ml-4 transition-transform duration-200 group-open:rotate-180 text-slate-400 group-hover:text-blue-600">
+                                <x-icon name="chevron-down" class="w-5 h-5" />
+                            </span>
+                        </summary>
+                        <p class="mt-3 text-sm text-slate-600 leading-relaxed border-t border-slate-200/60 pt-3">
+                            Materi kurasi dirancang bertingkat untuk siswa Kelas 10, 11, dan 12 SMA/SMK, mencakup tema etika ilmu, pemikiran kritis, sains sosial, dan apresiasi sastra berbobot. Selain itu, guru juga dapat mengunggah dokumen bahan ajar mandiri (PDF) sesuai kebutuhan materi di kelas.
+                        </p>
+                    </details>
+                </div>
+            </div>
+        </section>
 
         <!-- ====================================================================
          8. CALL TO ACTION (CTA)
@@ -973,8 +1130,7 @@
                 </h2>
 
                 <p class="text-base sm:text-lg text-blue-200/90 max-w-2xl mx-auto leading-relaxed">
-                    Tinggalkan kebiasaan membaca pasif. Bergabunglah dengan ribuan siswa dan pendidik yang mengasah
-                    ketajaman nalar bersama SocratesRead.
+                    Tinggalkan kebiasaan membaca pasif. Bergabunglah sekarang untuk mengasah ketajaman daya nalar dan pemikiran kritis bersama SocratesRead.
                 </p>
 
                 <div class="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -1029,6 +1185,7 @@
                         <li><a href="#fitur" class="hover:text-blue-400 transition">Fitur Utama</a></li>
                         <li><a href="#demo-sokratik" class="hover:text-blue-400 transition">Simulasi Nalar</a></li>
                         <li><a href="#ruang-guru" class="hover:text-blue-400 transition">Portal Pendidik</a></li>
+                        <li><a href="#faq" class="hover:text-blue-400 transition">Tanya Jawab (FAQ)</a></li>
                     </ul>
                 </div>
 

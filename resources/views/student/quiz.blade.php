@@ -13,7 +13,7 @@
 
 @section('title', $modeTitle)
 @section('breadcrumb_items')
-    <span>/</span><a href="{{ route('quiz.index') }}" class="hover:text-blue-600">Challenge Socrates</a><span>/</span><strong>{{ $modeTitle }}</strong>
+    <span>/</span><a href="{{ route('quiz.index') }}" class="hover:text-blue-600">Tantangan Socrates</a><span>/</span><strong>{{ $modeTitle }}</strong>
 @endsection
 
 @section('content')
@@ -88,7 +88,7 @@
             <p class="welcome-subtitle">{{ $modeSubtitle }}</p>
         </div>
         <div class="flex items-center gap-2.5">
-            <a class="back-link" href="{{ route('quiz.index') }}" title="Kembali ke Challenge Socrates">
+            <a class="back-link" href="{{ route('quiz.index') }}" title="Kembali ke Tantangan Socrates">
                 <x-icon name="arrow-left" /> <span>Kembali</span>
             </a>
             @if ($isLocked)
@@ -357,7 +357,7 @@
                                 <x-icon name="trending-up" /> <span>Lihat Progress</span>
                             </a>
                             <a class="outline-button" href="{{ route('quiz.index') }}">
-                                <x-icon name="gamepad-2" /> <span>Challenge Socrates</span>
+                                <x-icon name="brain-circuit" /> <span>Tantangan Socrates</span>
                             </a>
                         @endif
                         <button type="button" class="challenge-button" data-btn-next>
@@ -398,7 +398,7 @@
                             <x-icon name="eye" /> <span>Tinjau Pembahasan Soal</span>
                         </button>
                         <a href="{{ route('quiz.index') }}" class="outline-button">
-                            <x-icon name="gamepad-2" /> <span>Challenge Socrates</span>
+                            <x-icon name="brain-circuit" /> <span>Tantangan Socrates</span>
                         </a>
                         <a href="{{ route('progress') }}" class="challenge-button">
                             <span>Lihat Progress</span> <x-icon name="arrow-right" />
