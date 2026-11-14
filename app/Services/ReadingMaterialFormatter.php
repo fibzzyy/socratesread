@@ -76,6 +76,8 @@ class ReadingMaterialFormatter
             }
             $joined = implode(' ', $paragraphBuffer);
             $joined = preg_replace('/[ \t]+/u', ' ', $joined) ?? $joined;
+            $joined = preg_replace('/^(\b\p{L}+\b)(?:\s+\1)+(?=\s+(?:adalah|merupakan|yaitu|yakni|ialah|dalam|pada|sebagai)\b)/iu', '$1', $joined) ?? $joined;
+            $joined = preg_replace('/(?<=[.?!])\s+(?:Rangkuman|Ringkasan|Ikhtisar|Referensi)(?:\s+(?:Rangkuman|Ringkasan|Ikhtisar|Referensi))*$/iu', '', $joined) ?? $joined;
             $joined = $this->enhanceInlineTypography(trim($joined));
             if ($joined !== '') {
                 $blocks[] = $joined;
@@ -207,7 +209,8 @@ class ReadingMaterialFormatter
                 $prevBlock = ! empty($blocks) ? end($blocks) : '';
                 $isStandaloneClosing = preg_match('/^(?:TERIMA KASIH|THANK YOU|PENUTUP|KESIMPULAN)$/iu', $headingText)
                     || preg_match('/^###\s+(?:SUMBER RUJUKAN|DAFTAR PUSTAKA)$/iu', (string) $prevBlock);
-                if (! $isStandaloneClosing && ! empty($blocks) && str_starts_with((string) $prevBlock, '### ')) {
+                $isDistinctSection = (bool) preg_match('/^(?:TUJUAN|CAPAIAN|DEFINISI|PENGERTIAN|RINGKASAN|RANGKUMAN|IKHTISAR|\d+\s+ASPEK|ASPEK|BAHASA\s+INDONESIA|BAHASA\s+DAERAH|BAHASA\s+ASING|KESEIMBANGAN|MAKNA|SUMBER|DAFTAR|REFERENSI)\b/iu', $headingText);
+                if (! $isStandaloneClosing && ! $isDistinctSection && ! empty($blocks) && str_starts_with((string) $prevBlock, '### ') && mb_strlen((string) $prevBlock) <= 25) {
                     $prev = substr((string) array_pop($blocks), 4);
                     $blocks[] = '### ' . $prev . ' ' . $headingText;
                 } else {
@@ -249,7 +252,34 @@ class ReadingMaterialFormatter
         }
 
         $markdown = trim(implode('', $output));
-        return $markdown !== '' ? $markdown : trim($rawText);
+        if ($markdown === '') {
+            $markdown = trim($rawText);
+        }
+
+        return $this->ensurePedagogicalStructure($markdown, $title);
+    }
+
+    /**
+     * Memastikan struktur pedagogis materi terjamin rapi bagi siswa:
+     * - Jika materi belum memiliki bagian Tujuan/Capaian Pembelajaran, Socrates menganalisis
+     *   dan menyintesiskan struktur Tujuan Pembelajaran di awal materi.
+     * - Memastikan pemisahan heading yang jelas antara tujuan, definisi, dan isi materi.
+     */
+    public function ensurePedagogicalStructure(string $markdown, string $title = ''): string
+    {
+        $hasObjectives = preg_match('/###\s*(?:TUJUAN|CAPAIAN)\s+PEMBELAJARAN|Setelah mengikuti pembelajaran|Mahasiswa diharapkan mampu|Siswa diharapkan mampu/iu', $markdown);
+        if (! $hasObjectives && trim($title) !== '') {
+            $cleanTitle = trim(preg_replace('/[*#_]/u', '', $title));
+            $objectivesBlock = "### TUJUAN PEMBELAJARAN\n\nSetelah mempelajari materi ini, siswa diharapkan mampu:\n- Memahami pengertian, konsep dasar, dan latar belakang mengenai {$cleanTitle}.\n- Mengidentifikasi karakteristik, komponen penting, dan prinsip utama dalam materi.\n- Menganalisis keterkaitan antargagasan serta penerapan praktis dari topik yang dibahas.";
+
+            if (preg_match('/^(###\s+[^\n]+\n+)/u', $markdown, $m)) {
+                $markdown = $m[1] . $objectivesBlock . "\n\n" . substr($markdown, strlen($m[1]));
+            } else {
+                $markdown = "### " . mb_strtoupper($cleanTitle) . "\n\n" . $objectivesBlock . "\n\n" . $markdown;
+            }
+        }
+
+        return $markdown;
     }
 
     /**
@@ -257,10 +287,48 @@ class ReadingMaterialFormatter
      */
     public function toHtml(string $formattedMarkdown): string
     {
-        return Str::markdown($formattedMarkdown, [
-            'html_input' => 'escape',
-            'allow_unsafe_links' => false,
-        ]);
+        return $this->toHtmlWithParagraphMarkers($formattedMarkdown);
+    }
+
+    /**
+     * Mengonversi Markdown materi menjadi HTML berstruktur dengan penomoran paragraf interaktif [¶1], [¶2], dst.
+     * yang sinkron 1-to-1 dengan rujukan Socratic Coach.
+     */
+    public function toHtmlWithParagraphMarkers(string $formattedMarkdown, ?int &$pIndex = null): string
+    {
+        $blocks = preg_split('/\R{2,}/u', trim($formattedMarkdown), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $htmlBlocks = [];
+        $currentIndex = $pIndex ?? 1;
+
+        foreach ($blocks as $block) {
+            $trimmed = trim($block);
+            if ($trimmed === '') {
+                continue;
+            }
+
+            // Heading: render langsung tanpa penomoran paragraf
+            if (preg_match('/^#{1,6}\s+/u', $trimmed)) {
+                $headingHtml = Str::markdown($trimmed, ['html_input' => 'escape', 'allow_unsafe_links' => false]);
+                $htmlBlocks[] = $headingHtml;
+                continue;
+            }
+
+            // Substantive block (paragraf, bullet list, quote): bungkus dengan nomor paragraf interaktif
+            $contentHtml = trim(Str::markdown($trimmed, ['html_input' => 'escape', 'allow_unsafe_links' => false]));
+            $htmlBlocks[] = <<<HTML
+<div class="passage-para-block group" id="para-{$currentIndex}" data-paragraph-index="{$currentIndex}">
+    <span class="para-marker" title="Paragraf {$currentIndex}">¶{$currentIndex}</span>
+    <div class="para-content">{$contentHtml}</div>
+</div>
+HTML;
+            $currentIndex++;
+        }
+
+        if ($pIndex !== null) {
+            $pIndex = $currentIndex;
+        }
+
+        return implode("\n", $htmlBlocks);
     }
 
     /**
@@ -269,25 +337,49 @@ class ReadingMaterialFormatter
      *
      * @return array<int, string> Array HTML per halaman
      */
-    public function splitIntoPages(string $formattedMarkdown, int $targetChars = 950): array
+    public function splitIntoPages(string $formattedMarkdown, int $idealPageChars = 2100): array
     {
         $chunks = preg_split('/\R{2,}/u', trim($formattedMarkdown), -1, PREG_SPLIT_NO_EMPTY) ?: [];
         if (empty($chunks)) {
-            return [$this->toHtml($formattedMarkdown)];
+            $globalPIndex = 1;
+            return [$this->toHtmlWithParagraphMarkers($formattedMarkdown, $globalPIndex)];
         }
+
+        $totalLen = array_sum(array_map('mb_strlen', $chunks));
+        // Hitung estimasi jumlah halaman yang pas dan proporsional dengan panjang materi
+        $targetPages = max(1, (int) round($totalLen / $idealPageChars));
+        if ($targetPages <= 1) {
+            $globalPIndex = 1;
+            return [$this->toHtmlWithParagraphMarkers($formattedMarkdown, $globalPIndex)];
+        }
+
+        $targetCharsPerPage = (int) ceil($totalLen / $targetPages);
 
         $pagesMd = [];
         $currentParts = [];
         $currentLen = 0;
-
         $totalChunks = count($chunks);
+
         for ($i = 0; $i < $totalChunks; $i++) {
             $chunk = trim($chunks[$i]);
             $chunkLen = mb_strlen($chunk);
             $isHeading = str_starts_with($chunk, '#');
+            $pagesLeft = $targetPages - count($pagesMd);
 
-            // Jangan pisahkan heading dari blok berikutnya agar heading tidak yatim di bawah halaman
-            if ($isHeading && $currentLen > ($targetChars * 0.65) && ! empty($currentParts)) {
+            // Jika tinggal 1 halaman tersisa, masukkan semua sisa ke halaman terakhir
+            if ($pagesLeft <= 1) {
+                $currentParts[] = $chunk;
+                $currentLen += $chunkLen;
+                continue;
+            }
+
+            // Ganti halaman jika:
+            // 1. Bertemu heading baru dan halaman saat ini sudah terisi >= 65% target
+            // 2. Paragraf biasa sudah mencapai target rata-rata karakter per halaman
+            $headingBreak = $isHeading && $currentLen >= ($targetCharsPerPage * 0.65) && ! empty($currentParts);
+            $sizeBreak = ! $isHeading && $currentLen >= $targetCharsPerPage && ! empty($currentParts);
+
+            if ($headingBreak || $sizeBreak) {
                 $pagesMd[] = implode("\n\n", $currentParts);
                 $currentParts = [];
                 $currentLen = 0;
@@ -295,24 +387,22 @@ class ReadingMaterialFormatter
 
             $currentParts[] = $chunk;
             $currentLen += $chunkLen;
-
-            if (! $isHeading && $currentLen >= $targetChars && $i < $totalChunks - 1) {
-                $pagesMd[] = implode("\n\n", $currentParts);
-                $currentParts = [];
-                $currentLen = 0;
-            }
         }
 
         if (! empty($currentParts)) {
-            // Jika halaman terakhir sangat pendek (< 220 char) dan ada lebih dari 1 halaman, gabungkan dengan halaman sebelumnya
-            if (count($pagesMd) > 0 && $currentLen < 220) {
+            // Jika halaman terakhir sangat pendek (< 35% target) dan sudah ada halaman sebelumnya, gabungkan agar tidak ada halaman kosong
+            if (count($pagesMd) > 0 && $currentLen < ($targetCharsPerPage * 0.35)) {
                 $pagesMd[count($pagesMd) - 1] .= "\n\n" . implode("\n\n", $currentParts);
             } else {
                 $pagesMd[] = implode("\n\n", $currentParts);
             }
         }
 
-        return array_map(fn (string $md) => $this->toHtml($md), $pagesMd);
+        $globalPIndex = 1;
+
+        return array_map(function (string $md) use (&$globalPIndex) {
+            return $this->toHtmlWithParagraphMarkers($md, $globalPIndex);
+        }, $pagesMd);
     }
 
     /**
@@ -445,7 +535,15 @@ class ReadingMaterialFormatter
     private function isLikelyHeading(string $line): bool
     {
         $clean = trim($line);
-        if ($clean === '' || mb_strlen($clean) > 90) {
+        if ($clean === '' || mb_strlen($clean) > 90 || str_ends_with($clean, '.')) {
+            return false;
+        }
+        // Dilarang berakhiran kata sambung/depan
+        if (preg_match('/\b(?:antara|dan|atau|dari|pada|yang|untuk|dengan|serta|dalam|tentang|secara|sebagai|ke)\s*$/iu', $clean)) {
+            return false;
+        }
+        // Dilarang diawali huruf kecil jika bukan simbol
+        if (preg_match('/^\p{Ll}/u', $clean)) {
             return false;
         }
         if (preg_match('/^BAB\s+[IVXLCDM\d]+\b/iu', $clean)) {
@@ -456,7 +554,7 @@ class ReadingMaterialFormatter
             return true;
         }
         // Judul bagian umum (Title Case pendek tanpa titik akhir)
-        if (preg_match('/^(?:Ringkasan Eksekutif|Latar Belakang|Rumusan Masalah|Tujuan Pembelajaran|Makna Prinsip|Sumber Rujukan|Daftar Pustaka|Kesimpulan|Penutup)$/iu', $clean)) {
+        if (preg_match('/^(?:Ringkasan|Rangkuman|Ikhtisar|Capaian\s+Pembelajaran|Tujuan\s+Pembelajaran|Perbedaan\s+Ringkasan,\s*Rangkuman,\s*dan\s*Ikhtisar|Langkah[- ]langkah\s+Menulis|Contoh\s+Praktik|Referensi|Ringkasan Eksekutif|Latar Belakang|Rumusan Masalah|Makna Prinsip|Sumber Rujukan|Daftar Pustaka|Kesimpulan|Penutup)$/iu', $clean)) {
             return true;
         }
 

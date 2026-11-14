@@ -1,24 +1,24 @@
 @extends('layouts.student')
 
 @section('title', 'Kelas Saya')
-@section('breadcrumb', 'Kelas Saya')
+@section('breadcrumb', 'Kelas saya')
 @section('head')
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 @endsection
 
 @section('content')
     <div class="my-class-page">
         <section class="my-class-heading" aria-labelledby="classrooms-title">
             <div>
-                <p class="my-class-eyebrow">KOMUNITAS BELAJAR</p>
-                <h1 id="classrooms-title"><span>My Class</span></h1>
+                <h1 id="classrooms-title">Kelas <span>saya</span></h1>
                 <p class="my-class-subtitle">Kelola kelas belajar yang kamu ikuti bersama guru dan teman sekelas.</p>
             </div>
             <a class="my-class-back" href="{{ route('dashboard') }}">
                 <x-icon name="arrow-left" />
-                <span>Kembali ke dashboard</span>
+                <span>Kembali ke beranda</span>
             </a>
         </section>
 
@@ -28,6 +28,7 @@
 
         <section class="my-class-join" aria-labelledby="join-class-heading">
             <span class="my-class-join-accent" aria-hidden="true"></span>
+            <span class="my-class-join-decoration" aria-hidden="true"></span>
             <div class="my-class-join-copy">
                 <h2 id="join-class-heading">Gabung kelas baru.<br><span>Belajar bersama guru.</span></h2>
 
@@ -35,7 +36,11 @@
                     @csrf
                     <label for="join_code">Kode gabung kelas (8 karakter)</label>
                     <div class="my-class-join-controls">
-                        <input id="join_code" name="join_code" value="{{ old('join_code', $joinCode) }}" maxlength="8" minlength="8" required autocomplete="off" autocapitalize="characters" placeholder="CONTOH: BACA2026" aria-describedby="join-code-help @error('join_code') join-code-error @enderror">
+                        <div class="my-class-code-field">
+                            <span class="my-class-code-label" aria-hidden="true"><x-icon name="key-round" /> KODE KELAS</span>
+                            <input id="join_code" name="join_code" value="{{ old('join_code', $joinCode) }}" maxlength="8" minlength="8" required autocomplete="off" autocapitalize="characters" placeholder="Contoh: BACA2026" aria-describedby="join-code-count @error('join_code') join-code-error @enderror">
+                            <span id="join-code-count" class="my-class-code-count" aria-live="polite">{{ mb_strlen(old('join_code', $joinCode ?? '')) }}/8</span>
+                        </div>
                         <button type="submit" class="my-class-join-button">
                             <span>Gabung kelas</span>
                             <x-icon name="arrow-right" />
@@ -45,38 +50,32 @@
                         <span id="join-code-error" class="my-class-error" role="alert">{{ $message }}</span>
                     @enderror
                 </form>
-                <p id="join-code-help" class="my-class-privacy">Guru dapat melihat keterlibatan dan progres sesi pada bacaan yang mereka unggah, bukan isi jawaban pribadimu.</p>
             </div>
-            <div class="my-class-mascot-wrap" aria-hidden="true">
-                <span class="my-class-mascot-glow"></span>
-                <img class="my-class-mascot" src="{{ asset('images/burhan.png') }}" alt="Burung hantu SocratesRead dengan topi wisuda dan buku">
+            <div class="my-class-mascot-wrap" role="img" aria-label="Ilustrasi tumpukan buku dan dedaunan">
+                <div class="my-class-books" aria-hidden="true">
+                    <span class="my-class-book my-class-book-one"></span>
+                    <span class="my-class-book my-class-book-two"></span>
+                    <span class="my-class-book my-class-book-three"></span>
+                </div>
             </div>
         </section>
 
-        <section class="my-class-stats" aria-label="Ringkasan aktivitas kelas">
+        <section class="my-class-stats" aria-label="Ringkasan progress">
             <article class="my-class-stat">
-                <div class="my-class-stat-top">
-                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20a6 6 0 0 1 12 0"/><circle cx="17" cy="9" r="2.4"/><path d="M16.5 14a5 5 0 0 1 4.5 5"/></svg>
-                    <span>Aktif</span>
-                </div>
-                <p>Kelas diikuti</p>
-                <div class="my-class-stat-value"><strong>{{ $classrooms->count() }}</strong><span>kelas</span></div>
+                <span class="my-class-stat-icon my-class-stat-blue"><x-icon name="book-open-check" /></span>
+                <div><p>Total Materi Selesai</p><div class="my-class-stat-value"><strong>{{ $completedReadings }}</strong></div><small>{{ $weeklyReadingCount }} dalam 7 hari terakhir</small></div>
             </article>
             <article class="my-class-stat">
-                <div class="my-class-stat-top">
-                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M2 5h7a3 3 0 0 1 3 3v12a2 2 0 0 0-2-2H2z"/><path d="M22 5h-7a3 3 0 0 0-3 3v12a2 2 0 0 1 2-2h8z"/></svg>
-                    <span>Dari guru</span>
-                </div>
-                <p>Bacaan ditugaskan</p>
-                <div class="my-class-stat-value"><strong>{{ $assignedReadingCount }}</strong><span>bacaan</span></div>
+                <span class="my-class-stat-icon my-class-stat-blue"><x-icon name="graduation-cap" /></span>
+                <div><p>Kelas yang Diikuti</p><div class="my-class-stat-value"><strong>{{ $classrooms->count() }}</strong></div><small>Kelas belajar yang kamu ikuti</small></div>
             </article>
             <article class="my-class-stat">
-                <div class="my-class-stat-top my-class-stat-gold">
-                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/><path d="M9 11h6M9 14.5h3.5"/></svg>
-                    <span>Minggu ini</span>
-                </div>
-                <p>Sesi diskusi</p>
-                <div class="my-class-stat-value"><strong>{{ $discussionSessionCount }}</strong><span>sesi</span></div>
+                <span class="my-class-stat-icon my-class-stat-blue"><x-icon name="trophy" /></span>
+                <div><p>Total Tantangan Selesai</p><div class="my-class-stat-value"><strong>{{ $completedChallenges }}</strong></div><small>Challenge Socrates &amp; Tantangan Guru</small></div>
+            </article>
+            <article class="my-class-stat">
+                <span class="my-class-stat-icon my-class-stat-blue"><x-icon name="library" /></span>
+                <div><p>Total Materi Tersedia</p><div class="my-class-stat-value"><strong>{{ $assignedReadingCount }}</strong></div><small>Materi dari kelas yang kamu ikuti</small></div>
             </article>
         </section>
 
@@ -84,7 +83,7 @@
             <div class="my-class-list-heading">
                 <div>
                     <p class="my-class-eyebrow">KELAS AKTIF</p>
-                    <h2 id="enrolled-classes-heading">Kelas yang kamu ikuti</h2>
+                    <h2 id="enrolled-classes-heading">Kelas yang Kamu Ikuti</h2>
                 </div>
                 <span>{{ $classrooms->count() }} kelas</span>
             </div>
@@ -119,4 +118,19 @@
             @endif
         </section>
     </div>
+    <script>
+        (() => {
+            const codeInput = document.getElementById('join_code');
+            const counter = document.getElementById('join-code-count');
+            if (!codeInput || !counter) return;
+
+            const updateCounter = () => {
+                codeInput.value = codeInput.value.toUpperCase().slice(0, 8);
+                counter.textContent = `${codeInput.value.length}/8`;
+            };
+
+            codeInput.addEventListener('input', updateCounter);
+            updateCounter();
+        })();
+    </script>
 @endsection

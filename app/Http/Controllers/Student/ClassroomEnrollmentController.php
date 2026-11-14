@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Student;
 use App\Http\Controllers\Controller;
 use App\Models\Document;
 use App\Models\TeacherClass;
+use App\Services\GamificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -12,7 +13,7 @@ use Illuminate\View\View;
 
 class ClassroomEnrollmentController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request, GamificationService $gamification): View
     {
         $student = auth()->user();
         // Read the enrollment table directly so this page always reflects the same
@@ -50,11 +51,46 @@ class ClassroomEnrollmentController extends Controller
                 ->whereDate('activity_date', '>=', now()->startOfWeek()->toDateString())
                 ->count();
 
+        $summary = $gamification->summary($student);
+        $completedReadingIds = $student->readingSessions()
+            ->where(function ($query) {
+                $query->where('status', 'completed')->orWhere('progress_percent', '>=', 100);
+            })
+            ->pluck('document_id')
+            ->merge($student->learningActivities()
+                ->where('event_type', 'reading_completed')
+                ->pluck('document_id'))
+            ->unique();
+        $completedReadings = $completedReadingIds->count();
+        $completedChallenges = $student->learningActivities()
+            ->whereIn('event_type', ['challenge_completed', 'quiz_timed_quiz', 'quiz_practice', 'teacher_challenge'])
+            ->get(['document_id', 'event_type'])
+            ->unique(fn ($activity) => $activity->document_id . ':' . $activity->event_type)
+            ->count();
+        $weeklyReadingCount = $student->readingSessions()
+            ->where(function ($query) {
+                $query->where('status', 'completed')->orWhere('progress_percent', '>=', 100);
+            })
+            ->whereBetween('updated_at', [now()->subDays(6)->startOfDay(), now()->endOfDay()])
+            ->distinct('document_id')
+            ->count('document_id');
+
+        if ($weeklyReadingCount === 0) {
+            $weeklyReadingCount = $student->learningActivities()
+                ->where('event_type', 'reading_completed')
+                ->whereBetween('activity_date', [now()->subDays(6)->toDateString(), now()->toDateString()])
+                ->count();
+        }
+
         return view('student.classrooms', [
             'classrooms' => $classrooms,
             'user' => $student,
             'assignedReadingCount' => $assignedDocumentIds->count(),
             'discussionSessionCount' => $discussionSessionCount,
+            'summary' => $summary,
+            'completedReadings' => $completedReadings,
+            'completedChallenges' => $completedChallenges,
+            'weeklyReadingCount' => $weeklyReadingCount,
             'joinCode' => strtoupper((string) $request->query('join_code', '')),
         ]);
     }

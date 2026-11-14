@@ -130,4 +130,74 @@ TEXT;
             $this->assertCount(4, array_unique($optionTexts), 'All 4 options must be strictly unique.');
         }
     }
+
+    public function test_whole_word_keyword_search_and_bloom_c1_to_c5_with_qa_auto_repair_and_option_filtering(): void
+    {
+        $mockModel = Mockery::mock(LanguageModel::class);
+        $mockModel->shouldReceive('isConfigured')->andReturn(false);
+        $processor = new DocumentAiProcessor($mockModel);
+
+        // 1. Pencarian kata utuh: kata pendek "isi" tidak boleh cocok di dalam "posisi" atau "tradisi"
+        $this->assertFalse($processor->containsWholeWordTerm('Kedudukan bahasa menjaga posisi budaya dan tradisi.', 'isi'));
+        $this->assertTrue($processor->containsWholeWordTerm('Ringkasan mempertahankan urutan isi teks asli.', 'isi'));
+
+        $similarity = app(\App\Services\Evaluation\Layers\SemanticSimilarityEvaluator::class);
+        $mapFromPosisi = $similarity->expandConceptMap($similarity->extractKeywords('Posisi strategis budaya daerah'), 'Posisi strategis budaya daerah');
+        $this->assertFalse($similarity->tokenMatchesConceptMap('isi', $mapFromPosisi, 'Posisi strategis budaya daerah'));
+
+        // 2. Templat kata kerja Bloom C1–C5 termasuk Evaluasi, soal tidak menyalin paragraf utuh, & pengecoh tersaring
+        $tbbMaterial = <<<'TEXT'
+Trigatra Bangun Bahasa adalah strategi kebahasaan Indonesia yang memadukan peran bahasa Indonesia, bahasa daerah, dan bahasa asing dalam pembangunan bangsa.
+
+Bahasa Indonesia memiliki kedudukan sebagai bahasa nasional dan bahasa negara sesuai UUD 1945 Pasal 36 sebagai alat pemersatu bangsa dan komunikasi resmi.
+
+Bahasa Daerah merupakan bagian dari kebudayaan nasional yang dilindungi UUD 1945 Pasal 32 untuk melestarikan tradisi serta kearifan lokal masyarakat.
+
+Prinsip keseimbangan kebahasaan menuntut setiap warga mengutamakan bahasa Indonesia, melestarikan bahasa daerah, dan menguasai setidaknya satu bahasa asing di era digital.
+TEXT;
+
+        $heuristicEssays = $processor->generateHeuristicQuestions($tbbMaterial, 'Trigatra Bangun Bahasa', 'Bahasa Indonesia');
+        $this->assertCount(5, $heuristicEssays);
+        $this->assertSame('C5', $heuristicEssays[4]['bloom_level']);
+        $this->assertStringContainsStringIgnoringCase('evaluasi', $heuristicEssays[4]['prompt']);
+
+        $quiz = $processor->generateHeuristicQuizQuestions($tbbMaterial, 'Trigatra Bangun Bahasa', 'Bahasa Indonesia', 10);
+        $this->assertCount(10, $quiz);
+        $hasEvaluasiQuiz = false;
+        foreach ($quiz as $item) {
+            if (preg_match('/\bevaluasi\b/iu', $item['question'])) {
+                $hasEvaluasiQuiz = true;
+            }
+            $this->assertLessThanOrEqual(135, mb_strlen($item['question']), 'Question stem must stay concise without copying full paragraphs.');
+            foreach ($item['options'] as $opt) {
+                $this->assertNotEmpty(trim($opt['text']));
+                $this->assertStringNotContainsString('Balai Pustaka', $opt['text']);
+                $this->assertStringNotContainsString('Menonaktifkan seluruh mekanisme verifikasi', $opt['text']);
+            }
+        }
+        $this->assertTrue($hasEvaluasiQuiz, 'Generated quiz must include Bloom C5 Mengevaluasi questions.');
+
+        // 3. Penyaringan opsi kuis yang tidak masuk akal & anti-bocor
+        $this->assertFalse($processor->isPlausibleQuizOption('Balai Pustaka (2017)', 'Bahasa pemersatu bangsa'));
+        $this->assertFalse($processor->isPlausibleQuizOption('Alwi, H., &', 'Bahasa pemersatu bangsa'));
+        $this->assertFalse($processor->isPlausibleQuizOption('& ilmu pengetahuan', 'Bahasa pemersatu bangsa'));
+        $this->assertFalse($processor->isPlausibleQuizOption('dan kebudayaan', 'Bahasa pemersatu bangsa'));
+        $this->assertFalse($processor->isPlausibleQuizOption('Pernyataan penting dalam', 'Bahasa pemersatu bangsa'));
+        $this->assertFalse($processor->isPlausibleQuizOption('Kalimat panjang tentang teknologi jaringan informasi', 'Pasal 36'));
+        $this->assertTrue($processor->isPlausibleQuizOption('Pasal 32', 'Pasal 36'));
+        $this->assertFalse($processor->isPlausibleQuizOption('Sarana komunikasi resmi', 'Sarana komunikasi resmi', 'Analisis peran sarana komunikasi resmi menurut materi!'));
+        $this->assertTrue($processor->isQuestionLeakingAnswer('Analisis fungsi bahasa sebagai sarana komunikasi resmi!', 'sarana komunikasi resmi'));
+        $this->assertFalse($processor->isQuestionLeakingAnswer('Analisis fungsi utama bahasa Indonesia menurut materi!', 'Sebagai sarana komunikasi resmi'));
+
+        // 4. Pemeriksaan otomatis Q<->A memperbaiki kunci jawaban yang salah arah / label mentah dari AI
+        $repaired = $processor->verifyAndRepairEssayPair(
+            'Mengapa Bahasa Daerah perlu dilindungi menurut aturan UUD 1945 pada materi?',
+            'Kedudukan: bahasa asing.',
+            '',
+            $tbbMaterial,
+            'Trigatra Bangun Bahasa'
+        );
+        $this->assertTrue($repaired['is_valid']);
+        $this->assertStringContainsString('Pasal 32', $repaired['answer_key'] . ' ' . $repaired['reference_excerpt']);
+    }
 }

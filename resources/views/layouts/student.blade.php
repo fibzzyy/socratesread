@@ -10,15 +10,20 @@
     <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap"
-        rel="stylesheet">
+    @if (request()->routeIs('reading') && ! request()->route('document'))
+        <link rel="preload" href="{{ asset('fonts/plus-jakarta-sans-latin.woff2') }}" as="font" type="font/woff2" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600&display=swap" rel="stylesheet">
+    @else
+        <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+    @endif
     @yield('head')
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
 <body>
-    @php($isReadingIndex = request()->routeIs('reading') && !request()->route('document'))
+    @php($userInitials = collect(explode(' ', auth()->user()->name))->filter()->take(2)->map(fn ($part) => mb_substr($part, 0, 1))->implode(''))
+    @php($isReadingIndex = request()->routeIs('reading') && ! request()->route('document'))
+    @php($isProgressOverview = request()->routeIs('progress') && ! request()->query('classroom'))
     <div class="app-shell">
         <button class="scrim" type="button" aria-label="Tutup navigasi" data-menu-close></button>
         <aside class="sidebar sidebar-theme" id="primary-navigation" aria-label="Navigasi utama">
@@ -31,7 +36,7 @@
             </nav>
             <div class="nav-label nav-label-spaced">BELAJAR</div>
             <nav class="nav-list" aria-label="Materi belajar">
-                <a class="nav-link {{ request()->routeIs('quiz.*') ? 'is-active' : '' }}" href="{{ route('quiz.index') }}" @if(request()->routeIs('quiz.*')) aria-current="page" @endif><x-icon name="gamepad-2" /><span>Challenge Socrates</span></a>
+                <a class="nav-link {{ request()->routeIs('quiz.*') ? 'is-active' : '' }}" href="{{ route('quiz.index') }}" @if(request()->routeIs('quiz.*')) aria-current="page" @endif><x-icon name="brain-circuit" /><span>Challenge Socrates</span></a>
                 <a class="nav-link {{ request()->routeIs('progress') ? 'is-active' : '' }}" href="{{ route('progress') }}" @if(request()->routeIs('progress')) aria-current="page" @endif><x-icon name="chart-no-axes-combined" /><span>Kemajuan</span></a>
                 <a class="nav-link {{ request()->routeIs('achievements*') ? 'is-active' : '' }}" href="{{ route('achievements') }}" @if(request()->routeIs('achievements*')) aria-current="page" @endif><x-icon name="award" /><span>Pencapaian</span></a>
             </nav>
@@ -59,13 +64,20 @@
         </aside>
         <main class="main-content {{ $isReadingIndex ? 'reading-room-shell' : '' }}">
             @unless($isReadingIndex)
-                <header class="topbar">
-                    <button class="icon-button menu-toggle" type="button" aria-label="Buka navigasi"
-                        aria-controls="primary-navigation" aria-expanded="false" data-menu-toggle><x-icon
-                            name="menu" /></button>
-                    <div class="breadcrumb"><a href="{{ route('dashboard') }}">Ruang belajar</a><span>/</span><strong>@yield('breadcrumb', 'Halaman')</strong></div>
+                <header class="topbar {{ request()->routeIs('quiz.index') ? 'quiz-topbar' : '' }} {{ $isProgressOverview ? 'progress-topbar' : '' }}">
+                    <button class="icon-button menu-toggle" type="button" aria-label="Buka navigasi" aria-controls="primary-navigation" aria-expanded="false" data-menu-toggle><x-icon name="menu" /></button>
+                    <div class="breadcrumb">
+                        @if($isProgressOverview)
+                            <strong>Dashboard Siswa</strong>
+                        @else
+                        @if(request()->routeIs('quiz.index'))
+                            <a href="{{ route('dashboard') }}" class="quiz-home-link" aria-label="Beranda"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7M5 9v12h14V9M9 21v-7h6v7" /></svg></a>
+                        @endif
+                        <a href="{{ route('dashboard') }}">Ruang belajar</a><span>/</span><strong>@yield('breadcrumb', 'Halaman')</strong>
+                        @endif
+                    </div>
                     <div class="topbar-actions">
-                        <span class="today-label">{{ now()->locale('id')->translatedFormat('l, d F Y') }}</span>
+                        <span class="today-label">@if(request()->routeIs('quiz.index'))<x-icon name="calendar-days" />@endif{{ now()->locale('id')->translatedFormat('l, d F Y') }}</span>
                         <x-notification-center />
                         <x-profile-dropdown />
                     </div>

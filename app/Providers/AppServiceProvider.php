@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Services\AI\Contracts\LanguageModel;
+use App\Services\AI\GeminiLanguageModelProvider;
 use App\Services\AI\OpenRouterResponsesProvider;
 use RuntimeException;
 use Illuminate\Support\ServiceProvider;
@@ -17,6 +18,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(LanguageModel::class, function () {
             return match (config('ai.provider')) {
                 'openrouter' => $this->app->make(OpenRouterResponsesProvider::class),
+                'gemini' => $this->app->make(GeminiLanguageModelProvider::class),
                 default => throw new RuntimeException('AI provider is not supported.'),
             };
         });

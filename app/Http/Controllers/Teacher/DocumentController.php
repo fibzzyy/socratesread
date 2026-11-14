@@ -132,17 +132,22 @@ class DocumentController extends Controller
                         'context' => $q['context'],
                         'hint' => $q['hint'],
                     ]);
+                }
 
-                    $difficulty = $q['difficulty'] ?? 'medium';
+                $teacherChallengeItems = $processed['teacher_challenges']
+                    ?? $aiProcessor->generateTeacherChallengeSuggestions($processed['cleaned_body'], $title, $category);
+
+                foreach ($teacherChallengeItems as $tcIdx => $tc) {
+                    $difficulty = $tc['difficulty'] ?? 'medium';
                     $document->teacherChallenges()->create([
-                        'sequence' => $q['sequence'],
-                        'type' => 'essay',
-                        'question' => $q['prompt'],
-                        'context' => $q['context'] ?? null,
-                        'rubric' => ! empty($q['hint']) ? $q['hint'] : 'Analisis pemahaman mendalam, bukti dari teks, dan penalaran logis.',
-                        'reference_excerpt' => ! empty($q['reference_excerpt']) ? $q['reference_excerpt'] : null,
+                        'sequence' => $tcIdx + 1,
+                        'type' => $tc['type'] ?? 'essay',
+                        'question' => $tc['question'],
+                        'context' => null,
+                        'rubric' => ! empty($tc['rubric']) ? $tc['rubric'] : 'Analisis pemahaman mendalam, bukti dari teks, dan penalaran logis.',
+                        'reference_excerpt' => ! empty($tc['reference_excerpt']) ? $tc['reference_excerpt'] : null,
                         'difficulty' => $difficulty,
-                        'difficulty_weight' => \App\Models\TeacherChallenge::weightForDifficulty($difficulty),
+                        'difficulty_weight' => $tc['difficulty_weight'] ?? \App\Models\TeacherChallenge::weightForDifficulty($difficulty),
                     ]);
                 }
 
