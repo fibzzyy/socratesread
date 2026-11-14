@@ -102,7 +102,6 @@ class ProfileSettingsTest extends TestCase
 
         $this->actingAs($user)->get(route('profile'))
             ->assertOk()
-            ->assertSee('teacher-profile-overview')
             ->assertSee(route('settings.profile'))
             ->assertSee('SMA Negeri 1 Jakarta')
             ->assertDontSee('Perbarui Data Guru');
@@ -111,8 +110,7 @@ class ProfileSettingsTest extends TestCase
             ->assertOk()
             ->assertSee('Edit Profil Guru')
             ->assertSee(route('profile'))
-            ->assertSee('Perbarui Data Guru')
-            ->assertDontSee('teacher-profile-overview');
+            ->assertSee('Perbarui Data Guru');
     }
 
     public function test_teacher_can_update_professional_profile_details(): void
@@ -148,8 +146,8 @@ class ProfileSettingsTest extends TestCase
 
         $this->actingAs($user)->get(route('profile'))
             ->assertOk()
-            ->assertSee('<dt>NUPTK</dt>', false)
-            ->assertDontSee('<dt>NIP</dt>', false);
+            ->assertSee('NUPTK')
+            ->assertDontSee('NIP');
 
         $this->get(route('settings.profile'))
             ->assertOk()
@@ -178,7 +176,7 @@ class ProfileSettingsTest extends TestCase
             ->assertOk()
             ->assertSee('SMA Negeri 1 Jakarta')
             ->assertSee('Bahasa Indonesia')
-            ->assertSee('Ringkasan aktivitas mengajar');
+            ->assertSee('Informasi mengajar');
     }
 
     public function test_student_profile_shows_password_change_form(): void

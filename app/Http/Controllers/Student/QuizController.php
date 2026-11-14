@@ -150,7 +150,7 @@ class QuizController extends Controller
 
         abort_unless($document->is_published, 404);
 
-        $targetCount = min(100, max(5, (int) ($document->quiz_question_count ?: 10)));
+        $targetCount = min(50, max(5, (int) ($document->quiz_question_count ?: 10)));
 
         $userId = auth()->id();
 
@@ -242,7 +242,7 @@ class QuizController extends Controller
             ], 403);
         }
 
-        $targetCount = min(100, max(5, (int) ($attempt->document->quiz_question_count ?: 10)));
+        $targetCount = min(50, max(5, (int) ($attempt->document->quiz_question_count ?: 10)));
         $quizQuestions = $attempt->document->quizQuestions()->orderBy('sequence')->take($targetCount)->get();
         $total = $quizQuestions->count();
         $submittedAnswers = $data['answers'];

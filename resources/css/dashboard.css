@@ -1352,6 +1352,15 @@ body { color: var(--ink); background: var(--canvas); }
 .passage-markdown pre { margin: 14px 0 18px; padding: 13px 15px; border: 1px solid #e2e8f0; border-radius: 10px; background: #0f172a; color: #e2e8f0; font-size: .84em; line-height: 1.65; overflow-x: auto; }
 .passage-markdown code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: .9em; }
 .passage-markdown :not(pre) > code { padding: 2px 5px; border-radius: 5px; background: #f1f5f9; color: #1e293b; }
+.passage-markdown .table-wrapper, .para-content .table-wrapper { width: 100%; margin: 16px 0 20px; overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 10px; border: 1px solid #e2e8f0; background: #ffffff; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04); }
+.passage-markdown table, .para-content table { width: 100%; min-width: 480px; border-collapse: collapse; font-size: 0.88em; line-height: 1.6; text-align: left; }
+.passage-markdown th, .para-content th { background: #f8fafc; color: #1e293b; font-weight: 700; padding: 10px 14px; border-bottom: 2px solid #e2e8f0; border-right: 1px solid #f1f5f9; font-size: 0.85em; letter-spacing: 0.02em; }
+.passage-markdown th:last-child, .para-content th:last-child { border-right: none; }
+.passage-markdown td, .para-content td { padding: 11px 14px; border-bottom: 1px solid #f1f5f9; border-right: 1px solid #f1f5f9; color: #334155; vertical-align: top; font-size: 0.95em; }
+.passage-markdown td:last-child, .para-content td:last-child { border-right: none; }
+.passage-markdown tbody tr:last-child td, .para-content tbody tr:last-child td { border-bottom: none; }
+.passage-markdown tbody tr:nth-child(even), .para-content tbody tr:nth-child(even) { background: #fbfcfe; }
+.passage-markdown tbody tr:hover, .para-content tbody tr:hover { background: #f1f5f9; }
 .reading-mode-switch { display: inline-flex; align-items: center; gap: 3px; padding: 3px; border: 1px solid var(--line); border-radius: 9px; background: #f8fafc; }
 .reading-mode-btn { display: inline-flex; align-items: center; gap: 5px; height: 27px; padding: 0 9px; border: 0; border-radius: 6px; background: transparent; color: #64748b; font-size: 10px; font-weight: 700; cursor: pointer; transition: all .15s ease; }
 .reading-mode-btn:hover { color: #1e293b; }

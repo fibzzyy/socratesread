@@ -5,19 +5,19 @@
 
 @section('content')
     <section class="stage-heading" aria-labelledby="teacher-documents-title">
-        <div><h1 id="teacher-documents-title">Kelola bacaan</h1><p class="welcome-subtitle">Unggah dan atur materi yang akan dibaca siswa.</p></div>
+        <div><p class="eyebrow">MATERI UNTUK BERPIKIR LEBIH DALAM</p><h1 id="teacher-documents-title">Kelola bacaan</h1><p class="welcome-subtitle">Unggah PDF berbasis teks untuk menjadi bahan Reading Room siswa.</p></div>
     </section>
 
     @if (session('status')) <div class="auth-notice" role="status">{{ session('status') }}</div> @endif
 
     <section class="panel teacher-upload-panel" aria-labelledby="upload-heading">
-        <div class="section-heading"><div><h2 id="upload-heading">Unggah materi</h2><p class="teacher-section-intro">PDF akan dirapikan dan disiapkan untuk Reading Room siswa.</p></div></div>
+        <div class="section-heading"><div><p class="section-overline">TAMBAHKAN MATERI</p><h2 id="upload-heading">Unggah dokumen PDF</h2></div><span class="session-icon"><x-icon name="book-open-text"/></span></div>
         <form method="POST" action="{{ route('teacher.documents.store') }}" enctype="multipart/form-data" class="teacher-upload-form">
             @csrf
             <div class="upload-fields-row">
                 <div class="upload-field-group"><label for="document-title">Judul bacaan</label><input id="document-title" name="title" class="upload-field" type="text" maxlength="160" value="{{ old('title') }}" placeholder="Contoh: Ekosistem pesisir" required>@error('title')<small class="upload-field-error">{{ $message }}</small>@enderror</div>
                 <div class="upload-field-group">
-                    <label for="document-category">Mata pelajaran atau kelas</label>
+                    <label for="document-category">Mata Pelajaran / Kelas</label>
                     @if ($teacherClasses->isNotEmpty())
                         <select id="document-category" name="category" class="upload-field bg-white" required>
                             <option value="" disabled {{ old('category') ? '' : 'selected' }}>Pilih Mata Pelajaran / Kelas</option>
@@ -36,7 +36,7 @@
                     @error('category')<small class="upload-field-error">{{ $message }}</small>@enderror
                 </div>
                 <div class="upload-field-group">
-                    <label for="document-target-grade">Tingkat siswa</label>
+                    <label for="document-target-grade">Peruntukan Tingkat</label>
                     <select id="document-target-grade" name="target_grade" class="upload-field bg-white">
                         <option value="all" {{ old('target_grade', 'all') === 'all' ? 'selected' : '' }}>Semua Kelas (Umum)</option>
                         <option value="10" {{ old('target_grade') === '10' ? 'selected' : '' }}>Khusus Kelas 10</option>
@@ -46,7 +46,7 @@
                     @error('target_grade')<small class="upload-field-error">{{ $message }}</small>@enderror
                 </div>
                 <div class="upload-field-group">
-                    <label for="document-quiz-duration">Durasi kuis</label>
+                    <label for="document-quiz-duration">Durasi Kuis Keseluruhan</label>
                     <select id="document-quiz-duration" name="quiz_duration_minutes" class="upload-field bg-white">
                         <option value="5" {{ old('quiz_duration_minutes') == '5' ? 'selected' : '' }}>5 Menit</option>
                         <option value="10" {{ old('quiz_duration_minutes') == '10' ? 'selected' : '' }}>10 Menit</option>
@@ -59,11 +59,101 @@
                     @error('quiz_duration_minutes')<small class="upload-field-error">{{ $message }}</small>@enderror
                 </div>
             </div>
-            <div class="upload-field-group upload-file-group"><label for="document-file">File PDF</label><input id="document-file" name="file" class="upload-file-input" type="file" accept="application/pdf,.pdf" required><small class="upload-help">Maksimal 50 MB. PDF perlu memiliki teks yang dapat dipilih.</small>@error('file')<small class="upload-field-error">{{ $message }}</small>@enderror</div>
+            <div class="upload-field-group">
+                <label for="document-file">File PDF</label>
+                <input id="document-file" name="file" class="upload-file-input" type="file" accept="application/pdf,.pdf" required>
+                <small class="upload-help">Maksimal 50 MB tanpa batasan karakter. Pastikan PDF memiliki teks yang dapat dipilih (bukan hasil scan foto tanpa OCR).</small>
+                @error('file')<small class="upload-field-error">{{ $message }}</small>@enderror
+            </div>
+
+            <!-- Cakupan Halaman & Batas Submateri (Opsi 1) -->
+            <div class="rounded-xl border border-blue-100 bg-blue-50/40 p-3.5 space-y-3">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-blue-900 flex items-center gap-1.5">
+                        <x-icon name="book-open" class="w-4 h-4 text-blue-600"/>
+                        Cakupan Halaman & Batas Submateri Pertemuan
+                    </span>
+                    <span class="text-[11px] text-blue-700 bg-blue-100/70 px-2 py-0.5 rounded-full font-medium">Pengaturan Cerdas</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                    <!-- Pilihan Mode Halaman -->
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-semibold text-slate-700">Mode Pembagian Halaman</label>
+                        <div class="flex items-center gap-3">
+                            <label class="inline-flex items-center gap-1.5 text-xs text-slate-700 cursor-pointer">
+                                <input type="radio" name="page_scope" value="all" checked class="text-blue-600 focus:ring-blue-500" id="scope-all">
+                                <span>Seluruh Halaman (Modul/Slide)</span>
+                            </label>
+                            <label class="inline-flex items-center gap-1.5 text-xs text-slate-700 cursor-pointer">
+                                <input type="radio" name="page_scope" value="range" class="text-blue-600 focus:ring-blue-500" id="scope-range">
+                                <span>Pilih Rentang Halaman (Buku Tebal)</span>
+                            </label>
+                        </div>
+                        <small class="text-[11px] text-slate-500 block">
+                            Pilih "Rentang Halaman" jika materi hanya bab tertentu. Masukkan nomor lembar sesuai urutan di aplikasi PDF (misal di Chrome/Adobe), bukan nomor cetak pojok buku.
+                        </small>
+                    </div>
+
+                    <!-- Input Rentang Halaman (Tersembunyi bila Seluruh Halaman) -->
+                    <div id="page-range-inputs" class="hidden flex items-center gap-2">
+                        <div class="flex-1">
+                            <label for="page_start" class="text-[11px] font-semibold text-slate-600 block mb-1">Dari Halaman</label>
+                            <input type="number" id="page_start" name="page_start" min="1" placeholder="Contoh: 1" class="upload-field bg-white py-1.5 text-xs">
+                        </div>
+                        <span class="text-slate-400 font-bold mt-5">-</span>
+                        <div class="flex-1">
+                            <label for="page_end" class="text-[11px] font-semibold text-slate-600 block mb-1">Sampai Halaman</label>
+                            <input type="number" id="page_end" name="page_end" min="1" placeholder="Contoh: 25" class="upload-field bg-white py-1.5 text-xs">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Input Batas Submateri Awal & Terakhir -->
+                <div class="pt-2 border-t border-blue-100/60 space-y-3">
+                    <div>
+                        <label for="start_subtopic_heading" class="text-xs font-semibold text-slate-700 flex items-center gap-1">
+                            Mulai dari Submateri Awal yang Diajarkan Hari Ini (Opsional)
+                        </label>
+                        <input id="start_subtopic_heading" name="start_subtopic_heading" type="text" maxlength="160" class="upload-field bg-white text-xs mt-1" placeholder="Contoh: 2. Barisan Geometri (sisa latihan/bab sebelumnya di atasnya diabaikan)">
+                        <small class="text-[11px] text-slate-500 block mt-1">
+                            Gunakan ini jika materi baru dimulai di tengah halaman (setelah sisa latihan bab sebelumnya). Jika dikosongkan, sistem juga cerdas mendeteksi otomatis dari judul bacaan.
+                        </small>
+                    </div>
+
+                    <div>
+                        <label for="last_subtopic_heading" class="text-xs font-semibold text-slate-700 flex items-center gap-1">
+                            Batas Submateri Terakhir yang Diajarkan Hari Ini (Opsional)
+                        </label>
+                        <input id="last_subtopic_heading" name="last_subtopic_heading" type="text" maxlength="160" class="upload-field bg-white text-xs mt-1" placeholder="Contoh: B. Sifat-Sifat Eksponen (materi setelahnya otomatis diabaikan)">
+                        <small class="text-[11px] text-slate-500 block mt-1">
+                            Gunakan ini jika waktu kelas habis di tengah halaman. Sistem otomatis memotong materi setelah submateri ini agar soal kuis 100% adil dan sesuai apa yang diajarkan.
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sakelar Tantangan Guru -->
+            <input type="hidden" name="has_teacher_challenges_toggle" value="1">
+            <div class="rounded-xl border border-purple-100 bg-purple-50/40 p-3 flex items-center justify-between">
+                <div class="flex items-start gap-2.5">
+                    <input type="checkbox" id="enable_teacher_challenges" name="enable_teacher_challenges" value="1" checked class="mt-0.5 rounded text-purple-600 focus:ring-purple-500 cursor-pointer">
+                    <div>
+                        <label for="enable_teacher_challenges" class="text-xs font-bold text-purple-900 cursor-pointer block">
+                            Aktifkan 5 Soal Esai Tantangan Guru untuk Materi Ini
+                        </label>
+                        <p class="text-[11px] text-purple-700">
+                            Jika dinonaktifkan, siswa hanya akan membaca materi dan mengerjakan Kuis Socrates (10 Pilihan Ganda). Anda tetap bisa mengaktifkan atau membuat soal esai kapan saja nanti.
+                        </p>
+                    </div>
+                </div>
+                <span class="rounded bg-purple-100 text-purple-800 text-[10px] font-bold px-2 py-0.5 whitespace-nowrap">Esai Analitis</span>
+            </div>
+
             <div class="teacher-upload-footer">
-                <p>Materi dan pertanyaan latihan akan disiapkan otomatis setelah diunggah.</p>
+                <p><x-icon name="sparkles"/> AI otomatis merapikan teks materi, menyusun 10 Kuis Socrates & 5 Tantangan Guru (HOTS).</p>
                 <button class="challenge-button" type="submit">
-                    <span>Unggah dan proses</span>
+                    <span>Proses dengan AI</span>
                     <x-icon name="arrow-right"/>
                 </button>
             </div>
@@ -73,28 +163,29 @@
     <section class="panel teacher-documents-panel" aria-labelledby="teacher-documents-list-title">
         <div class="section-heading">
             <div>
+                <p class="section-overline">KOLEKSI GURU</p>
                 <h2 id="teacher-documents-list-title">Bacaan yang diunggah</h2>
             </div>
             <span class="document-count">{{ $documents->count() }} dokumen</span>
         </div>
 
         <!-- Filter Tab Jenjang -->
-        <div class="teacher-grade-filters" aria-label="Filter tingkat siswa">
-            <a href="{{ route('teacher.documents', ['grade' => 'all']) }}" class="teacher-grade-filter {{ $selectedGrade === 'all' ? 'is-active' : '' }}">
+        <div class="mb-4 flex flex-wrap items-center gap-2 border-b border-slate-100 pb-3">
+            <a href="{{ route('teacher.documents', ['grade' => 'all']) }}" class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition {{ $selectedGrade === 'all' ? 'bg-blue-600 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}">
                 <span>Semua Tingkat</span>
-                <span>{{ $gradeCounts['all'] }}</span>
+                <span class="rounded-full px-1.5 py-0.2 text-[10px] {{ $selectedGrade === 'all' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700' }}">{{ $gradeCounts['all'] }}</span>
             </a>
-            <a href="{{ route('teacher.documents', ['grade' => '10']) }}" class="teacher-grade-filter {{ $selectedGrade === '10' ? 'is-active' : '' }}">
+            <a href="{{ route('teacher.documents', ['grade' => '10']) }}" class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition {{ $selectedGrade === '10' ? 'bg-blue-600 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}">
                 <span>Kelas 10</span>
-                <span>{{ $gradeCounts['10'] }}</span>
+                <span class="rounded-full px-1.5 py-0.2 text-[10px] {{ $selectedGrade === '10' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700' }}">{{ $gradeCounts['10'] }}</span>
             </a>
-            <a href="{{ route('teacher.documents', ['grade' => '11']) }}" class="teacher-grade-filter {{ $selectedGrade === '11' ? 'is-active' : '' }}">
+            <a href="{{ route('teacher.documents', ['grade' => '11']) }}" class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition {{ $selectedGrade === '11' ? 'bg-blue-600 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}">
                 <span>Kelas 11</span>
-                <span>{{ $gradeCounts['11'] }}</span>
+                <span class="rounded-full px-1.5 py-0.2 text-[10px] {{ $selectedGrade === '11' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700' }}">{{ $gradeCounts['11'] }}</span>
             </a>
-            <a href="{{ route('teacher.documents', ['grade' => '12']) }}" class="teacher-grade-filter {{ $selectedGrade === '12' ? 'is-active' : '' }}">
+            <a href="{{ route('teacher.documents', ['grade' => '12']) }}" class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition {{ $selectedGrade === '12' ? 'bg-blue-600 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}">
                 <span>Kelas 12</span>
-                <span>{{ $gradeCounts['12'] }}</span>
+                <span class="rounded-full px-1.5 py-0.2 text-[10px] {{ $selectedGrade === '12' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700' }}">{{ $gradeCounts['12'] }}</span>
             </a>
         </div>
 
@@ -104,24 +195,27 @@
                 <div class="teacher-document-copy">
                     <div class="flex items-center gap-2 flex-wrap">
                         <strong>{{ $document->title }}</strong>
+                        <span data-quiz-badge-doc="{{ $document->id }}" class="rounded bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700 border border-indigo-200/60 inline-flex items-center gap-1">
+                            <x-icon name="gamepad-2" class="w-3 h-3 text-indigo-600"/>
+                            <span data-quiz-badge-text>Kuis Socrates: {{ $document->quiz_question_count ?? 10 }} Soal (⏱️ {{ $document->quiz_duration_minutes ?? 15 }}m)</span>
+                        </span>
+                        <span data-doc-challenge-pill="{{ $document->id }}" class="rounded bg-purple-50 px-2 py-0.5 text-[10px] font-bold text-purple-700 border border-purple-200/60 inline-flex items-center gap-1">
+                            <x-icon name="award" class="w-3 h-3 text-purple-600"/>
+                            <span data-doc-challenge-pill-text>{{ $document->teacher_challenges_count }} Tantangan Guru</span>
+                        </span>
                     </div>
-                    <div class="teacher-document-meta">
-                        <span>{{ $document->category }}</span><span>{{ $document->targetGradeLabel() }}</span>
-                        <span data-quiz-badge-doc="{{ $document->id }}"><span data-quiz-badge-text>{{ $document->quiz_question_count ?? 10 }} soal · {{ $document->quiz_duration_minutes ?? 15 }} menit</span></span>
-                        <span data-doc-challenge-pill="{{ $document->id }}"><span data-doc-challenge-pill-text>{{ $document->teacher_challenges_count }} tantangan</span></span>
-                        <span>{{ $document->created_at->locale('id')->translatedFormat('d M Y') }}</span>
-                    </div>
+                    <span>{{ $document->category }} · <span class="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700">{{ $document->targetGradeLabel() }}</span> · <span data-doc-chars-id="{{ $document->id }}">{{ number_format(mb_strlen($document->body)) }} karakter</span> · {{ $document->created_at->locale('id')->translatedFormat('d M Y') }}</span>
                 </div>
-                <div class="teacher-document-actions">
-                    <button type="button" class="teacher-document-action" data-challenge-btn data-doc-id="{{ $document->id }}" data-doc-title="{{ $document->title }}" data-get-url="{{ route('teacher.documents.challenges.index', $document) }}" data-store-url="{{ route('teacher.documents.challenges.store', $document) }}" data-suggestions-url="{{ route('teacher.documents.challenges.suggestions', $document) }}" data-analyze-url="{{ route('teacher.documents.challenges.analyze', $document) }}" data-recommend-answer-url="{{ route('teacher.documents.challenges.recommend_answer', $document) }}" title="Kelola tantangan guru">
-                        <x-icon name="award" class="w-3.5 h-3.5"/>
-                        <span data-challenge-btn-label>Tantangan ({{ $document->teacher_challenges_count }})</span>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <button type="button" class="inline-flex items-center gap-1.5 rounded-lg border border-purple-300 bg-purple-50 px-2.5 py-1.5 text-xs font-bold text-purple-900 hover:bg-purple-100 transition shadow-2xs" data-challenge-btn data-doc-id="{{ $document->id }}" data-doc-title="{{ $document->title }}" data-get-url="{{ route('teacher.documents.challenges.index', $document) }}" data-store-url="{{ route('teacher.documents.challenges.store', $document) }}" data-suggestions-url="{{ route('teacher.documents.challenges.suggestions', $document) }}" data-analyze-url="{{ route('teacher.documents.challenges.analyze', $document) }}" data-recommend-answer-url="{{ route('teacher.documents.challenges.recommend_answer', $document) }}" title="Kelola Tantangan Guru (Esai & PG)">
+                        <x-icon name="award" class="w-3.5 h-3.5 text-purple-600"/>
+                        <span data-challenge-btn-label>Tantangan Guru ({{ $document->teacher_challenges_count }})</span>
                     </button>
-                    <form method="POST" action="{{ route('teacher.documents.quiz_duration', $document) }}" data-quiz-settings-form data-doc-id="{{ $document->id }}" class="teacher-quiz-settings" title="Pengaturan kuis untuk siswa">
+                    <form method="POST" action="{{ route('teacher.documents.quiz_duration', $document) }}" data-quiz-settings-form data-doc-id="{{ $document->id }}" class="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg p-1 relative" title="Pengaturan Kuis Socrates untuk Siswa">
                         @csrf @method('PATCH')
                         <div class="flex items-center gap-1">
-                            <span class="teacher-setting-label">Durasi</span>
-                            <select name="quiz_duration_minutes" title="Ubah durasi kuis">
+                            <span class="text-[10px] text-slate-400 font-bold pl-1">⏱️</span>
+                            <select name="quiz_duration_minutes" class="text-[11px] font-semibold py-0.5 px-1 rounded border-0 bg-transparent text-slate-700 hover:text-amber-600 cursor-pointer focus:ring-0" title="Ubah Durasi Kuis Socrates">
                                 <option value="5" @selected(($document->quiz_duration_minutes ?? 15) == 5)>5m</option>
                                 <option value="10" @selected(($document->quiz_duration_minutes ?? 15) == 10)>10m</option>
                                 <option value="15" @selected(($document->quiz_duration_minutes ?? 15) == 15)>15m</option>
@@ -131,17 +225,25 @@
                                 <option value="60" @selected(($document->quiz_duration_minutes ?? 15) == 60)>60m</option>
                             </select>
                         </div>
+                        <span class="text-slate-300">|</span>
+                        @php
+                            $maxCapacity = $document->maxRecommendedQuizQuestions();
+                            $idealRec = $document->idealRecommendedQuizQuestions();
+                            $counts = [5, 10, 15, 20, 25, 30, 40, 50];
+                        @endphp
                         <div class="flex items-center gap-1">
-                            <span class="teacher-setting-label">Soal</span>
-                            <select name="quiz_question_count" title="Ubah jumlah soal kuis (5–100 soal)">
-                                <option value="5" @selected(($document->quiz_question_count ?? 10) == 5)>5 Soal</option>
-                                <option value="10" @selected(($document->quiz_question_count ?? 10) == 10)>10 Soal</option>
-                                <option value="15" @selected(($document->quiz_question_count ?? 10) == 15)>15 Soal</option>
-                                <option value="20" @selected(($document->quiz_question_count ?? 10) == 20)>20 Soal</option>
-                                <option value="25" @selected(($document->quiz_question_count ?? 10) == 25)>25 Soal</option>
-                                <option value="30" @selected(($document->quiz_question_count ?? 10) == 30)>30 Soal</option>
-                                <option value="50" @selected(($document->quiz_question_count ?? 10) == 50)>50 Soal</option>
-                                <option value="100" @selected(($document->quiz_question_count ?? 10) == 100)>100 Soal</option>
+                            <span class="text-[10px] text-slate-400 font-bold">📝</span>
+                            <select name="quiz_question_count" class="text-[11px] font-semibold py-0.5 px-1 rounded border-0 bg-transparent text-slate-700 hover:text-blue-600 cursor-pointer focus:ring-0" title="Ubah Jumlah Soal Kuis Socrates (5 - {{ $maxCapacity }} Soal disarankan)">
+                                @foreach($counts as $cnt)
+                                    @php
+                                        $isDisabled = $cnt > $maxCapacity;
+                                        $isIdeal = $cnt === $idealRec;
+                                        $isSelected = ($document->quiz_question_count ?? 10) == $cnt;
+                                    @endphp
+                                    <option value="{{ $cnt }}" @selected($isSelected) @disabled($isDisabled) class="{{ $isDisabled ? 'text-slate-400 bg-slate-100' : '' }}">
+                                        {{ $cnt }} Soal{{ $isIdeal ? ' (Rekomendasi AI ✨)' : ($isDisabled ? ' (Materi terlalu ringkas)' : '') }}
+                                    </option>
+                                @endforeach
                             </select>
                         </div>
                         <span class="quiz-saved-pill hidden text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">✓ Tersimpan</span>
@@ -161,9 +263,9 @@
                             'challengeMaxXp' => $document->challenge_max_xp ?? 0,
                         ], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) !!}
                     </script>
-                    <button type="button" class="teacher-document-action" data-preview-btn data-doc-id="{{ $document->id }}" title="Pratinjau materi dan soal">
-                        <x-icon name="eye" class="w-3.5 h-3.5"/>
-                        <span>Pratinjau</span>
+                    <button type="button" class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition" data-preview-btn data-doc-id="{{ $document->id }}" title="Pratinjau Materi & Soal">
+                        <x-icon name="eye" class="w-3.5 h-3.5 text-slate-500"/>
+                        <span class="hidden sm:inline">Pratinjau & Soal</span>
                     </button>
                     <form method="POST" action="{{ route('teacher.documents.destroy', $document) }}"
                           data-confirm-title="Hapus Bacaan Secara Permanen?"
@@ -172,7 +274,7 @@
                           data-confirm-ok="Ya, Hapus Permanen"
                           data-confirm-variant="danger">
                         @csrf @method('DELETE')
-                    <button type="submit" class="teacher-document-action teacher-document-delete" aria-label="Hapus bacaan {{ $document->title }}">
+                        <button type="submit" class="teacher-document-delete" aria-label="Hapus bacaan {{ $document->title }}">
                             <x-icon name="trash-2"/>
                             <span>Hapus</span>
                         </button>
@@ -235,8 +337,29 @@
                         </div>
 
                         <div>
-                            <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">ISI TEKS PEMBELAJARAN SISWA</p>
+                            <div class="flex items-center justify-between mb-2">
+                                <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">ISI TEKS PEMBELAJARAN SISWA</p>
+                                <button type="button" id="btnToggleEditBody" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 transition shadow-2xs">
+                                    <x-icon name="edit-3" class="w-3.5 h-3.5 text-blue-600"/>
+                                    <span id="labelToggleEditBody">Edit Teks Bacaan</span>
+                                </button>
+                            </div>
                             <div id="modalDocBody" class="passage-markdown prose prose-sm max-w-none text-xs text-slate-700 leading-relaxed space-y-3 font-normal"></div>
+                            
+                            <!-- Editor Mode Form -->
+                            <div id="modalDocBodyEditWrapper" class="hidden space-y-2 mt-2">
+                                <textarea id="modalDocBodyTextarea" rows="14" class="w-full rounded-xl border border-slate-300 p-3 text-xs font-mono text-slate-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 leading-relaxed" placeholder="Edit teks bacaan kurasi..."></textarea>
+                                <div class="flex items-center justify-between pt-1">
+                                    <span class="text-[11px] text-slate-400 font-mono" id="modalDocBodyCharCount">0 karakter</span>
+                                    <div class="flex items-center gap-2">
+                                        <button type="button" id="btnCancelEditBody" class="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-100 transition">Batal</button>
+                                        <button type="button" id="btnSaveEditBody" class="px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-2xs">
+                                            <x-icon name="check" class="w-3.5 h-3.5"/>
+                                            <span id="labelSaveEditBody">Simpan Perubahan Teks</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -449,6 +572,137 @@
 
             if (!modal) return;
 
+            let currentEditingDocId = null;
+            let currentRawBody = '';
+            const toggleEditBtn = document.getElementById('btnToggleEditBody');
+            const cancelEditBtn = document.getElementById('btnCancelEditBody');
+            const saveEditBtn = document.getElementById('btnSaveEditBody');
+            const editWrapper = document.getElementById('modalDocBodyEditWrapper');
+            const textarea = document.getElementById('modalDocBodyTextarea');
+            const charCountEl = document.getElementById('modalDocBodyCharCount');
+            const labelSave = document.getElementById('labelSaveEditBody');
+
+            const updateBodyCharCount = (text) => {
+                if (charCountEl) charCountEl.textContent = `${(text || '').length.toLocaleString()} karakter`;
+            };
+
+            textarea?.addEventListener('input', () => {
+                updateBodyCharCount(textarea.value);
+            });
+
+            toggleEditBtn?.addEventListener('click', () => {
+                const bodyEl = document.getElementById('modalDocBody');
+                const isEditing = !editWrapper.classList.contains('hidden');
+                if (isEditing) {
+                    editWrapper.classList.add('hidden');
+                    bodyEl?.classList.remove('hidden');
+                } else {
+                    textarea.value = currentRawBody;
+                    updateBodyCharCount(currentRawBody);
+                    bodyEl?.classList.add('hidden');
+                    editWrapper.classList.remove('hidden');
+                    textarea.focus();
+                }
+            });
+
+            cancelEditBtn?.addEventListener('click', () => {
+                const bodyEl = document.getElementById('modalDocBody');
+                editWrapper?.classList.add('hidden');
+                bodyEl?.classList.remove('hidden');
+            });
+
+            saveEditBtn?.addEventListener('click', async () => {
+                if (!currentEditingDocId) return;
+                const newBody = textarea.value.trim();
+                if (newBody.length < 30) {
+                    if (window.SocratesUI?.toast) {
+                        window.SocratesUI.toast('Teks bacaan minimal berisi 30 karakter.', 'warning');
+                    }
+                    return;
+                }
+
+                saveEditBtn.disabled = true;
+                if (labelSave) labelSave.textContent = 'Menyimpan...';
+
+                try {
+                    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                    const res = await fetch(`/teacher/documents/${currentEditingDocId}/body`, {
+                        method: 'PATCH',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': token || '',
+                        },
+                        body: JSON.stringify({ body: newBody }),
+                    });
+
+                    const json = await res.json();
+                    if (res.ok && json.success) {
+                        currentRawBody = json.body;
+                        const bodyEl = document.getElementById('modalDocBody');
+                        if (bodyEl) {
+                            bodyEl.innerHTML = json.formatted_body_html;
+                            bodyEl.classList.remove('hidden');
+                        }
+                        editWrapper?.classList.add('hidden');
+
+                        const scriptEl = document.getElementById('doc-preview-data-' + currentEditingDocId);
+                        if (scriptEl) {
+                            try {
+                                const parsed = JSON.parse(scriptEl.textContent);
+                                parsed.body = json.body;
+                                parsed.formattedBodyHtml = json.formatted_body_html;
+                                scriptEl.textContent = JSON.stringify(parsed);
+                            } catch (e) {}
+                        }
+
+                        const charBadge = document.querySelector(`[data-doc-chars-id="${currentEditingDocId}"]`);
+                        if (charBadge && json.chars) {
+                            charBadge.textContent = `${json.chars.toLocaleString()} karakter`;
+                        }
+
+                        setTimeout(() => renderKaTeXIn(modal), 40);
+
+                        if (labelSave) labelSave.textContent = 'Tersimpan ✓';
+                        setTimeout(() => {
+                            if (labelSave) labelSave.textContent = 'Simpan Perubahan Teks';
+                            saveEditBtn.disabled = false;
+                        }, 1200);
+                    } else {
+                        if (window.SocratesUI?.toast) {
+                            window.SocratesUI.toast(json.message || 'Gagal menyimpan perubahan teks bacaan.', 'error');
+                        }
+                        saveEditBtn.disabled = false;
+                        if (labelSave) labelSave.textContent = 'Simpan Perubahan Teks';
+                    }
+                } catch (err) {
+                    console.error('Save body error', err);
+                    if (window.SocratesUI?.toast) {
+                        window.SocratesUI.toast('Terjadi kesalahan koneksi saat menyimpan teks bacaan.', 'error');
+                    }
+                    saveEditBtn.disabled = false;
+                    if (labelSave) labelSave.textContent = 'Simpan Perubahan Teks';
+                }
+            });
+
+            const renderKaTeXIn = (container) => {
+                if (typeof window.renderMathInElement === 'function' && container) {
+                    try {
+                        window.renderMathInElement(container, {
+                            delimiters: [
+                                { left: '$$', right: '$$', display: true },
+                                { left: '$', right: '$', display: false },
+                                { left: '\\(', right: '\\)', display: false },
+                                { left: '\\[', right: '\\]', display: true }
+                            ],
+                            throwOnError: false
+                        });
+                    } catch (e) {
+                        console.warn('KaTeX render warning:', e);
+                    }
+                }
+            };
+
             const switchTab = (activeTab) => {
                 const tabs = [
                     { id: 'text', btn: tabTextBtn, content: tabTextContent },
@@ -465,6 +719,8 @@
                         tab.content.classList.add('hidden');
                     }
                 });
+
+                setTimeout(() => renderKaTeXIn(modal), 40);
             };
 
             tabTextBtn.addEventListener('click', () => switchTab('text'));
@@ -507,19 +763,28 @@
                 document.getElementById('modalDocExcerpt').innerHTML = formatInlineMarkdown(excerpt);
 
                 // Render structured body in Preview Drawer
+                currentEditingDocId = docId;
+                currentRawBody = body;
+                if (editWrapper) editWrapper.classList.add('hidden');
+                if (textarea) textarea.value = body;
+                updateBodyCharCount(body);
+
                 const bodyEl = document.getElementById('modalDocBody');
-                bodyEl.innerHTML = '';
+                if (bodyEl) {
+                    bodyEl.classList.remove('hidden');
+                    bodyEl.innerHTML = '';
+                }
                 if (data.formattedBodyHtml) {
-                    bodyEl.innerHTML = data.formattedBodyHtml;
+                    if (bodyEl) bodyEl.innerHTML = data.formattedBodyHtml;
                 } else {
-                    const paragraphs = body.split(/\r?\n\r?\n/).filter(p => p.trim() !== '');
+                    const paragraphs = body.split(/\r?\n\r?\n/).map(p => p.trim()).filter(p => p !== '' && !/^[*#_–—\-]{2,}$/.test(p));
                     if (paragraphs.length === 0) {
-                        bodyEl.innerHTML = `<p>${formatInlineMarkdown(body)}</p>`;
+                        if (bodyEl) bodyEl.innerHTML = `<p>${formatInlineMarkdown(body)}</p>`;
                     } else {
                         paragraphs.forEach(p => {
                             const pEl = document.createElement('p');
                             pEl.innerHTML = formatInlineMarkdown(p.trim());
-                            bodyEl.appendChild(pEl);
+                            if (bodyEl) bodyEl.appendChild(pEl);
                         });
                     }
                 }
@@ -664,6 +929,7 @@
                 switchTab('text');
                 modal.classList.remove('hidden');
                 document.body.classList.add('overflow-hidden');
+                setTimeout(() => renderKaTeXIn(modal), 60);
             };
 
             const closeModal = () => {
@@ -711,7 +977,7 @@
                                 const docId = form.dataset.docId;
                                 const badgeText = document.querySelector(`[data-quiz-badge-doc="${docId}"] [data-quiz-badge-text]`);
                                 if (badgeText && json.quiz_question_count && json.quiz_duration_minutes) {
-                                    badgeText.textContent = `${json.quiz_question_count} soal · ${json.quiz_duration_minutes} menit`;
+                                    badgeText.textContent = `Kuis Socrates: ${json.quiz_question_count} Soal (⏱️ ${json.quiz_duration_minutes}m)`;
                                 }
                                 if (savedPill) {
                                     savedPill.textContent = `✓ ${json.quiz_question_count || ''} Soal Tersimpan`;
@@ -1365,17 +1631,18 @@
 
                     challengeListContainer.appendChild(card);
                 });
+                setTimeout(() => renderKaTeXIn(challengeListContainer), 40);
             };
 
             const syncDocumentChallengeSummary = (docId, totalChallenges, challenges = [], maxXp = 0) => {
                 if (!docId) return;
                 const pillText = document.querySelector(`[data-doc-challenge-pill="${docId}"] [data-doc-challenge-pill-text]`);
                 if (pillText) {
-                    pillText.textContent = `${totalChallenges} tantangan`;
+                    pillText.textContent = `${totalChallenges} Tantangan Guru`;
                 }
                 const btnLabel = document.querySelector(`[data-challenge-btn][data-doc-id="${docId}"] [data-challenge-btn-label]`);
                 if (btnLabel) {
-                    btnLabel.textContent = `Tantangan (${totalChallenges})`;
+                    btnLabel.textContent = `Tantangan Guru (${totalChallenges})`;
                 }
                 const scriptEl = document.getElementById('doc-preview-data-' + docId);
                 if (scriptEl) {
@@ -1610,6 +1877,20 @@
                     btnSaveAllChallenges.innerHTML = prevLabel;
                 }
             });
+
+            // Toggle input rentang halaman
+            const scopeAll = document.getElementById('scope-all');
+            const scopeRange = document.getElementById('scope-range');
+            const rangeInputs = document.getElementById('page-range-inputs');
+            const toggleRangeInputs = () => {
+                if (scopeRange && scopeRange.checked) {
+                    rangeInputs?.classList.remove('hidden');
+                } else {
+                    rangeInputs?.classList.add('hidden');
+                }
+            };
+            scopeAll?.addEventListener('change', toggleRangeInputs);
+            scopeRange?.addEventListener('change', toggleRangeInputs);
         })();
     </script>
 @endsection

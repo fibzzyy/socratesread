@@ -200,4 +200,278 @@ TEXT;
         $this->assertTrue($repaired['is_valid']);
         $this->assertStringContainsString('Pasal 32', $repaired['answer_key'] . ' ' . $repaired['reference_excerpt']);
     }
+
+    public function test_math_exponents_domain_and_rejection_of_berikut_stopword(): void
+    {
+        $mockModel = Mockery::mock(LanguageModel::class);
+        $mockModel->shouldReceive('isConfigured')->andReturn(false);
+        $processor = new DocumentAiProcessor($mockModel);
+
+        $mathMaterial = <<<'TEXT'
+Definisi Eksponen
+Jika a adalah bilangan real dan n adalah bilangan bulat positif, maka a^n menyatakan hasil kali bilangan a sebanyak n faktor dan didefinisikan sebagai perkalian berulang. Bilangan berpangkat atau disebut juga eksponen didefinisikan sebagai berikut.
+Sifat-sifat eksponen: a^m . a^n = a^{m+n} dan a^m / a^n = a^{m-n}.
+Fungsi eksponensial f(x) = 3^x menggambarkan penularan virus dan penyebaran hoaks di mana setiap orang menulari 3 orang pada fase berikutnya.
+TEXT;
+
+        $quiz = $processor->generateHeuristicQuizQuestions($mathMaterial, 'MTK', 'Matematika', 10);
+        $this->assertCount(10, $quiz);
+
+        foreach ($quiz as $q) {
+            foreach ($q['options'] as $opt) {
+                $this->assertNotSame('Berikut', trim($opt['text']));
+                $this->assertNotSame('Sebagai berikut', trim($opt['text']));
+            }
+        }
+
+        $challenges = $processor->generateHeuristicTeacherChallengeSuggestions($mathMaterial, 'MTK', 'Matematika');
+        $this->assertCount(5, $challenges);
+        $this->assertStringContainsString('a^n', $challenges[0]['question']);
+        $this->assertStringContainsString('a^m', $challenges[1]['question']);
+    }
+
+    public function test_multibyte_ellipsis_and_safe_utf8_regex_compilation(): void
+    {
+        $mockModel = Mockery::mock(LanguageModel::class);
+        $mockModel->shouldReceive('isConfigured')->andReturn(false);
+        $processor = new DocumentAiProcessor($mockModel);
+
+        $mathWithEllipsis = <<<'TEXT'
+Pola barisan bilangan: 4, 6, 8, 10, …
+Jika diamati lebih teliti, suku berikutnya bertambah 2 secara teratur.
+Rumus suku ke-n barisan aritmetika adalah U_n = a + (n - 1)b.
+Pada baris ke-4: U_4 = 20 + (… × 4) = 36 kursi.
+Jadi, pada baris ke-5 diperoleh jumlah kursi bertambah sesuai pola.
+TEXT;
+
+        $quiz = $processor->generateHeuristicQuizQuestions($mathWithEllipsis, 'Barisan', 'Matematika', 10);
+        $this->assertCount(10, $quiz);
+
+        $challenges = $processor->generateHeuristicTeacherChallengeSuggestions($mathWithEllipsis, 'Barisan', 'Matematika');
+        $this->assertCount(5, $challenges);
+    }
+
+    public function test_domain_6_barisan_dan_deret_aritmetika_questions_and_challenges(): void
+    {
+        $mockModel = Mockery::mock(LanguageModel::class);
+        $mockModel->shouldReceive('isConfigured')->andReturn(false);
+        $processor = new DocumentAiProcessor($mockModel);
+
+        $seqText = <<<'TEXT'
+Tujuan Pembelajaran
+Setelah mempelajari bab ini, diharapkan kamu dapat menyelesaikan permasalahan kehidupan sehari-hari yang berkaitan dengan barisan dan deret.
+Barisan dan deret sangat erat kaitannya dengan konsep pola bilangan yang telah kamu pelajari pada jenjang SMP.
+Barisan bilangan dapat dinyatakan dalam bentuk U1, U2, U3, ..., Un.
+Rumus umum menentukan suku ke-n pada barisan aritmetika adalah Un = a + (n - 1)b di mana a adalah suku pertama dan b adalah beda.
+Beda pada barisan aritmetika dinyatakan dengan b = Un - U(n-1).
+Eksplorasi Gedung Pertunjukan Seni: Baris ke-1 = 20, Baris ke-2 = 24, Baris ke-3 = 28, Baris ke-4 = 32, Baris ke-5 = 36 kursi.
+Tabungan Rudi: U5 = 70.000 dengan rumus a + 4b = 70.000.
+TEXT;
+
+        $quiz = $processor->generateHeuristicQuizQuestions($seqText, 'p014', 'MATEMATIKA', 10);
+        $this->assertCount(10, $quiz);
+
+        foreach ($quiz as $q) {
+            $this->assertNotEmpty($q['question']);
+            $this->assertCount(4, $q['options']);
+            foreach ($q['options'] as $opt) {
+                $text = trim($opt['text']);
+                $this->assertFalse(str_ends_with($text, ' yang'), "Option should not end with 'yang': {$text}");
+                $this->assertFalse(str_starts_with($text, 'Setelah mempelajari bab'), "Option should not be learning objective boilerplate: {$text}");
+                $this->assertFalse(str_contains($text, 'Peta Materi'), "Option should not contain Peta Materi: {$text}");
+            }
+        }
+
+        $challenges = $processor->generateHeuristicTeacherChallengeSuggestions($seqText, 'p014', 'MATEMATIKA');
+        $this->assertCount(5, $challenges);
+        $this->assertStringContainsString('U_n', $challenges[1]['question']);
+        $this->assertStringContainsString('gedung pertunjukan', $challenges[2]['question']);
+        $this->assertStringContainsString('Rudi', $challenges[3]['question']);
+    }
+
+    public function test_domain_6_barisan_geometri_and_quiz_count_expansion_to_15(): void
+    {
+        $mockModel = Mockery::mock(LanguageModel::class);
+        $mockModel->shouldReceive('isConfigured')->andReturn(false);
+        $processor = new DocumentAiProcessor($mockModel);
+
+        $geoText = <<<'TEXT'
+2. Barisan Geometri
+Lima anak berbagi kue dengan aturan berikut: rasio kue adalah setengah.
+Rasio adalah hal yang penting dalam Barisan Geometri.
+Rumus umum menentukan suku ke-n pada barisan geometri adalah Un = a * r^(n-1).
+Contoh 3: Suku pertama adalah 4 dan suku ke-4 adalah 108. Rasio adalah 3.
+Contoh 4: Seutas tali dibagi menjadi 5 bagian: potongan terpendek a = 16 cm dan terpanjang U5 = 81 cm.
+Pembelahan bakteri: satu sel membelah menjadi 3 setiap 2 jam.
+TEXT;
+
+        $quiz = $processor->generateHeuristicQuizQuestions($geoText, 'PO14', 'MATEMATIKA', 15);
+        $this->assertCount(15, $quiz);
+
+        $geoKeywordsFound = 0;
+        foreach ($quiz as $q) {
+            $this->assertNotEmpty($q['question']);
+            $this->assertCount(4, $q['options']);
+            if (str_contains(mb_strtolower($q['question']), 'geometri') || str_contains(mb_strtolower($q['question']), 'rasio') || str_contains(mb_strtolower($q['question']), 'bakteri')) {
+                $geoKeywordsFound++;
+            }
+        }
+        $this->assertGreaterThanOrEqual(5, $geoKeywordsFound);
+    }
+
+    public function test_document_model_max_recommended_quiz_questions_and_ideal_recommendation(): void
+    {
+        $shortDoc = new \App\Models\Document(['body' => str_repeat('Teks materi ringkas barisan. ', 100)]); // ~3000 chars
+        $this->assertEquals(15, $shortDoc->maxRecommendedQuizQuestions());
+        $this->assertEquals(10, $shortDoc->idealRecommendedQuizQuestions());
+
+        $medDoc = new \App\Models\Document(['body' => str_repeat('Teks materi sedang modul barisan aritmetika. ', 200)]); // ~8800 chars
+        $this->assertEquals(25, $medDoc->maxRecommendedQuizQuestions());
+        $this->assertEquals(15, $medDoc->idealRecommendedQuizQuestions());
+
+        $longDoc = new \App\Models\Document(['body' => str_repeat('Teks materi panjang bab lengkap barisan dan deret buku matematika siswa. ', 300)]); // ~21000 chars
+        $this->assertEquals(50, $longDoc->maxRecommendedQuizQuestions());
+        $this->assertEquals(20, $longDoc->idealRecommendedQuizQuestions());
+    }
+
+    public function test_domain_4a_wayang_and_domain_4b_kebahasaan_separation_without_cross_contamination(): void
+    {
+        $processor = app(\App\Services\AI\DocumentAiProcessor::class);
+
+        $wayangText = <<<'TEXT'
+Kamu pasti pernah mendapat tugas membuat teks laporan hasil observasi atau pengamatan.
+Wayang adalah seni pertunjukan yang telah ditetapkan sebagai warisan budaya asli Indonesia.
+UNESCO menetapkan wayang sebagai pertunjukan bayangan boneka tersohor dari Indonesia.
+Para wali di Jawa sudah membagi wayang menjadi tiga: wayang kulit di timur, wayang wong di Jawa Tengah, dan wayang golek di Jawa Barat.
+Wayang purwa terdiri atas beberapa gaya atau gagrak. Ada juga wayang suket dan wayang motekar.
+TEXT;
+
+        $kebahasaanText = <<<'TEXT'
+C. Menganalisis Kebahasaan Teks Laporan Hasil Observasi
+Setelah mempelajari materi ini, kamu diharapkan mampu menganalisis kebahasaan teks laporan hasil observasi dan membenahi kesalahan berbahasa.
+Jenis kata dan kelompok kata (frasa) yang dominan digunakan dalam teks laporan hasil observasi adalah verba (kata kerja) dan nomina (kata benda).
+Kata berbentuk morfem bebas, yaitu satuan bahasa terkecil yang bersifat bebas. Frasa merupakan gabungan beberapa unsur namun nonpredikatif.
+Afiksasi: kata dasar dapat berubah jenis jika mendapat imbuhan, misalnya kata minum (verba) mendapat imbuhan -an menjadi minuman (nomina).
+Kata dasar berubah menjadi verba jika mendapat me(N)-, be(R)-, di-, ter-.
+TEXT;
+
+        $unrelatedLhoText = <<<'TEXT'
+Teks laporan hasil observasi tentang ekosistem terumbu karang di perairan tropis Indonesia.
+Terumbu karang merupakan sekumpulan hewan karang yang bersimbiosis dengan zooxanthellae.
+Struktur terumbu karang membentuk habitat penting bagi ribuan spesies ikan dan biota laut lainnya.
+TEXT;
+
+        // 1. Wayang Text
+        $wayangQuiz = $processor->generateQuizQuestions($wayangText, 'BS', 'Bahasa Indonesia', 10);
+        $this->assertNotEmpty($wayangQuiz);
+        $this->assertTrue(str_contains(mb_strtolower($wayangQuiz[0]['question']), 'wayang'));
+
+        $wayangTc = $processor->generateStructuredTeacherChallenges($wayangText, 'BS', 'Bahasa Indonesia');
+        $this->assertNotNull($wayangTc);
+        $hasWayangChallenge = false;
+        foreach ($wayangTc as $tc) {
+            if (str_contains(mb_strtolower($tc['question']), 'wayang')) {
+                $hasWayangChallenge = true;
+            }
+        }
+        $this->assertTrue($hasWayangChallenge);
+
+        // 2. Kebahasaan Text (BS2)
+        $kebahasaanQuiz = $processor->generateQuizQuestions($kebahasaanText, 'BS2', 'Bahasa Indonesia', 10);
+        $this->assertNotEmpty($kebahasaanQuiz);
+        $this->assertFalse(str_contains(mb_strtolower($kebahasaanQuiz[0]['question']), 'wayang'));
+        $this->assertTrue(
+            str_contains(mb_strtolower($kebahasaanQuiz[0]['question']), 'verba')
+            || str_contains(mb_strtolower($kebahasaanQuiz[0]['question']), 'frasa')
+            || str_contains(mb_strtolower($kebahasaanQuiz[0]['question']), 'kebahasaan')
+        );
+
+        $kebahasaanTc = $processor->generateStructuredTeacherChallenges($kebahasaanText, 'BS2', 'Bahasa Indonesia');
+        $this->assertNotNull($kebahasaanTc);
+        foreach ($kebahasaanTc as $tc) {
+            $this->assertFalse(str_contains(mb_strtolower($tc['question']), 'unesco'), 'Kebahasaan challenges must not contain wayang UNESCO references');
+            $this->assertFalse(str_contains(mb_strtolower($tc['question']), 'wayang golek'));
+        }
+
+        // 3. Unrelated LHO Text
+        $unrelatedTc = $processor->generateStructuredTeacherChallenges($unrelatedLhoText, 'LHO Karang', 'Bahasa Indonesia');
+        $this->assertNull($unrelatedTc, 'Unrelated LHO should not trigger wayang or kebahasaan structured challenges');
+    }
+
+    public function test_sparse_slide_outline_is_automatically_expanded_into_structured_reading_with_diverse_questions(): void
+    {
+        $mockModel = Mockery::mock(LanguageModel::class);
+        $mockModel->shouldReceive('isConfigured')->andReturn(false);
+
+        $processor = new DocumentAiProcessor($mockModel);
+
+        $sparseSlideText = <<<TEXT
+❖ Kapan bahasa Indonesia lahir, bagaimana proses kelahirannya, dan peristiwa-peristiwa apa saja yang melatarbelakanginya?
+❖ Lahirnya bahasa Indonesia tentu bukanlah hal yang mudah, pasti penuh tantangan, pemikiran, dan perjuangan keras.
+❖ Bahasa Indonesia diresmikan penggunaannya satu hari setelah Proklamasi Kemerdekaan Indonesia, tepatnya pada tanggal 18 Agustus 1945, bersamaan dengan mulai berlakunya Undang-undang Dasar Republik Indonesia 1945.
+Naskah Melayu kuno dengan pengaruh Arab
+Sumber: aperofublic.com Sumber: bersamawisata.com
+TEXT;
+
+        $this->assertTrue($processor->isSparseOutline($sparseSlideText));
+
+        $result = $processor->process($sparseSlideText, 'pkn', 'BAHASA INDONESIA');
+
+        // Harus dielaborasi menjadi teks komprehensif berbobot akademis (> 250 kata / > 1000 karakter)
+        $this->assertGreaterThan(200, str_word_count($result['cleaned_body']));
+        $this->assertGreaterThan(1000, mb_strlen($result['cleaned_body']));
+        $this->assertStringContainsString('TUJUAN PEMBELAJARAN', $result['cleaned_body']);
+        $this->assertStringContainsString('18 Agustus 1945', $result['cleaned_body']);
+        $this->assertStringNotContainsString('aperofublic.com', $result['cleaned_body']);
+
+        // Excerpt harus informatif dan bukan pertanyaan retoris
+        $this->assertNotEmpty($result['excerpt']);
+        $this->assertFalse(str_ends_with(trim($result['excerpt']), '?'));
+
+        // 10 Soal Kuis dan 5 Tantangan Guru terdistribusi rapi
+        $this->assertCount(10, $result['quiz_questions']);
+        $this->assertCount(5, $result['teacher_challenges']);
+    }
+
+    public function test_normal_long_document_preserves_100_percent_verbatim_content(): void
+    {
+        $mockModel = Mockery::mock(LanguageModel::class);
+        $mockModel->shouldReceive('isConfigured')->andReturn(false);
+
+        $processor = new DocumentAiProcessor($mockModel);
+
+        $longText = str_repeat("Ini adalah kalimat materi lengkap buku teks yang wajib dipertahankan seutuhnya tanpa pemotongan. ", 30);
+
+        $this->assertFalse($processor->isSparseOutline($longText));
+
+        $result = $processor->process($longText, 'Buku Siswa Bab 3', 'Bahasa Indonesia');
+
+        // Teks materi asli wajib dipertahankan
+        $this->assertStringContainsString('Ini adalah kalimat materi lengkap buku teks', $result['cleaned_body']);
+        $this->assertCount(10, $result['quiz_questions']);
+    }
+
+    public function test_glued_words_in_quiz_and_challenges_are_restored(): void
+    {
+        $formatter = app(\App\Services\ReadingMaterialFormatter::class);
+
+        $gluedSentence = 'Proposaladalahrancangankegiatanyangdituangkandalambentuktulisanmenjelaskantujuan, latarbelakang, danrencanapelaksanaan';
+        $cleaned = $formatter->restoreMissingSpaces($gluedSentence);
+
+        $this->assertStringContainsString('Proposal adalah', $cleaned);
+        $this->assertStringContainsString('rancangan kegiatan', $cleaned);
+        $this->assertStringContainsString('dituangkan dalam', $cleaned);
+        $this->assertStringContainsString('bentuk tulisan', $cleaned);
+        $this->assertStringContainsString('menjelaskan tujuan', $cleaned);
+        $this->assertStringContainsString('latar belakang', $cleaned);
+
+        $optionWithGlued = 'Menemukan pengetahuan baru, membuktikanteori, atau memecahkan masalah';
+        $cleanedOpt = $formatter->restoreMissingSpaces($optionWithGlued);
+        $this->assertStringContainsString('membuktikan teori', $cleanedOpt);
+
+        $studiWithGlued = 'Melakukanstu di pustaka untuk menemukancelah penelitian';
+        $cleanedStudi = $formatter->restoreMissingSpaces($studiWithGlued);
+        $this->assertStringContainsString('Melakukan studi pustaka', $cleanedStudi);
+        $this->assertStringContainsString('menemukan celah penelitian', $cleanedStudi);
+    }
 }

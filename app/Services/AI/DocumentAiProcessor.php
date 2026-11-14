@@ -25,6 +25,21 @@ class DocumentAiProcessor
     }
 
     /**
+     * Mendeteksi apakah materi yang diunggah berupa poin slide presentasi / catatan ringkas (< 120 kata atau < 650 karakter).
+     */
+    public function isSparseOutline(string $text): bool
+    {
+        $clean = trim($text);
+        if ($clean === '') {
+            return true;
+        }
+        $wordCount = preg_match_all('/[\p{L}\p{N}]+/u', $clean, $words) ? count($words[0]) : 0;
+        $charCount = mb_strlen($clean);
+
+        return $wordCount < 120 || $charCount < 650;
+    }
+
+    /**
      * @return array{
      *     cleaned_body: string,
      *     excerpt: string,
@@ -35,17 +50,37 @@ class DocumentAiProcessor
     public function process(string $rawText, string $title, ?string $category = null): array
     {
         $cleanedFullBody = $this->cleanText($rawText);
+        $isSparse = $this->isSparseOutline($cleanedFullBody);
 
         if ($this->languageModel->isConfigured()) {
             @set_time_limit(180);
             try {
-                $aiResult = $this->processWithAi($cleanedFullBody, $title, $category);
+                $aiResult = $this->processWithAi($cleanedFullBody, $title, $category, $isSparse);
                 if ($aiResult !== null) {
-                    // Jangan pernah membiarkan AI memotong atau meringkas isi teks materi asli
-                    $aiBodyLen = mb_strlen(trim((string) ($aiResult['cleaned_body'] ?? '')));
+                    $aiBody = trim((string) ($aiResult['cleaned_body'] ?? ''));
+                    $aiBodyLen = mb_strlen($aiBody);
                     $fullLen = mb_strlen(trim($cleanedFullBody));
-                    if ($aiBodyLen < (int) ($fullLen * 0.85)) {
-                        $aiResult['cleaned_body'] = $cleanedFullBody;
+
+                    if ($isSparse) {
+                        // Untuk outline slide presentasi, terima teks bacaan jika AI menyediakannya
+                        if ($aiBodyLen > 0) {
+                            $aiResult['cleaned_body'] = $this->formatter->format($aiBody);
+                        } else {
+                            $aiResult['cleaned_body'] = $this->formatter->expandSparseSlideOutline($cleanedFullBody, $title, $category);
+                        }
+                    } else {
+                        // Jangan pernah membiarkan AI memotong atau meringkas isi teks materi asli
+                        if ($aiBodyLen < (int) ($fullLen * 0.85)) {
+                            $aiResult['cleaned_body'] = $cleanedFullBody;
+                        } else {
+                            $aiResult['cleaned_body'] = $this->formatter->format($aiResult['cleaned_body']);
+                        }
+                    }
+
+                    // Pastikan excerpt bukan pertanyaan retoris
+                    $aiExcerpt = trim((string) ($aiResult['excerpt'] ?? ''));
+                    if ($aiExcerpt === '' || str_ends_with($aiExcerpt, '?') || preg_match('/^(?:apa|kapan|bagaimana|mengapa|apakah|siapakah)\b/iu', $aiExcerpt)) {
+                        $aiResult['excerpt'] = $this->generateHeuristicExcerpt($aiResult['cleaned_body'], $title);
                     }
 
                     return $aiResult;
@@ -58,7 +93,7 @@ class DocumentAiProcessor
             }
         }
 
-        return $this->processWithHeuristics($cleanedFullBody, $title, $category);
+        return $this->processWithHeuristics($cleanedFullBody, $title, $category, $isSparse);
     }
 
     /**
@@ -124,49 +159,65 @@ class DocumentAiProcessor
      *     quiz_questions: array<int, array{sequence: int, question: string, options: array<int, array{key: string, text: string}>, correct_answer: string, explanation: string}>
      * }|null
      */
-    protected function processWithAi(string $formattedBody, string $title, ?string $category = null): ?array
+    protected function processWithAi(string $formattedBody, string $title, ?string $category = null, bool $isSparse = false): ?array
     {
-        $sampleText = $this->buildFullCoverageContext($formattedBody, 18000);
+        $sampleText = $this->buildFullCoverageContext($formattedBody, 9000);
+
+        $sparseSchema = $isSparse
+            ? "  \"cleaned_body\": \"Teks pembelajaran yang SANGAT LENGKAP, MENDALAM, DAN DETAIL (minimal 700-1200 kata) yang mengupas tuntas seluruh aspek materi: latar belakang historis/konseptual, dinamika proses, tokoh/landasan yuridis, perbandingan/struktur detail, hingga implikasi praktis dan relevansi masa kini. Wajib diawali judul materi, dilanjutkan '### TUJUAN PEMBELAJARAN', lalu 4-6 subjudul bernomor (### 1. ..., ### 2. ..., dst.) yang kaya penjelasan akademis,\",\n"
+            : '';
+
+        $sparseRule = $isSparse
+            ? "\n5. ATURAN KHUSUS EXPAND MATERI DETAIL & LENGKAP:\n   - Materi yang diunggah berupa poin slide presentasi/outline (< 120 kata). Guru dan siswa membutuhkan bahan bacaan yang SANGAT DETAIL, UTUH, DAN MENDALAM layaknya bab modul ajar lengkap.\n   - Kamu WAJIB menyusun teks bacaan lengkap pada field 'cleaned_body' (minimal 700-1200 kata) secara komprehensif, mengalir, dan mendalam dengan 4-6 subjudul bernomor (### 1. ..., ### 2. ..., dst.) berdasarkan topik '{$title}' dan mata pelajaran '{$category}'.\n   - Seluruh 10 soal kuis pilihan ganda (quiz_questions) dan 5 butir esai analitis (questions) WAJIB disusun berdasarkan teks bacaan lengkap yang kamu kembangkan tersebut agar terdistribusi merata ke seluruh subtopik."
+            : '';
 
         $instructions = <<<INSTRUCTIONS
-Kamu adalah Kurator Literasi & Asesor Berpikir Kritis Taksonomi Bloom SocratesRead AI.
-Tugasmu adalah membaca KESELURUHAN isi materi bacaan (dari paragraf awal hingga penutup) lalu menyusun soal esai & kuis yang valid, kritis, serta kunci jawaban akurat.
+PENTING: LANGSUNG mulai output dengan karakter '{' tanpa salam, kata pengantar, analisis, atau monolog pembuka. Jawab HANYA dalam format JSON valid.
+
+Kamu adalah Kurator Literasi & Asesor Berpikir Kritis Taksonomi Bloom SocratesRead AI (setara standar tinggi Challenge Socrates).
+Tugasmu adalah membaca KESELURUHAN isi materi bacaan (dari paragraf awal hingga penutup) lalu menyusun intisari materi, tepat 5 soal esai penalaran kritis analitis HOTS (Bloom C3–C5), serta 10 butir soal kuis pilihan ganda berbasis skenario/studi kasus nyata.
 
 Format output WAJIB HANYA berupa JSON valid tanpa teks lain:
 {
-  "cleaned_body": "teks materi lengkap jika dirapikan (jangan dipotong/diringkas), atau kosongkan string jika teks sudah rapi",
-  "excerpt": "Ringkasan intisari materi 2-3 kalimat yang padat dan jelas...",
+{$sparseSchema}  "excerpt": "Ringkasan intisari materi 2-3 kalimat yang padat dan jelas...",
   "questions": [
     {
       "s": "C4 Menganalisis",
       "d": "easy",
-      "q": "Pertanyaan memakai kata kerja operasional Bloom (C1-C5) dan TIDAK menyalin paragraf utuh",
+      "q": "Pertanyaan esai analitis mendalam (Bloom C3–C5) tanpa awalan klise 'Berdasarkan teks...'",
       "c": "Konteks singkat atau fokus pemikiran yang membantu siswa mengarahkan jawaban",
-      "h": "Kunci jawaban model berparafrase rapi (diambil dari paragraf yang benar-benar menjawab 'q', 100% langsung menjawab setiap poin pertanyaan)",
-      "r": "Kutipan kalimat asli dari paragraf materi yang menjadi bukti langsung kunci jawaban"
+      "h": "Kunci jawaban model yang komprehensif, akurat, dan substantif (2-4 kalimat) yang benar-benar menjawab tuntas seluruh aspek pertanyaan sesuai fakta materi.",
+      "r": "Kutipan kalimat asli dari teks materi yang menjadi rujukan bukti langsung kunci jawaban."
     }
   ],
   "quiz_questions": [
     {
-      "q": "Pertanyaan PG dengan kata kerja Bloom (C1 Mengingat, C2 Memahami, C3 Menerapkan, C4 Menganalisis, C5 Mengevaluasi) tanpa menyalin paragraf utuh?",
-      "a": "Pilihan A (ringkas, sejenis, masuk akal)",
-      "b": "Pilihan B (ringkas, sejenis, masuk akal)",
-      "c": "Pilihan C (ringkas, sejenis, masuk akal)",
-      "d": "Pilihan D (ringkas, sejenis, masuk akal)",
+      "q": "Pertanyaan PG berbobot kritis (skenario kasus / perbandingan konsep / evaluasi keputusan / analisis aturan) tanpa menyalin kalimat mentah?",
+      "a": "Pilihan A (ringkas, satu kategori, masuk akal)",
+      "b": "Pilihan B (ringkas, satu kategori, masuk akal)",
+      "c": "Pilihan C (ringkas, satu kategori, masuk akal)",
+      "d": "Pilihan D (ringkas, satu kategori, masuk akal)",
       "k": "A",
-      "e": "Penjelasan lengkap MENGAPA pilihan tersebut benar berdasarkan paragraf sumber di materi."
+      "e": "Penjelasan lengkap ringkas 1-2 kalimat MENGAPA pilihan tersebut benar berdasarkan fakta materi."
     }
   ]
 }
 
 ATURAN KETAT:
-1. questions: Wajib 5 butir esai berjenjang Taksonomi Bloom C1 sampai C5 (urutan: C1/C2 Mengingat-Memahami [easy], C2 Memahami [easy], C3 Menerapkan [medium], C4 Menganalisis [medium], C5 Mengevaluasi [hard]).
-   - Gunakan kata kerja Bloom tepat (Identifikasi/Jelaskan/Terapkan/Analisis/Evaluasi) dan DILARANG menyalin paragraf utuh sebagai soal maupun mengawali dengan "Berdasarkan teks materi...".
-   - Field "h" (kunci jawaban) WAJIB bersumber dari paragraf yang benar-benar menjawab "q", diparafrase rapi dan langsung menjawab inti pertanyaan secara lengkap.
-2. quiz_questions: Wajib 10 butir pilihan ganda yang tersebar merata (awal–akhir bacaan) dan mencakup tingkat Bloom C1 sampai C5 (termasuk minimal 2 soal C5 Mengevaluasi).
-   - Soal TIDAK boleh menyalin paragraf/kalimat utuh; opsi jawaban harus ringkas (bukan potongan acak/daftar pustaka/topik lain) dan seluruh pengecoh harus masuk akal serta satu kategori dengan kunci jawaban.
-   - DILARANG membuat soal dari tujuan pembelajaran ("Menjelaskan pengertian...") atau daftar pustaka.
+1. questions: Wajib tepat 5 butir esai analitis HOTS Taksonomi Bloom C3 sampai C5 (urutan: Soal 1 C3 mudah, Soal 2 C4 sedang, Soal 3 C4 sedang, Soal 4 C4/C5 sulit, Soal 5 C5 sulit evaluasi).
+   - DILARANG membuat soal hafalan definisi dangkal ("Jelaskan konsep utama...", "Apa pengertian...").
+   - Soal harus menguji pemahaman mendalam, korelasi antar-bagian, implikasi kaidah, atau pemecahan dilema.
+   - Field "h" (kunci jawaban) WAJIB berupa uraian jawaban model yang lengkap dan logis, BUKAN daftar pustaka, nama pengarang, atau instruksi guru.
+2. quiz_questions: Wajib 10 butir pilihan ganda berjenjang Taksonomi Bloom C1 sampai C5 (termasuk minimal 2 soal C5 Mengevaluasi):
+   - Soal harus menantang penalaran kritis: sajikan kasus nyata, evaluasi kesalahan penerapan, atau analisis komparasi.
+   - DILARANG menyalin kalimat mentah dari materi ke soal atau opsi pilihan.
+   - Keempat opsi (a, b, c, d) wajib berada dalam satu kelompok kategori yang seimbang, masuk akal, dan menggunakan Bahasa Indonesia baku yang wajar (DILARANG potongan kata rusak/tabel).
 3. Kunci 'k' adalah tepat satu huruf: A, B, C, atau D.
+4. ATURAN WAJIB SOAL BERBASIS KASUS / CERITA / PARAGRAF:
+   - DILARANG KERAS menggunakan kata rujukan buta seperti "pada teks di atas", "dalam cerita di atas", atau "pada bacaan ini" tanpa menyertakan teksnya.
+   - Jika pertanyaan menganalisis penggalan teks, cerita, draf yang salah, atau kasus tertentu: KUTIPAN TEKS TERSEBUT WAJIB DISERTAKAN LANGSUNG di dalam kalimat pertanyaan (misal: 'Perhatikan cuplikan berikut: "[kutipan]". Berdasarkan cuplikan tersebut, analisislah...') atau dituliskan lengkap pada field "c" (context) agar soal berdiri sendiri (self-contained) dan jelas bagi siswa.
+   - Jika materi Matematika / Sains, gunakan notasi rumus LaTeX standar ($...$) agar sistem merender simbol matematika secara rapi.
+{$sparseRule}
 INSTRUCTIONS;
 
         $messages = [
@@ -177,18 +228,18 @@ INSTRUCTIONS;
         ];
 
         $rawResponse = $this->languageModel->respond($messages, $instructions, [
-            'temperature' => 0.1,
-            'max_output_tokens' => 4500,
+            'temperature' => 0.15,
+            'max_output_tokens' => 5200,
             'timeout' => 120,
         ]);
 
         $parsed = $this->decodeJsonObject($rawResponse);
-        if (! is_array($parsed) || (empty($parsed['cleaned_body']) && empty($parsed['questions']) && empty($parsed['quiz_questions']))) {
+        if (! is_array($parsed) || (empty($parsed['excerpt']) && empty($parsed['questions']) && empty($parsed['quiz_questions']))) {
             return null;
         }
 
         $aiCleaned = trim((string) ($parsed['cleaned_body'] ?? ''));
-        $finalBody = $aiCleaned !== '' ? $aiCleaned : $formattedBody;
+        $finalBody = $aiCleaned !== '' ? $this->formatter->format($aiCleaned) : $formattedBody;
 
         $defaultEssaySkills = [
             1 => 'Pengertian & Konsep Utama',
@@ -220,6 +271,16 @@ INSTRUCTIONS;
                     $formattedBody,
                     $title
                 );
+
+                // Jika pertanyaan memiliki rujukan buta "di atas", sertakan cuplikan teks rujukan secara mandiri
+                if (preg_match('/\b(?:teks(?:\s+laporan\s+hasil\s+observasi)?\s+di\s+atas|cerita\s+di\s+atas|bacaan\s+di\s+atas)\b/iu', $prompt) && ! str_contains($prompt, '"')) {
+                    $refExcerpt = trim((string) ($validatedEssay['reference_excerpt'] ?? ''));
+                    if ($refExcerpt !== '' && mb_strlen($refExcerpt) >= 30) {
+                        $prompt = "Perhatikan cuplikan teks berikut:\n\"" . mb_substr($refExcerpt, 0, 220) . "...\"\n\n" . preg_replace('/\b(?:di atas)\b/iu', 'tersebut', $prompt);
+                    } else {
+                        $prompt = preg_replace('/\b(?:di atas)\b/iu', 'pada materi bacaan ini', $prompt) ?? $prompt;
+                    }
+                }
 
                 $questions[] = [
                     'sequence' => $seq,
@@ -308,10 +369,25 @@ INSTRUCTIONS;
             }
         }
 
+        $teacherChallenges = [];
+        foreach ($questions as $q) {
+            $diff = $q['difficulty'] ?? 'medium';
+            $teacherChallenges[] = [
+                'type' => 'essay',
+                'question' => $q['prompt'],
+                'context' => null,
+                'rubric' => $q['hint'],
+                'reference_excerpt' => $this->compactReferenceExcerpt((string) ($q['reference_excerpt'] ?? $q['hint'])),
+                'difficulty' => $diff,
+                'difficulty_weight' => TeacherChallenge::weightForDifficulty($diff),
+            ];
+        }
+
         return [
             'cleaned_body' => $finalBody,
             'excerpt' => (string) ($parsed['excerpt'] ?? $this->generateHeuristicExcerpt($formattedBody, $title)),
             'questions' => $questions,
+            'teacher_challenges' => $teacherChallenges,
             'quiz_questions' => $quizQuestions,
         ];
     }
@@ -326,37 +402,50 @@ INSTRUCTIONS;
     {
         $formattedBody = $this->cleanText($body);
 
+        $structured = $this->generateStructuredTeacherChallenges($formattedBody, $title, $category);
+        if (! empty($structured)) {
+            return $structured;
+        }
+
         if ($this->languageModel->isConfigured()) {
             @set_time_limit(180);
             try {
-                $sampleText = $this->buildFullCoverageContext($formattedBody, 18000);
+                $sampleText = $this->buildFullCoverageContext($formattedBody, 9000);
                 $instructions = <<<INSTRUCTIONS
-Kamu adalah Perancang Soal Berpikir Kritis Taksonomi Bloom (C1–C5) SocratesRead AI.
-Tugasmu: baca KESELURUHAN isi materi dari paragraf awal hingga akhir, lalu buat tepat 5 rekomendasi soal ESAI yang mengikuti kata kerja operasional Taksonomi Bloom C1 sampai C5 dan menguji penalaran kritis siswa.
+Kamu adalah Perancang Soal Berpikir Kritis Taksonomi Bloom (C3–C5) SocratesRead AI (setara standar tinggi Challenge Socrates).
+Tugasmu: baca KESELURUHAN isi materi dari awal hingga akhir, lalu buat tepat 5 rekomendasi soal ESAI penalaran kritis tinggi (Higher-Order Thinking Skills / HOTS) yang menguji pemahaman mendalam, perbandingan konsep, evaluasi aturan/konsekuensi, dan pemecahan kasus nyata.
 
 Format output WAJIB HANYA berupa JSON array valid:
 [
   {
-    "bloom_level": "C1",
+    "bloom_level": "C3",
     "difficulty": "easy",
-    "question": "Pertanyaan memakai templat kata kerja Bloom yang tepat, TIDAK menyalin paragraf utuh, dan tanpa awalan 'Berdasarkan teks materi...'",
-    "rubric": "Kunci jawaban model berparafrase rapi yang diambil dari paragraf sumber yang BENAR-BENAR menjawab seluruh poin pada 'question'",
-    "reference_excerpt": "Kutipan kalimat asli dari paragraf sumber yang menjadi bukti langsung kunci jawaban"
+    "question": "Pertanyaan esai analitis mendalam yang menguji alasan mendasar atau logika aturan konsep tanpa awalan 'Berdasarkan teks...'",
+    "rubric": "Kunci jawaban model yang komprehensif, akurat, dan substantif (2-4 kalimat) yang benar-benar menjawab tuntas seluruh aspek pertanyaan sesuai fakta materi.",
+    "reference_excerpt": "Kutipan 1 kalimat asli terpenting dari materi bacaan (15-25 kata) yang membuktikan kebenaran kunci jawaban secara langsung dan ringkas."
   }
 ]
 
 ATURAN WAJIB:
-1. WAJIB BERJENJANG TAKSONOMI BLOOM C1–C5: Gunakan kata kerja operasional Bloom yang tepat pada setiap nomor:
-   - Soal 1 — C1/C2 (Mengingat & Memahami, "easy"): Identifikasi & jelaskan gagasan inti serta alasan batasannya.
-   - Soal 2 — C2/C3 (Memahami & Menerapkan, "medium"): Bandingkan atau jelaskan penerapan konsep/kedudukan pada konteks nyata.
-   - Soal 3 — C4 (Menganalisis, "medium"): Analisis unsur, perbedaan, landasan aturan, atau keterkaitan sebab-akibat.
-   - Soal 4 — C3/C4 (Menerapkan & Menganalisis Kasus, "hard"): Terapkan konsep untuk memulihkan atau memecahkan masalah di sekolah/masyarakat.
-   - Soal 5 — C5 (Mengevaluasi, "hard"): Wajib menggunakan kata kerja Mengevaluasi/Nilai/Kritisi konsekuensi jangka panjang atau dilema di era digital/masyarakat.
-2. DILARANG MENYALIN PARAGRAF UTUH KE SOAL: Soal harus ringkas, berfokus pada konsep patokan yang jelas (DILARANG memakai singkatan samar seperti "topik TBB"), dan tidak mengulang kalimat panjang mentah dari bacaan.
-3. KUNCI DARI PARAGRAF PENJAWAB: Pastikan "rubric" benar-benar menjawab apa yang ditanyakan pada "question" (bukan sekadar ringkasan acak, label "Kedudukan: ...", atau daftar tujuan pembelajaran/pustaka).
-4. DILARANG memakai frasa canggung seperti "Berdasarkan teks materi...", "Menurut bacaan di atas...", atau menambahkan field "context".
-5. Field "reference_excerpt" WAJIB berupa kutipan kalimat asli dari paragraf sumber yang tepat mendukung "question" & "rubric".
+1. WAJIB BERJENJANG PENALARAN KRITIS HOTS (C3–C5) - TIDAK BOLEH SOAL HAFALAN/DEFINISI SEDERHANA:
+   - Soal 1 — C3 (Analisis Logika Konsep & Batasan Kaidah, "easy"): Analisis mengapa kaidah inti konsep tersebut harus dipenuhi secara utuh dan dampak logisnya.
+   - Soal 2 — C4 (Komparasi & Analisis Perbedaan Konsep, "medium"): Bandingkan dua konsep utama dalam materi, analisis perbedaan mendasar tujuan/strukturnya, dan tentukan konteks penggunaan yang paling tepat.
+   - Soal 3 — C4 (Analisis Mekanisme, Landasan Aturan/Hukum, atau Hubungan Sebab-Akibat, "medium"): Telaah bagaimana aturan/mekanisme tertentu menjamin keberhasilan atau ketahanan sistem/budaya/kebahasaan.
+   - Soal 4 — C4/C5 (Penerapan Kasus Nyata & Penyelesaian Masalah di Sekolah/Masyarakat, "hard"): Analisis situasi konkret (misalnya pergeseran budaya, era digital, atau kesalahan penerapan) dan bagaimana prinsip materi menjadi solusi.
+   - Soal 5 — C5 (Evaluasi Kritis, Konsekuensi Etis, & Dilema Jangka Panjang, "hard"): Evaluasi mendalam mengenai dampak jangka panjang, tanggung jawab moral/etis, atau pertimbangan kritis di era modern/digital.
+2. DILARANG MEMBUAT SOAL GENERIK/DANGKAL:
+   - DILARANG menggunakan pertanyaan seperti "Jelaskan konsep utama yang dipaparkan pada bagian awal materi...", "Apa yang dimaksud dengan...", atau singkatan samar.
+   - Pertanyaan harus berbobot intelektual tinggi, menantang siswa berpikir dan berargumen, persis seperti Challenge Socrates.
+3. KUNCI JAWABAN (RUBRIC) HARUS AKURAT & SUBSTANTIF:
+   - "rubric" adalah KUNCI JAWABAN YANG BENAR dan lengkap. DILARANG hanya menulis judul buku, nama pengarang, atau instruksi guru ("Menjelaskan pengertian...").
+   - Kunci jawaban harus menguraikan penjelasan yang benar, logis, dan tuntas sesuai isi materi.
+4. DILARANG memakai frasa pembuka klise seperti "Berdasarkan teks materi...", "Menurut bacaan...", dsb.
+5. "reference_excerpt" WAJIB berupa kutipan ringkas 1 kalimat asli materi (15–25 kata) yang membuktikan kebenaran kunci jawaban secara presisi.
 6. Keluarkan HANYA JSON array tanpa markdown/komentar lain.
+7. ATURAN WAJIB SOAL BERBASIS KASUS / CERITA / PARAGRAF:
+   - DILARANG MERUJUK BUTA seperti "pada teks di atas" tanpa menyertakan kutipannya.
+   - Jika pertanyaan menganalisis penggalan cerita, draf yang salah, atau studi kasus: KUTIPAN KASUS/TEKS WAJIB DICANTUMKAN LANGSUNG di dalam kalimat pertanyaan atau di dalam field "context" agar soal mandiri dan jelas bagi siswa.
+   - Jika materi Matematika / Sains, gunakan format rumus LaTeX baku ($...$) agar sistem merender simbol matematika secara rapi.
 INSTRUCTIONS;
 
                 $messages = [
@@ -388,6 +477,16 @@ INSTRUCTIONS;
                             $formattedBody,
                             $title
                         );
+
+                        // Bersihkan rujukan buta "di atas" dengan menyertakan cuplikan teks langsung
+                        if (preg_match('/\b(?:teks(?:\s+laporan\s+hasil\s+observasi)?\s+di\s+atas|cerita\s+di\s+atas|bacaan\s+di\s+atas)\b/iu', $q) && ! str_contains($q, '"')) {
+                            $refExcerpt = trim((string) ($validated['reference_excerpt'] ?? ''));
+                            if ($refExcerpt !== '' && mb_strlen($refExcerpt) >= 30) {
+                                $q = "Perhatikan cuplikan teks berikut:\n\"" . mb_substr($refExcerpt, 0, 220) . "...\"\n\n" . preg_replace('/\b(?:di atas)\b/iu', 'tersebut', $q);
+                            } else {
+                                $q = preg_replace('/\b(?:di atas)\b/iu', 'pada materi bacaan ini', $q) ?? $q;
+                            }
+                        }
                         $diff = strtolower(trim((string) ($item['difficulty'] ?? 'medium')));
                         if (! in_array($diff, ['easy', 'medium', 'hard'], true)) {
                             $diff = 'medium';
@@ -648,7 +747,7 @@ INSTRUCTIONS;
      */
     public function ensureQuizQuestionsForDocument(Document $document, int $targetCount): void
     {
-        $targetCount = min(100, max(5, $targetCount));
+        $targetCount = min(50, max(5, $targetCount));
         $existingQuestions = $document->quizQuestions()->orderBy('sequence')->get();
         $existingCount = $existingQuestions->count();
 
@@ -695,7 +794,25 @@ INSTRUCTIONS;
         }
 
         if (count($toInsert) < $needed) {
-            $poolTarget = min(100, $targetCount + $existingCount + 10);
+            $poolTarget = min(50, max($targetCount, $existingCount + $needed + 5));
+            $structuredItems = $this->generateStructuredKnowledgeQuiz($document->body, $document->title, $document->category, $poolTarget);
+            if (! empty($structuredItems)) {
+                foreach ($structuredItems as $item) {
+                    $qKey = mb_strtolower(trim((string) ($item['question'] ?? '')));
+                    if ($qKey === '' || isset($usedQuestionKeys[$qKey])) {
+                        continue;
+                    }
+                    $usedQuestionKeys[$qKey] = true;
+                    $toInsert[] = $item;
+                    if (count($toInsert) >= $needed) {
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (count($toInsert) < $needed) {
+            $poolTarget = min(50, max($targetCount, $existingCount + $needed + 5));
             $heuristics = $this->generateHeuristicQuizQuestions($document->body, $document->title, $document->category, $poolTarget);
 
             foreach ($heuristics as $item) {
@@ -731,7 +848,12 @@ INSTRUCTIONS;
      */
     public function generateQuizQuestions(string $body, string $title, ?string $category = null, int $count = 10): array
     {
-        $count = min(100, max(5, $count));
+        $count = min(50, max(5, $count));
+
+        $domainQuestions = $this->generateStructuredKnowledgeQuiz($body, $title, $category, $count);
+        if (! empty($domainQuestions) && count($domainQuestions) >= $count) {
+            return array_slice($domainQuestions, 0, $count);
+        }
 
         if ($this->languageModel->isConfigured()) {
             @set_time_limit(180);
@@ -861,9 +983,12 @@ INSTRUCTIONS;
      *     quiz_questions: array<int, array{sequence: int, question: string, options: array<int, array{key: string, text: string}>, correct_answer: string, explanation: string}>
      * }
      */
-    public function processWithHeuristics(string $rawText, string $title, ?string $category = null): array
+    public function processWithHeuristics(string $rawText, string $title, ?string $category = null, bool $isSparse = false): array
     {
         $body = $this->cleanText($rawText);
+        if ($isSparse || $this->isSparseOutline($body)) {
+            $body = $this->formatter->expandSparseSlideOutline($body, $title, $category);
+        }
 
         return [
             'cleaned_body' => $body,
@@ -896,7 +1021,7 @@ INSTRUCTIONS;
             }
             $plain = trim(preg_replace('/[*_`]/u', '', strip_tags($trimRaw)) ?? '');
             $plain = trim(preg_replace('/^(?:[\-\•\*]|\d+[\.\)])\s+/u', '', $plain) ?? '');
-            $plain = trim($plain, "\"“”' ");
+            $plain = preg_replace('/^[\s"“”\']+|[\s"“”\']+$/u', '', $plain) ?? trim($plain);
 
             if ($plain === '' || mb_strlen($plain) < 35) {
                 continue;
@@ -910,11 +1035,20 @@ INSTRUCTIONS;
             if (str_contains($plain, '·') || str_contains($plain, '@')) {
                 continue;
             }
+            // Abaikan pertanyaan retoris atau instruksi tugas di awal bacaan
+            if (str_ends_with($plain, '?') || preg_match('/^(?:apa|kapan|bagaimana|mengapa|apakah|siapakah|mengapakah|kenapa|perhatikan|simak|jawablah|kerjakan)\b/iu', $plain)) {
+                // Kecuali jika baris ini berisi jawaban substantif setelah tanda tanya (misal: "Apa itu X? X adalah...")
+                if (preg_match('/\?\s*([A-Za-z\p{L}].{30,})$/u', $plain, $mAnswer)) {
+                    $plain = trim($mAnswer[1]);
+                } else {
+                    continue;
+                }
+            }
             // Abaikan baris judul/subjudul cover pendek yang tidak diakhiri titik
             if (! preg_match('/[.?!]$/u', $plain) && mb_strlen($plain) < 95) {
                 continue;
             }
-            if (preg_match('/^(?:setelah mengikuti|tujuan pembelajaran|lembar kerja|menjelaskan pengertian|mengidentifikasi kedudukan|menunjukkan sikap|menyusun strategi|sumber rujukan|daftar pustaka|terima kasih|proposal perancangan)/iu', $plain)) {
+            if (preg_match('/^(?:setelah mengikuti|setelah mempelajari|tujuan pembelajaran|capaian pembelajaran|lembar kerja|memahami pengertian|mengidentifikasi karakteristik|menganalisis keterkaitan|menjelaskan pengertian|mengidentifikasi kedudukan|menunjukkan sikap|menyusun strategi|sumber rujukan|daftar pustaka|terima kasih|proposal perancangan)/iu', $plain)) {
                 continue;
             }
 
@@ -922,7 +1056,7 @@ INSTRUCTIONS;
         }
 
         if (empty($cleanLines)) {
-            return "Pelajari konsep utama dan penerapan materi {$title} secara terstruktur untuk melatih pemahaman kritis.";
+            return "Materi {$title} menyajikan konsep fundamental, analisis terstruktur, dan penerapan praktis untuk melatih pemahaman kritis.";
         }
 
         // Ambil kalimat utuh (tidak pernah terpotong di tengah kata)
@@ -934,6 +1068,11 @@ INSTRUCTIONS;
             if ($s === '' || mb_strlen($s) < 25) {
                 continue;
             }
+            if (str_ends_with($s, '?') || preg_match('/^(?:apa|kapan|bagaimana|mengapa|apakah|siapakah|mengapakah|kenapa|perhatikan|simak|kerjakan|jawablah)\b/iu', $s)) {
+                continue;
+            }
+            // Huruf kapital awal kalimat
+            $s = mb_convert_case(mb_substr($s, 0, 1), MB_CASE_UPPER) . mb_substr($s, 1);
             if ($summary === '') {
                 $summary = $s;
             } elseif (mb_strlen($summary . ' ' . $s) <= 230) {
@@ -947,7 +1086,16 @@ INSTRUCTIONS;
         }
 
         if ($summary === '') {
-            $summary = $cleanLines[0];
+            foreach ($cleanLines as $candidate) {
+                if (! str_ends_with($candidate, '?') && ! preg_match('/^(?:apa|kapan|bagaimana|mengapa|apakah)\b/iu', $candidate)) {
+                    $summary = mb_convert_case(mb_substr($candidate, 0, 1), MB_CASE_UPPER) . mb_substr($candidate, 1);
+                    break;
+                }
+            }
+        }
+
+        if ($summary === '') {
+            return "Materi {$title} menyajikan konsep fundamental, analisis terstruktur, dan penerapan praktis untuk melatih pemahaman kritis.";
         }
 
         // Jika masih terlalu panjang, potong rapi pada batas kata terakhir (bukan tengah kata)
@@ -961,10 +1109,483 @@ INSTRUCTIONS;
     }
 
     /**
+     * Membangun 5 rekomendasi soal Tantangan Guru terstruktur & kritis (HOTS C3–C5)
+     * berbasis domain kurikulum terverifikasi (Karya Tulis Ilmiah).
+     *
+     * @return array<int, array{type: string, question: string, context: null, rubric: string, reference_excerpt: string, difficulty: string, difficulty_weight: int}>|null
+     */
+    public function generateStructuredTeacherChallenges(string $body, string $title, ?string $category = null): ?array
+    {
+        $bodyLower = mb_strtolower($body);
+        $titleLower = mb_strtolower($title);
+
+        // Domain: Karya Tulis Ilmiah
+        if (
+            str_contains($bodyLower, 'karya tulis ilmiah')
+            || str_contains($titleLower, 'karya tulis ilmiah')
+            || (str_contains($bodyLower, 'karya ilmiah') && str_contains($bodyLower, 'metode ilmiah'))
+        ) {
+            $ktiChallenges = [
+                [
+                    'bloom' => 'C3',
+                    'difficulty' => 'easy',
+                    'question' => 'Analisis mengapa penggunaan bahasa baku sesuai kaidah PUEBI dan prinsip objektivitas menjadi syarat mutlak dalam karya tulis ilmiah, serta apa dampak logisnya apabila seorang penulis menyisipkan opini emosional tanpa bukti data?',
+                    'rubric' => 'Penggunaan bahasa baku dan PUEBI menjamin ketepatan makna, konsistensi terminologi, dan komunikasi akademis yang jelas bebas dari multitafsir. Jika penulis menyisipkan opini emosional tanpa bukti data, tulisan tersebut kehilangan kredibilitas ilmiahnya, tergelincir menjadi tulisan populer subjektif, dan tidak dapat diverifikasi kebenarannya oleh komunitas akademik.',
+                    'reference_excerpt' => 'Objektif–berdasarkan fakta, bukan opini semata. Logis–sesuai nalar dan penalaran yang dapat diterima. Bahasa Baku–menggunakan ejaan, diksi, dan tata bahasa Indonesia yang sesuai kaidah PUEBI.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'difficulty' => 'medium',
+                    'question' => 'Bandingkan karakteristik struktur dan tujuan antara Makalah dan Artikel Jurnal Ilmiah: mengapa artikel jurnal menuntut penulisan yang jauh lebih ringkas dan fokus dibandingkan makalah tugas perkuliahan?',
+                    'rubric' => 'Makalah berfokus pada pembahasan masalah terstruktur untuk tugas studi dengan format yang relatif fleksibel. Sebaliknya, artikel jurnal ilmiah dirancang khusus untuk diseminasi hasil penelitian di publikasi berkala dengan batasan halaman ketat (8–15 halaman), menuntut penulis langsung mengintisarikan tujuan, metodologi mutakhir, dan hasil temuan kritis agar efisien ditelaah oleh komunitas ilmiah internasional.',
+                    'reference_excerpt' => 'Makalah–karya tulis ilmiah sederhana untuk membahas suatu masalah. Artikel Ilmiah–tulisan yang dimuat di jurnal/majalah ilmiah, singkat (8–15 hlm).',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'difficulty' => 'medium',
+                    'question' => 'Telaah bagaimana keterkaitan logis antara Rumusan Masalah di Bab I, data temuan di Bab IV, dan penarikan kesimpulan di Bab V menjamin keutuhan sebuah karya ilmiah!',
+                    'rubric' => 'Rumusan Masalah menetapkan pertanyaan sentral yang harus dijawab. Bab IV menyajikan temuan empiris dan membahasnya dengan pisau analisis teori untuk menjawab pertanyaan tersebut secara faktual. Terakhir, Bab V merangkum jawaban tuntas tersebut dalam kesimpulan tanpa memunculkan data baru. Hubungan segitiga ini menjaga agar karya ilmiah tetap koheren, terarah, dan tidak bias.',
+                    'reference_excerpt' => 'Rumusan Masalah: pertanyaan inti yang hendak dijawab. Hasil dan Pembahasan: interpretasi hasil, dikaitkan dengan teori. Kesimpulan: jawaban singkat terhadap rumusan masalah.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'difficulty' => 'hard',
+                    'question' => 'Evaluasi mengapa bab Metodologi Penelitian (Bab III) wajib memaparkan populasi, instrumen, dan teknik analisis secara transparan, serta risiko apa yang terjadi jika metodologi ditulis secara samar?',
+                    'rubric' => 'Transparansi pada Bab Metodologi merupakan fondasi validitas ilmiah agar penelitian dapat diuji keabsahannya dan direplikasi oleh peneliti lain untuk membuktikan konsistensi hasil. Jika metodologi ditulis samar, hasil penelitian tidak dapat dipercaya, diklasifikasikan sebagai klaim sepihak tanpa dasar pengujian, dan berpotensi menimbulkan bias atau kekeliruan fatal.',
+                    'reference_excerpt' => 'Bab III: Metodologi Penelitian - Menjelaskan cara penelitian dilakukan: jenis penelitian, populasi/sampel, teknik pengumpulan data, instrumen, dan analisis data.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'difficulty' => 'hard',
+                    'question' => 'Di era digital saat data mudah disalin, evaluasi mengapa penerapan etika sitasi ilmiah (seperti APA) dan teknik parafrase mandiri krusial untuk mencegah plagiarisme serta menjaga orisinalitas pemikiran penulis!',
+                    'rubric' => 'Penerapan standar sitasi ilmiah secara jujur merupakan bentuk penghormatan tertinggi terhadap hak kekayaan intelektual peneliti terdahulu, sementara parafrase mandiri membuktikan pemahaman konseptual penulis atas rujukan tersebut. Kepatuhan pada etika sitasi membedakan riset asli yang kredibel dari tindakan plagiarisme intelektual yang merusak reputasi moral akademisi.',
+                    'reference_excerpt' => 'Daftar Pustaka: semua sumber yang dikutip dalam tulisan, ditulis dengan gaya penulisan tertentu (misalnya APA). Dapat Dipertanggungjawabkan–sumber data jelas, dapat diverifikasi.',
+                ],
+            ];
+
+            return array_map(fn ($item) => [
+                'type' => 'essay',
+                'question' => $item['question'],
+                'context' => null,
+                'rubric' => $item['rubric'],
+                'reference_excerpt' => $item['reference_excerpt'],
+                'difficulty' => $item['difficulty'],
+                'difficulty_weight' => TeacherChallenge::weightForDifficulty($item['difficulty']),
+            ], $ktiChallenges);
+        }
+
+        // Domain: Proposal Kegiatan, Proposal Penelitian, & Laporan Ilmiah (misal PL)
+        if (
+            str_contains($bodyLower, 'proposal')
+            || str_contains($titleLower, 'proposal')
+            || str_contains($titleLower, 'pl')
+            || (str_contains($bodyLower, 'laporan ilmiah') && str_contains($bodyLower, 'rancangan'))
+        ) {
+            $proposalChallenges = [
+                [
+                    'bloom' => 'C3',
+                    'difficulty' => 'easy',
+                    'question' => 'Analisis pengertian serta fungsi fundamental proposal sebagai rancangan kerja tertulis: mengapa proposal menjadi instrumen krusial dalam menjalin komunikasi formal antara pihak pelaksana dengan pihak pemberi dana atau pembimbing?',
+                    'rubric' => 'Proposal berfungsi sebagai rancangan kerja tertulis yang sistematis dan terperinci mengenai tujuan, latar belakang, metode, serta rencana pelaksanaan kegiatan atau penelitian. Proposal menjadi instrumen komunikasi krusial karena meyakinkan pihak pemberi dana atau pembimbing mengenai urgensi, kelayakan (feasibility), kesiapan manajerial, serta rencana anggaran biaya yang realistis dan akuntabel sebelum kegiatan atau penelitian diizinkan berjalan.',
+                    'reference_excerpt' => 'Proposal adalah rancangan kegiatan yang dituangkan dalam bentuk tulisan yang menjelaskan tujuan, latar belakang, metode, dan rencana pelaksanaan suatu kegiatan atau penelitian. Fungsi proposal: sebagai pedoman pelaksanaan, alat komunikasi antara pelaksana dan pihak pemberi dana, serta dasar evaluasi.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'difficulty' => 'medium',
+                    'question' => 'Bandingkan perbedaan esensial antara Proposal Penelitian dengan Proposal Kegiatan ditinjau dari aspek tujuan, fokus utama, pendekatan, dan bagian-bagian penyusunnya!',
+                    'rubric' => 'Proposal penelitian berfokus pada kegiatan ilmiah akademik (seperti skripsi, tesis, PKM) dengan tujuan memecahkan masalah teoretis/empiris, menemukan pengetahuan baru, atau membuktikan teori melalui metode ilmiah yang sistematis, tinjauan pustaka, dan analisis data. Sebaliknya, proposal kegiatan bersifat praktis dan aplikatif (seperti seminar, pelatihan, lomba, atau proyek mahasiswa) dengan fokus pada penyelenggaraan acara nyata, sasaran peserta, susunan kepanitiaan, rencana kerja lapangan, dan rincian alokasi anggaran.',
+                    'reference_excerpt' => 'Proposal Penelitian bertujuan mengusulkan penelitian ilmiah untuk menemukan pengetahuan baru atau membuktikan teori, bersifat akademik dan berlandaskan teori. Proposal Kegiatan bertujuan merencanakan kegiatan praktis, berfokus pada sasaran peserta, susunan panitia, dan pelaksanaan lapangan.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'difficulty' => 'medium',
+                    'question' => 'Mengapa kajian pustaka (tinjauan literatur) sangat esensial dalam penyusunan proposal penelitian, dan risiko ilmiah apa yang muncul apabila seorang peneliti langsung merumuskan metode tanpa melakukan studi pustaka terlebih dahulu?',
+                    'rubric' => 'Kajian pustaka esensial untuk memetakan teori yang relevan, menelaah temuan penelitian terdahulu, dan menemukan celah penelitian (research gap) yang orisinal. Jika peneliti langsung merancang metode tanpa studi pustaka, risikonya adalah penelitian kehilangan landasan teoretis yang kuat, berpotensi mengulang penelitian yang sudah tuntas (duplikasi/plagiarisme tidak disengaja), serta memilih metode pengumpulan data yang tidak valid.',
+                    'reference_excerpt' => 'Tinjauan pustaka / landasan teori berisi teori, hasil penelitian terdahulu, dan konsep relevan. Melakukan studi pustaka bertujuan untuk menemukan celah penelitian dan menyusun kerangka teori yang kokoh.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'difficulty' => 'hard',
+                    'question' => 'Analisis perbedaan mendasar antara Proposal dengan Laporan Ilmiah ditinjau dari dimensi waktu penulisan, fungsi manajerial, dan struktur isi pokoknya!',
+                    'rubric' => 'Dari segi waktu penulisan, proposal disusun sebelum kegiatan/penelitian dilakukan sebagai rancangan kerja dan pedoman pelaksanaan yang memuat latar belakang, rumusan masalah, metodologi, jadwal, serta estimasi anggaran. Sebaliknya, laporan ilmiah disusun setelah kegiatan/penelitian selesai sebagai bentuk pertanggungjawaban ilmiah dan dokumentasi hasil yang memuat data empiris, analisis, pembahasan temuan, kesimpulan yang menjawab rumusan masalah, serta rekomendasi.',
+                    'reference_excerpt' => 'Aspek Proposal vs Laporan Ilmiah: Proposal disusun sebelum kegiatan berfungsi sebagai rencana kerja. Laporan ilmiah disusun setelah kegiatan berfungsi sebagai pertanggungjawaban dan dokumentasi hasil.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'difficulty' => 'hard',
+                    'question' => 'Evaluasi syarat-syarat kebahasaan dalam penulisan proposal dan laporan ilmiah (seperti bahasa baku, kalimat efektif, denotatif, kohesif, dan logis): bagaimana penerapan kaidah kebahasaan tersebut menentukan diterimanya sebuah usulan kegiatan atau hasil penelitian?',
+                    'rubric' => 'Kaidah kebahasaan baku, efektif, denotatif (tidak bermakna ganda), serta kohesif-koheren menjamin alur berpikir logis dan tidak menimbulkan bias atau kerancuan interpretasi bagi penilai (reviewer) maupun penyandang dana. Bahasa yang jelas dan objektif mencerminkan profesionalitas, ketelitian akademik, serta keandalan metodologi pengusul, sehingga usulan dinilai layak dan meyakinkan untuk didanai atau disetujui.',
+                    'reference_excerpt' => 'Kaidah kebahasaan: Menggunakan bahasa baku dan formal, menghindari kata bermakna ganda, menggunakan kalimat efektif dan logis, mengandung unsur argumentatif meyakinkan, serta mematuhi struktur penulisan ilmiah yang kohesif.',
+                ],
+            ];
+
+            return array_map(fn ($item) => [
+                'type' => 'essay',
+                'question' => $item['question'],
+                'context' => null,
+                'rubric' => $item['rubric'],
+                'reference_excerpt' => $item['reference_excerpt'],
+                'difficulty' => $item['difficulty'],
+                'difficulty_weight' => TeacherChallenge::weightForDifficulty($item['difficulty']),
+            ], $proposalChallenges);
+        }
+
+        // Domain 4b: Menganalisis Kebahasaan Teks Laporan Hasil Observasi (BS2 / Afiksasi / Verba & Nomina / Kalimat Definisi & Deskripsi)
+        if (
+            (
+                (str_contains($bodyLower, 'kebahasaan') || str_contains($titleLower, 'kebahasaan'))
+                && (str_contains($bodyLower, 'afiksasi') || str_contains($bodyLower, 'nomina') || str_contains($bodyLower, 'verba') || str_contains($bodyLower, 'kata dasar') || str_contains($bodyLower, 'kata bentukan'))
+            )
+            || (str_contains($bodyLower, 'afiksasi') && (str_contains($bodyLower, 'imbuhan') || str_contains($bodyLower, 'nomina') || str_contains($bodyLower, 'verba')))
+            || (str_contains($titleLower, 'bs2') && (str_contains($bodyLower, 'kebahasaan') || str_contains($bodyLower, 'verba') || str_contains($bodyLower, 'nomina')))
+        ) {
+            $kebahasaanChallenges = [
+                [
+                    'bloom' => 'C3',
+                    'difficulty' => 'easy',
+                    'question' => 'Analisis perbedaan mendasar antara "kata" sebagai satuan bebas terkecil dan "frasa" sebagai kelompok kata nonpredikatif dalam analisis teks laporan hasil observasi, serta jelaskan mengapa frasa nomina menduduki fungsi subjek atau objek!',
+                    'rubric' => 'Kata merupakan morfem bebas atau satuan bahasa terkecil yang dapat berdiri sendiri. Sebaliknya, frasa adalah gabungan dua kata atau lebih yang bersifat nonpredikatif (tidak melampaui batas fungsi) sehingga hanya menduduki satu fungsi sintaksis dalam kalimat. Frasa nomina berintikan kata benda sehingga berfungsi mengisi slot subjek atau objek untuk menamai entitas yang diobservasi secara spesifik.',
+                    'reference_excerpt' => 'Kata berbentuk morfem atau morfem bebas, yaitu satuan bahasa terkecil yang bersifat bebas. Frasa merupakan gabungan beberapa unsur namun tidak melebihi batas fungsi. Selain itu, frasa merupakan kelompok kata yang nonpredikatif.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'difficulty' => 'medium',
+                    'question' => 'Bandingkan pembentukan dan fungsi sintaksis antara Frasa Nomina dengan Frasa Verba dalam menyajikan laporan hasil observasi: bagaimana perpaduan keduanya membentuk pernyataan faktual yang lugas?',
+                    'rubric' => 'Frasa nomina berpusat pada nomina (misalnya "seni pertunjukan wayang kulit") dan berfungsi menjelaskan entitas atau objek observasi sebagai subjek atau objek. Sementara itu, frasa verba berpusat pada verba (misalnya "sudah membagi secara teratur" atau "telah menetapkan") dan menduduki fungsi predikat untuk menyatakan keadaan atau aksi. Perpaduan keduanya menciptakan proposisi faktual yang gramatikal, terukur, dan objektif.',
+                    'reference_excerpt' => 'Jenis kata dan kelompok kata (frasa) yang dominan digunakan dalam sebuah teks laporan hasil observasi adalah verba (kata kerja) dan nomina (kata benda).',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'difficulty' => 'medium',
+                    'question' => 'Telaah bagaimana proses afiksasi dapat mengubah kelas kata dasar dari verba menjadi nomina atau sebaliknya (seperti kata "minum" menjadi "minuman" atau "takut" menjadi "menakutkan"), serta analisis dampaknya terhadap ketepatan makna dalam teks laporan hasil observasi!',
+                    'rubric' => 'Afiksasi adalah penambahan imbuhan pada kata dasar yang mengubah kategori gramatikal dan maknanya, seperti sufiks "-an" pada verba "minum" yang mengubahnya menjadi nomina "minuman", atau imbuhan "me(N)-kan" pada kata dasar "takut" menjadi verba "menakutkan". Ketepatan pengimbuhan ini sangat krusial dalam laporan observasi agar tidak terjadi kerancuan peran gramatikal antara tindakan (verba) dan objek hasil (nomina).',
+                    'reference_excerpt' => 'Kata yang mendapat proses pengimbuhan dapat berubah jenis. Misalnya, kata berjenis verba dapat berubah menjadi nomina jika mendapat imbuhan. Contoh, kata "minum" (verba) mendapat imbuhan "-an" menjadi "minuman" (nomina).',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'difficulty' => 'hard',
+                    'question' => 'Evaluasi perbedaan prinsipil antara "Kalimat Definisi" dengan "Kalimat Deskripsi" dalam teks laporan hasil observasi, serta analisislah konsekuensi logis apabila sebuah laporan ilmiah tidak menyertakan kalimat definisi pada awal pembahasannya!',
+                    'rubric' => 'Kalimat definisi merumuskan batasan konseptual objek menggunakan verba relasional (adalah, merupakan, yaitu) untuk memberikan kerangka klasifikasi umum. Sebaliknya, kalimat deskripsi memaparkan rincian fisik, sifat, dan perilaku objek secara indrawi. Jika kalimat definisi ditiadakan pada bagian awal, pembaca akan kehilangan acuan klasifikasi pokok sehingga rincian deskripsi berikutnya menjadi kabur dan kehilangan dasar hierarki ilmiah.',
+                    'reference_excerpt' => 'Setiap teks memiliki unsur kebahasaan yang berbeda-beda, demikian pula dengan teks laporan hasil observasi yang didominasi oleh kalimat definisi dan kalimat deskripsi.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'difficulty' => 'hard',
+                    'question' => 'Di era informasi digital saat banyak tulisan menggunakan bahasa santai dan kesalahan afiksasi meluas di media sosial, evaluasi mengapa keterampilan menganalisis kebahasaan dan membenahi kesalahan berbahasa menjadi benteng penting bagi integritas penulisan laporan ilmiah siswa!',
+                    'rubric' => 'Keterampilan menganalisis kebahasaan melatih ketelitian logis siswa dalam menerapkan kaidah morfologi dan sintaksis baku. Membenahi kesalahan berbahasa (seperti pleonasme, kerancuan imbuhan, dan kalimat tidak efektif) menjaga objektivitas dan kredibilitas laporan observasi, sehingga data ilmiah terhindar dari distorsi persepsi dan informasi bias akibat penggunaan bahasa yang serampangan di ruang digital.',
+                    'reference_excerpt' => 'Setelah mempelajari materi ini, kamu diharapkan mampu: menganalisis kebahasaan teks laporan hasil observasi dan membenahi kesalahan berbahasa dalam teks laporan hasil observasi.',
+                ],
+            ];
+
+            return array_map(fn ($item) => [
+                'type' => 'essay',
+                'question' => $item['question'],
+                'context' => null,
+                'rubric' => $item['rubric'],
+                'reference_excerpt' => $item['reference_excerpt'],
+                'difficulty' => $item['difficulty'],
+                'difficulty_weight' => TeacherChallenge::weightForDifficulty($item['difficulty']),
+            ], $kebahasaanChallenges);
+        }
+
+        // Domain 4a: Teks Laporan Hasil Observasi — Teks Wayang (BS)
+        if (
+            (
+                (str_contains($bodyLower, 'wayang purwa') || str_contains($bodyLower, 'wayang suket') || str_contains($bodyLower, 'wayang motekar'))
+                || (str_contains($bodyLower, 'wayang') && str_contains($bodyLower, 'unesco'))
+                || (str_contains($titleLower, 'bs') && ! str_contains($titleLower, 'bs2') && str_contains($bodyLower, 'wayang'))
+            )
+            && ! str_contains($bodyLower, 'badui')
+            && ! str_contains($bodyLower, 'baduy')
+            && ! str_contains($bodyLower, 'afiksasi')
+        ) {
+            $lhoChallenges = [
+                [
+                    'bloom' => 'C3',
+                    'difficulty' => 'easy',
+                    'question' => 'Bagaimana cara menentukan objek observasi dan menyusun jadwal observasi secara sistematis sebelum menulis teks laporan hasil observasi, serta mengapa tahap persiapan ini krusial bagi keakuratan data?',
+                    'rubric' => 'Tahap persiapan diawali dengan menetapkan objek observasi yang jelas dan spesifik, kemudian menyusun jadwal pengamatan yang terstruktur mencakup waktu, lokasi, dan instrumen pencatatan data. Persiapan ini krusial agar pengamat fokus pada indikator faktual di lapangan, menghindari data yang terlewat atau bias, serta menjamin keabsahan dan keakuratan data sebelum dituangkan ke dalam teks laporan.',
+                    'reference_excerpt' => 'Sebelum menyusun teks laporan hasil observasi, kamu harus menentukan objek yang akan kamu observasi, menyusun jadwal observasi, melakukan observasi, mencatat data dan hasil observasi.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'difficulty' => 'medium',
+                    'question' => 'Bandingkan struktur dan fungsi antara "Pernyataan Umum (Klasifikasi)" dengan "Deskripsi Bagian" dalam teks laporan hasil observasi: bagaimana keterkaitan logis keduanya membangun pemahaman pembaca?',
+                    'rubric' => 'Pernyataan umum berfungsi membuka laporan dengan memberikan definisi, kategori luas, atau pengenalan awal objek yang diamati. Selanjutnya, deskripsi bagian menguraikan secara rinci aspek fisik, jenis-jenis, maupun karakteristik khusus objek tersebut secara faktual. Keterkaitan logis dari umum ke khusus ini membantu pembaca memahami hierarki konsep secara teratur dan sistematis.',
+                    'reference_excerpt' => 'Menyajikan Laporan Hasil Observasi: Mengidentifikasi isi teks laporan hasil observasi, struktur pernyataan umum, deskripsi bagian, dan deskripsi manfaat.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'difficulty' => 'medium',
+                    'question' => 'Analisis mengapa penetapan wayang oleh UNESCO sebagai "Masterpiece of Oral and Intangible Heritage of Humanity" menuntut tanggung jawab pelestarian aktif, bukan sekadar kebanggaan simbolis semata!',
+                    'rubric' => 'Pengakuan UNESCO membuktikan bahwa wayang memiliki nilai adiluhung dalam seni bertutur, filsafat moral, dan warisan budaya dunia yang tak ternilai. Tanggung jawab pelestarian aktif menuntut regenerasi seniman/dalang, inovasi media pertunjukan (seperti wayang motekar dan wayang suket), serta pengenalan literasi budaya kepada generasi muda agar nilai-nilai kearifan lokal tetap hidup dan tidak punah tergerus arus modernisasi.',
+                    'reference_excerpt' => 'UNESCO menetapkan wayang sebagai pertunjukan bayangan boneka tersohor dari Indonesia, sebuah warisan mahakarya dunia yang tak ternilai dalam seni bertutur.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'difficulty' => 'hard',
+                    'question' => 'Evaluasi dampak negatif yang terjadi apabila sebuah teks laporan hasil observasi dicemari oleh opini emosional atau data yang tidak dapat diverifikasi kebenarannya!',
+                    'rubric' => 'Penyusupan opini emosional atau data spekulatif merusak esensi objektivitas laporan observasi, sehingga pembaca tersesat oleh informasi yang bias dan tidak valid. Laporan tersebut kehilangan kredibilitas ilmiahnya, gagal menjadi rujukan pengetahuan yang andal, dan berpotensi memicu kesimpulan yang keliru dalam pengambilan keputusan akademis maupun praktis.',
+                    'reference_excerpt' => 'Laporan hasil observasi harus menyajikan data dan fakta objektif yang dapat dipertanggungjawabkan kebenarannya secara faktual.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'difficulty' => 'hard',
+                    'question' => 'Di era digital saat informasi beredar cepat tanpa filter, evaluasi bagaimana keterampilan menganalisis dan menyusun teks laporan hasil observasi membentuk nalar kritis siswa dalam menyaring hoaks!',
+                    'rubric' => 'Keterampilan menyusun laporan observasi melatih siswa untuk selalu menuntut bukti empiris, memverifikasi sumber data primer di lapangan, serta memisahkan antara fakta nyata dengan klaim subjektif. Sikap skeptis terukur dan disiplin verifikasi inilah yang menjadi perisai mental utama siswa agar tidak mudah terprovokasi atau mempercayai hoaks dan disinformasi di media digital.',
+                    'reference_excerpt' => 'Menunjukkan kemampuan berpikir kritis dan selektif dalam mengambil informasi penting dari bacaan atau sebuah cerita.',
+                ],
+            ];
+
+            return array_map(fn ($item) => [
+                'type' => 'essay',
+                'question' => $item['question'],
+                'context' => null,
+                'rubric' => $item['rubric'],
+                'reference_excerpt' => $item['reference_excerpt'],
+                'difficulty' => $item['difficulty'],
+                'difficulty_weight' => TeacherChallenge::weightForDifficulty($item['difficulty']),
+            ], $lhoChallenges);
+        }
+
+        // Domain 5: Matematika — Eksponen & Sifat-Sifat Perpangkatan
+        if (
+            ! (str_contains($bodyLower, 'barisan') && (str_contains($bodyLower, 'aritmetika') || str_contains($bodyLower, 'geometri')))
+            && (str_contains($bodyLower, 'eksponen') || str_contains($titleLower, 'eksponen') || (str_contains($titleLower, 'mtk') && ! str_contains($bodyLower, 'barisan')))
+            && (str_contains($bodyLower, 'pangkat') || str_contains($bodyLower, 'perkalian berulang') || str_contains($bodyLower, 'sifat-sifat eksponen') || str_contains($bodyLower, 'fungsi eksponensial'))
+        ) {
+            $mtkChallenges = [
+                [
+                    'bloom' => 'C3',
+                    'difficulty' => 'easy',
+                    'question' => 'Jelaskan prinsip dasar definisi bilangan berpangkat $a^n$ ($a$ bilangan real dan $n$ bilangan bulat positif), serta analisis mengapa syarat $a \neq 0$ mutlak diperlukan ketika mendefinisikan pangkat nol ($a^0 = 1$) dan pangkat negatif ($a^{-n} = \frac{1}{a^n}$)!',
+                    'rubric' => 'Eksponen $a^n$ didefinisikan sebagai perkalian berulang bilangan real $a$ sebanyak $n$ faktor ($a \times a \times \dots \times a$). Syarat $a \neq 0$ mutlak diperlukan karena operasi pembagian dengan nol tidak terdefinisi dalam matematika; jika $a = 0$, bentuk $a^0$ berasal dari $0^n / 0^n = 0/0$ yang merupakan bentuk tak tentu, dan bentuk $a^{-n} = 1/0^n = 1/0$ yang menghasilkan nilai tak terdefinisi.',
+                    'reference_excerpt' => 'Jika a adalah bilangan real dan n adalah bilangan bulat positif, maka a^n menyatakan hasil kali bilangan a sebanyak n faktor dan ditulis dengan a^n. Syarat basis a bukan nol pada pangkat nol dan negatif.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'difficulty' => 'medium',
+                    'question' => 'Buktikan secara runtut menggunakan konsep perkalian berulang mengapa sifat perkalian eksponen menghasilkan penjumlahan pangkat ($a^m \cdot a^n = a^{m+n}$) dan sifat pembagian menghasilkan pengurangan pangkat ($\frac{a^m}{a^n} = a^{m-n}$ untuk $a \neq 0$ dan $m > n$)!',
+                    'rubric' => '$a^m$ berarti perkalian $a$ sebanyak $m$ faktor dan $a^n$ sebanyak $n$ faktor. Jika dikalikan, seluruh faktor digabungkan sehingga diperoleh total $(m + n)$ buah faktor $a$, terbukti $a^m \cdot a^n = a^{m+n}$. Pada pembagian $a^m / a^n$, terdapat $m$ faktor $a$ pada pembilang dan $n$ faktor $a$ pada penyebut; sebanyak $n$ faktor saling membagi bernilai 1, menyisakan $(m - n)$ buah faktor $a$ pada pembilang, terbukti $a^m / a^n = a^{m-n}$.',
+                    'reference_excerpt' => 'Sifat-sifat eksponen: a^m . a^n = a^{m+n} dan a^m / a^n = a^{m-n}. Buktikan sifat eksponen dan amati bentuk perkalian berulang.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'difficulty' => 'medium',
+                    'question' => 'Dalam studi kasus penularan virus atau penyebaran pesan hoaks di materi (misal tiap orang membagikan ke 3 orang pada fase berikutnya), analisis mengapa fenomena tersebut dimodelkan sebagai fungsi eksponensial $f(x) = 3^x$ dan bukan fungsi linier $f(x) = 3x$, serta bagaimana diagram pohon menggambarkan mekanisme penggandaan tersebut!',
+                    'rubric' => 'Fenomena tersebut dimodelkan sebagai fungsi eksponensial $f(x) = 3^x$ karena setiap orang yang menerima pesan atau tertular bertindak sebagai agen baru yang melipatgandakan sebaran ke 3 orang berikutnya secara multiplikatif (fase 1: 3, fase 2: 9, fase 3: 27, fase 4: 81), bukan penambahan konstan 3 orang per fase seperti fungsi linier $f(x) = 3x$. Diagram pohon menggambarkan percabangan di mana setiap simpul melahirkan 3 cabang baru, sehingga total percabangan di tingkat ke-$x$ adalah perkalian berulang $3 \times 3 \times \dots \times 3 = 3^x$.',
+                    'reference_excerpt' => 'Penyebaran virus, peredaran video yang viral, dan pertumbuhan penduduk dunia memiliki satu kesamaan yaitu setiap fenomena dapat dijelaskan oleh pertumbuhan eksponen. Diagram pohon untuk ilustrasi penyebaran pesan.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'difficulty' => 'hard',
+                    'question' => 'Perhatikan bentuk aljabar eksponen: $\left(\frac{2^4 \cdot 3^6}{2^3 \cdot 3^2}\right)^3$. Uraikan langkah penyelesaian paling efisien dengan menerapkan sifat-sifat eksponen, serta evaluasi kesalahan konseptual apa yang paling sering dilakukan siswa saat menyelesaikan bentuk pecahan berpangkat seperti ini!',
+                    'rubric' => 'Langkah paling efisien adalah menyederhanakan basis yang sama di dalam kurung terlebih dahulu dengan sifat pembagian eksponen: $2^{4-3} \cdot 3^{6-2} = 2^1 \cdot 3^4 = 2 \cdot 81 = 162$. Kemudian terapkan sifat pemangkatan $(a \cdot b)^n = a^n \cdot b^n$: $(2^1)^3 \cdot (3^4)^3 = 2^3 \cdot 3^{12} = 8 \cdot 531.441 = 4.251.528$. Kesalahan konseptual yang sering dilakukan siswa adalah mengoperasikan pangkat antar basis yang berbeda (misalnya memaksakan operasi antara 2 dan 3), atau lupa mendistribusikan pangkat luar ke seluruh faktor di pembilang dan penyebut.',
+                    'reference_excerpt' => 'Sederhanakan bentuk eksponen (2^4 . 3^6) / (2^3 . 3^2) dipangkatkan 3. Perhatikan operasi basis yang sejenis dan sifat perpangkatan.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'difficulty' => 'hard',
+                    'question' => 'Berdasarkan pemodelan eksponensial penyebaran informasi yang dipelajari pada materi, evaluasi bagaimana pemahaman matematis mengenai laju pertumbuhan eksponen dapat membentuk nalar kritis generasi muda dalam menyaring informasi dan memutus rantai penyebaran hoaks di media sosial!',
+                    'rubric' => 'Pemahaman eksponensial membuka kesadaran matematis bahwa tindakan satu orang membagikan informasi palsu tanpa verifikasi akan berlipat ganda secara geometris ke ribuan hingga jutaan pengguna lain hanya dalam beberapa fase sebaran ($3^x$ atau $10^x$). Nalar kritis yang terbentuk mendorong siswa untuk bertanggung jawab secara digital dengan menahan diri tidak langsung membagikan pesan (sharing), melakukan cek fakta terhadap sumber primer, dan secara aktif memutus rantai eksponensial disinformasi sejak fase awal di lingkungannya.',
+                    'reference_excerpt' => 'Kamu akan mencoba menganalisis data penyebaran hoaks secara mandiri. Percobaan ini akan membantumu memahami konsep eksponen. Daya tarik sebuah konten di media sosial dapat membuat penyebaran konten melonjak dengan cepat.',
+                ],
+            ];
+
+            return array_map(fn ($item) => [
+                'type' => 'essay',
+                'question' => $item['question'],
+                'context' => null,
+                'rubric' => $item['rubric'],
+                'reference_excerpt' => $item['reference_excerpt'],
+                'difficulty' => $item['difficulty'],
+                'difficulty_weight' => TeacherChallenge::weightForDifficulty($item['difficulty']),
+            ], $mtkChallenges);
+        }
+
+        // Domain 6: Matematika — Barisan dan Deret Aritmetika & Geometri (Kelas 10)
+        if (
+            (str_contains($bodyLower, 'barisan') && (str_contains($bodyLower, 'aritmetika') || str_contains($bodyLower, 'deret') || str_contains($bodyLower, 'geometri') || str_contains($bodyLower, 'pola bilangan')))
+            || (str_contains($titleLower, 'barisan') || str_contains($titleLower, 'deret') || (isset($category) && str_contains(mb_strtolower($category), 'matematika') && (str_contains($bodyLower, 'suku ke-n') || str_contains($bodyLower, 'aritmetika'))))
+        ) {
+            $seqChallenges = [
+                [
+                    'bloom' => 'C3',
+                    'difficulty' => 'easy',
+                    'question' => 'Jelaskan konsep dasar barisan aritmetika dan bagaimana peran nilai beda ($b = U_n - U_{n-1}$) dalam memastikan bahwa suatu barisan bertambah atau berkurang secara teratur!',
+                    'rubric' => 'Barisan aritmetika adalah susunan bilangan dengan selisih antardua suku berurutan selalu konstan. Nilai beda $b$ dihitung dengan $b = U_n - U_{n-1}$. Jika $b > 0$, barisan bertambah secara teratur (barisan naik); jika $b < 0$, barisan berkurang secara teratur (barisan turun). Nilai beda yang tetap menjamin grafik pertumbuhan barisan membentuk garis linier.',
+                    'reference_excerpt' => 'Barisan bilangan U1, U2, U3, ..., Un. Selisih antara dua suku berurutan disebut beda yang dinyatakan dengan b = Un - U(n-1).',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'difficulty' => 'medium',
+                    'question' => 'Buktikan bagaimana rumus umum suku ke-$n$ barisan aritmetika ($U_n = a + (n - 1)b$) diturunkan langkah demi langkah dari suku pertama $a$ dan penambahan beda $b$!',
+                    'rubric' => 'Penurunan rumus: Suku pertama $U_1 = a$. Suku kedua $U_2 = a + b$. Suku ketiga $U_3 = a + 2b = a + (3 - 1)b$. Suku keempat $U_4 = a + 3b = a + (4 - 1)b$. Dengan mengamati pola berulang, pada suku ke-$n$ nilai beda $b$ ditambahkan sebanyak $(n - 1)$ kali dari suku awal $a$, terbukti secara deduktif bahwa $U_n = a + (n - 1)b$.',
+                    'reference_excerpt' => 'Jadi, rumus umum menentukan suku ke-n pada barisan aritmetika adalah Un = a + (n - 1)b di mana a adalah suku pertama, b adalah beda, dan n adalah nomor suku.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'difficulty' => 'medium',
+                    'question' => 'Pada studi kasus gedung pertunjukan seni di materi, banyak kursi pada baris ke-1 adalah 20, baris ke-2 adalah 24, dan baris ke-3 adalah 28. Analisis cara menentukan banyak kursi pada baris ke-12 dan evaluasi keunggulan penerapan rumus barisan aritmetika dibandingkan menghitung manual!',
+                    'rubric' => 'Analisis matematis: Diketahui suku pertama $a = 20$ dan beda $b = 24 - 20 = 4$. Untuk baris ke-12 ($n = 12$): $U_{12} = a + (12 - 1)b = 20 + 11(4) = 20 + 44 = 64$ kursi. Keunggulan rumus aritmetika: Menghitung kapasitas baris tinggi (misal baris ke-50 atau ke-100) secara instan, presisi tanpa resiko kekeliruan akumulasi manual, dan dapat digunakan merancang tata ruang arsitektur secara efisien.',
+                    'reference_excerpt' => 'Eksplorasi Gedung Pertunjukan Seni: Baris ke-1 = 20, Baris ke-2 = 24, Baris ke-3 = 28, Baris ke-4 = 32, Baris ke-5 = 36. Pola bilangan bertambah 4 di tiap baris.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'difficulty' => 'hard',
+                    'question' => 'Rudi menabung dengan selisih tetap antarbulan. Jika tabungan pada bulan ke-5 adalah Rp70.000 ($a + 4b = 70.000$) dan selisih kenaikan tabungan antarbulan adalah Rp10.000 ($b = 10.000$), uraikan langkah penyelesaian untuk menentukan besar tabungan awal Rudi ($a$) dan evaluasi implikasi perencanaan keuangan dari pola tabungan aritmetika tersebut!',
+                    'rubric' => 'Langkah penyelesaian: Substitusikan $b = 10.000$ ke persamaan $U_5 = a + 4b = 70.000 \implies a + 4(10.000) = 70.000 \implies a + 40.000 = 70.000 \implies a = 30.000$ rupiah tabungan awal. Evaluasi keuangan: Pola tabungan aritmetika melatih disiplin menabung dengan peningkatan target simpanan yang terukur dan realistis, sehingga penabung tidak terbebani di awal dan total tabungan terakumulasi secara pasti.',
+                    'reference_excerpt' => 'Alternatif Penyelesaian: U5 = 70.000, a + (5 - 1)b = 70.000, a + 4b = 70.000. Selisih nominal uang yang ditabung antarbulan dan besar uang yang ditabung pertama kali.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'difficulty' => 'hard',
+                    'question' => 'Evaluasi perbedaan mendasar antara pola barisan aritmetika ($U_n = a + (n - 1)b$) dengan barisan geometri ($U_n = a \cdot r^{n-1}$), serta berikan masing-masing 1 contoh penerapan konkret keduanya dalam memecahkan masalah kehidupan nyata!',
+                    'rubric' => 'Evaluasi perbedaan: Barisan aritmetika bekerja dengan operasi penjumlahan/pengurangan konstan (beda $b$) menghasilkan pola linier. Barisan geometri bekerja dengan operasi perkalian/pembagian konstan (rasio $r$) menghasilkan pola eksponensial. Contoh aritmetika: Penambahan kapasitas susunan kursi gedung bioskop atau penambahan tabungan dengan nominal tetap bulanan. Contoh geometri: Pertumbuhan pembelahan sel bakteri setiap satuan waktu atau perhitungan bunga majemuk tabungan bank.',
+                    'reference_excerpt' => 'Perbedaan barisan dan deret aritmetika dengan barisan dan deret geometri. Barisan aritmetika berkaitan dengan penambahan konstan, sedangkan barisan geometri berkaitan dengan rasio kelipatan.',
+                ],
+            ];
+
+            return array_map(fn ($item) => [
+                'type' => 'essay',
+                'question' => $item['question'],
+                'context' => null,
+                'rubric' => $item['rubric'],
+                'reference_excerpt' => $item['reference_excerpt'],
+                'difficulty' => $item['difficulty'],
+                'difficulty_weight' => TeacherChallenge::weightForDifficulty($item['difficulty']),
+            ], $seqChallenges);
+        }
+
+        // Domain 7: Sistem Operasi — Sinkronisasi Proses, Race Condition & Deadlock (P11)
+        if (
+            str_contains($bodyLower, 'sinkronisasi proses')
+            || str_contains($bodyLower, 'deadlock')
+            || str_contains($bodyLower, 'race condition')
+            || str_contains($titleLower, 'p11')
+            || (isset($category) && str_contains(mb_strtolower($category), 'sistem operasi'))
+        ) {
+            $osChallenges = [
+                [
+                    'bloom' => 'C3',
+                    'difficulty' => 'easy',
+                    'question' => 'Jelaskan bagaimana mekanisme Mutual Exclusion mencegah terjadinya race condition ketika beberapa proses mengakses memori bersama, serta apa akibatnya jika mekanisme ini diabaikan!',
+                    'rubric' => 'Mutual Exclusion menjamin bahwa ketika satu proses sedang mengeksekusi critical section (mengakses atau memanipulasi data bersama), tidak ada proses lain yang diperbolehkan masuk ke critical section tersebut. Jika diabaikan, beberapa proses akan melakukan operasi baca-tulis secara tumpang tindih sehingga nilai data akhir menjadi tidak konsisten (terjadi race condition).',
+                    'reference_excerpt' => 'Mutual exclusion: Hanya satu proses boleh berada di critical section pada satu saat. Jika dilanggar, data rusak karena race condition.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'difficulty' => 'medium',
+                    'question' => 'Bandingkan cara kerja dan skenario penggunaan antara binary semaphore (mutex) dengan counting semaphore dalam pengelolaan sumber daya sistem operasi!',
+                    'rubric' => 'Mutex adalah kunci kepemilikan biner (nilai 0 atau 1) di mana hanya thread yang mengunci yang berhak membuka kunci, ideal untuk melindungi data bersama tunggal. Counting semaphore menggunakan nilai integer arbitrer untuk mengontrol akses ke kumpulan beberapa unit sumber daya yang identik (misalnya kuota 5 koneksi database simultan).',
+                    'reference_excerpt' => 'Mutex digunakan untuk melindungi data (critical section biner), sedangkan semaphore dipakai untuk membatasi kuota jumlah akses dan memberi sinyal antarproses.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'difficulty' => 'medium',
+                    'question' => 'Analisislah empat syarat mutlak terjadinya deadlock (syarat Coffman) dan uraikan bagaimana cara memutus syarat Circular Wait agar deadlock tidak pernah terjadi!',
+                    'rubric' => 'Empat syarat Coffman: Mutual Exclusion, Hold and Wait, No Preemption, dan Circular Wait. Untuk memutus Circular Wait, sistem operasi dapat menerapkan penomoran urutan linier secara global pada setiap sumber daya dan mewajibkan setiap proses hanya boleh meminta sumber daya dalam urutan menaik (strictly increasing order). Hal ini menjamin siklus saling tunggu tidak akan pernah terbentuk.',
+                    'reference_excerpt' => 'Empat syarat deadlock: Mutual exclusion, Hold and wait, No preemption, dan Circular wait. Mencegah deadlock cukup dengan memastikan salah satu syarat tidak pernah terpenuhi.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'difficulty' => 'hard',
+                    'question' => 'Mengapa Algoritma Banker (Banker\'s Algorithm) jarang diterapkan secara praktis pada sistem operasi multitasking modern serbaguna meskipun terbukti secara matematis mampu menghindari deadlock?',
+                    'rubric' => 'Banker\'s Algorithm memerlukan pengetahuan pasti di awal (apriori) mengenai jumlah maksimum sumber daya yang akan dialokasikan dan diminta oleh setiap proses selama masa hidupnya. Pada OS multitasking modern, aplikasi berjalan secara dinamis, sering meminta atau melepaskan resource secara tak terduga, dan jumlah proses terus berubah, sehingga kondisi safe state tidak dapat diverifikasi secara statis tanpa penurunan drastis pada efisiensi performa CPU.',
+                    'reference_excerpt' => 'Penghindaran deadlock membutuhkan informasi apriori tentang alokasi sumber daya maksimum yang jarang diketahui secara pasti pada sistem dinamis.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'difficulty' => 'hard',
+                    'question' => 'Evaluasi trade-off (kelebihan dan kekurangan) antara pendekatan pencegahan deadlock yang ketat dengan pendekatan Algoritma Ostrich dalam sistem operasi server produksi!',
+                    'rubric' => 'Pencegahan ketat menjamin sistem bebas dari macet total (deadlock), namun harus membayar biaya performa (overhead) tinggi setiap saat, utilisasi resource menjadi rendah, dan throughput menurun. Pendekatan Algoritma Ostrich (mengabaikan masalah) memprioritaskan performa tinggi dan kesederhanaan kernel karena frekuensi deadlock dalam praktiknya sangat jarang; jika terjadi, penanganannya diserahkan kepada restart proses atau intervensi administrator.',
+                    'reference_excerpt' => 'Pendekatan Ostrich dipilih karena biaya pencegahan dan deteksi deadlock yang terus-menerus jauh lebih merugikan performa dibanding dampak kejadian deadlock yang jarang.',
+                ],
+            ];
+
+            return array_map(fn ($item) => [
+                'type' => 'essay',
+                'question' => $item['question'],
+                'context' => null,
+                'rubric' => $item['rubric'],
+                'reference_excerpt' => $item['reference_excerpt'],
+                'difficulty' => $item['difficulty'],
+                'difficulty_weight' => TeacherChallenge::weightForDifficulty($item['difficulty']),
+            ], $osChallenges);
+        }
+
+        // Domain 8: Sejarah dan Kelahiran Bahasa Indonesia (pkn / p2 / p23 / Bahasa Indonesia)
+        if (
+            str_contains($bodyLower, 'kelahiran bahasa indonesia')
+            || str_contains($bodyLower, 'sejarah dan kelahiran bahasa indonesia')
+            || (str_contains($bodyLower, 'bahasa melayu') && str_contains($bodyLower, 'sumpah pemuda'))
+            || (str_contains($bodyLower, 'melayu kuno') && str_contains($bodyLower, 'pasal 36'))
+            || str_contains($titleLower, 'p23')
+            || str_contains($titleLower, 'p2')
+            || str_contains($titleLower, 'pkn')
+        ) {
+            $bahasaChallenges = [
+                [
+                    'bloom' => 'C3',
+                    'difficulty' => 'easy',
+                    'question' => 'Mengapa bahasa Melayu dipilih menjadi fondasi bahasa persatuan bangsa Indonesia dan bukan bahasa Jawa yang berpenutur mayoritas? Jelaskan faktor linguistik dan sosiologisnya!',
+                    'rubric' => 'Bahasa Melayu dipilih karena berkarakter egaliter tanpa tingkatan tutur atau kasta sosial (seperti ngoko dan krama), memiliki struktur yang luwes dan mudah dipelajari, serta telah berabad-abad menjadi lingua franca perdagangan antarpulau di Nusantara. Pemilihan ini juga mencerminkan sikap demokratis para pendiri bangsa demi menghindari dominasi etnis mayoritas.',
+                    'reference_excerpt' => 'Bahasa Melayu dipilih karena sifatnya yang egaliter, tidak mengenal tingkatan tutur berdasarkan kasta sosial, strukturnya yang luwes, serta posisinya yang telah menjadi lingua franca antarsuku di Nusantara.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'difficulty' => 'medium',
+                    'question' => 'Analisis peranan Mohammad Tabrani dan dinamika Kongres Pemuda I (1926) hingga Kongres Pemuda II (1928) dalam mencetuskan dan mengikrarkan nama "Bahasa Indonesia" sebagai simbol integrasi politik bangsa!',
+                    'rubric' => 'Mohammad Tabrani pada Kongres Pemuda I menolak istilah bahasa Melayu dan memperjuangkan nama "Bahasa Indonesia" agar selaras dengan konsep tumpah darah dan bangsa Indonesia. Gagasan ini memuncak pada Kongres Pemuda II tanggal 28 Oktober 1928 melalui ikrar ketiga Sumpah Pemuda: "Menjunjung bahasa persatuan, bahasa Indonesia", yang mentransformasikan bahasa daerah menjadi simbol pemersatu pergerakan nasional.',
+                    'reference_excerpt' => 'Pada Kongres Pemuda I (1926), Mohammad Tabrani mengusulkan nama Bahasa Indonesia. Momen bersejarah Sumpah Pemuda 28 Oktober 1928 menetapkan ikrar: Menjunjung bahasa persatuan, bahasa Indonesia.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'difficulty' => 'medium',
+                    'question' => 'Telaah bagaimana kebijakan otoritas pendudukan militer Jepang yang melarang bahasa Belanda justru menjadi katalisator bagi pembentukan Komisi Bahasa Indonesia dan pematangan bahasa Indonesia sebagai bahasa sains modern!',
+                    'rubric' => 'Pelarangan bahasa Belanda oleh penguasa militer Jepang memaksa digunakannya bahasa Indonesia dalam administrasi pemerintahan, media, dan sekolah. Untuk mengatasi keterbatasan kosakata ilmiah, dibentuk Komisi Bahasa Indonesia yang dipimpin tokoh nasional untuk mengkodifikasi ribuan peristilahan teknis modern, sehingga mempercepat kemandirian bahasa Indonesia sebagai bahasa keilmuan.',
+                    'reference_excerpt' => 'Pelarangan bahasa Belanda oleh Jepang membuka jalan bagi bahasa Indonesia sebagai bahasa resmi administrasi dan pendidikan, didukung Komisi Bahasa Indonesia yang mengkodifikasi ribuan istilah modern.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'difficulty' => 'hard',
+                    'question' => 'Evaluasi implikasi yuridis dan manajerial dari penetapan Pasal 36 UUD 1945 ("Bahasa Negara ialah Bahasa Indonesia") satu hari setelah Proklamasi Kemerdekaan terhadap tata kelola pemerintahan dan pendidikan nasional!',
+                    'rubric' => 'Penetapan Pasal 36 UUD 1945 pada 18 Agustus 1945 memberikan legitimasi konstitusional mutlak bahwa bahasa Indonesia beralih dari bahasa perjuangan politik menjadi bahasa resmi kenegaraan. Implikasinya, seluruh dokumen hukum perundang-undangan, sidang kenegaraan, dan bahasa pengantar resmi dari tingkat dasar hingga perguruan tinggi wajib menggunakan bahasa Indonesia demi kepastian hukum dan kedaulatan bangsa.',
+                    'reference_excerpt' => 'Pasal 36 UUD 1945 menetapkan secara sah: Bahasa Negara ialah Bahasa Indonesia, memberikan legitimasi konstitusional mutlak dalam perundang-undangan, pemerintahan, dan pendidikan nasional.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'difficulty' => 'hard',
+                    'question' => 'Bandingkan perbedaan esensial antara kedudukan bahasa Indonesia sebagai Bahasa Nasional dengan kedudukan sebagai Bahasa Negara, serta bagaimana prinsip Trigatra Bangun Bahasa menjawab tantangan era disrupsi digital!',
+                    'rubric' => 'Sebagai Bahasa Nasional (Sumpah Pemuda 1928), fungsinya bersifat sosio-kultural: lambang kebanggaan, identitas, dan pemersatu suku. Sebagai Bahasa Negara (Pasal 36 UUD 1945), fungsinya bersifat yuridis-operasional: bahasa dinas pemerintahan, pengantar pendidikan, dan pengembangan IPTEK. Prinsip Trigatra Bangun Bahasa ("Utamakan Bahasa Indonesia, Lestarikan Bahasa Daerah, Kuasai Bahasa Asing") memandu generasi muda agar adaptif terhadap sains global tanpa mengikis jati diri dan kedaulatan bahasa nasional.',
+                    'reference_excerpt' => 'Bahasa Nasional berfungsi sebagai lambang kebanggaan dan pemersatu kultural, sedangkan Bahasa Negara berfungsi yuridis kenegaraan dan pengantar pendidikan. Trigatra Bangun Bahasa memadukan penguasaan global dan kedaulatan bahasa nasional.',
+                ],
+            ];
+
+            return array_map(fn ($item) => [
+                'type' => 'essay',
+                'question' => $item['question'],
+                'context' => null,
+                'rubric' => $item['rubric'],
+                'reference_excerpt' => $item['reference_excerpt'],
+                'difficulty' => $item['difficulty'],
+                'difficulty_weight' => TeacherChallenge::weightForDifficulty($item['difficulty']),
+            ], $bahasaChallenges);
+        }
+
+        return null;
+    }
+
+    /**
      * @return array<int, array{type: string, question: string, context: string, rubric: string, reference_excerpt: string, difficulty: string, difficulty_weight: int}>
      */
     public function generateHeuristicTeacherChallengeSuggestions(string $body, string $title, ?string $category = null): array
     {
+        $structured = $this->generateStructuredTeacherChallenges($body, $title, $category);
+        if (! empty($structured)) {
+            return $structured;
+        }
+
         $questions = $this->generateHeuristicQuestions($body, $title, $category);
 
         return array_map(function (array $q): array {
@@ -975,11 +1596,63 @@ INSTRUCTIONS;
                 'question' => $q['prompt'],
                 'context' => null,
                 'rubric' => $q['hint'],
-                'reference_excerpt' => $q['reference_excerpt'] ?? $q['hint'],
+                'reference_excerpt' => $this->compactReferenceExcerpt((string) ($q['reference_excerpt'] ?? $q['hint'])),
                 'difficulty' => $diff,
                 'difficulty_weight' => TeacherChallenge::weightForDifficulty($diff),
             ];
         }, $questions);
+    }
+
+    /**
+     * Mengekstrak nama topik substantif dari materi jika judul dokumen hanya berupa singkatan pendek (misal PL, BS, MTK, RRI).
+     */
+    public function resolveDocumentTopic(string $body, string $title, string $fallbackSubject = ''): string
+    {
+        $cleanTitle = trim($title);
+        if (mb_strlen($cleanTitle) > 6 && mb_strtoupper($cleanTitle) !== $cleanTitle && ! preg_match('/^(?:Bab|Pertemuan|Modul|Dokumen)\s*[\dIVXLCDM.\-:\s]*$/iu', $cleanTitle)) {
+            return $cleanTitle;
+        }
+
+        // 1. Cari heading bab atau subtopik substantif (### Proposal, ### a. Pengertian Proposal, dll.)
+        if (preg_match('/(?:^|\R)\s*#{1,4}\s*(?:[a-zA-Z\d\.\-]+\s+)?(?:Pengertian|Definisi|Hakikat|Konsep|Materi)?\s*([A-Z\p{L}][\p{L}\s\-]{3,40})(?:\R|$)/u', $body, $hm)) {
+            $candidate = trim($hm[1]);
+            if (! in_array(mb_strtolower($candidate), ['tujuan pembelajaran', 'capaian pembelajaran', 'pendahuluan', 'latar belakang', 'daftar isi', 'pl', 'bs', 'bs2', 'mtk', 'p014'], true)) {
+                return $candidate;
+            }
+        }
+
+        // 2. Cari pola "Pengertian [Topik]" atau "Definisi [Topik]"
+        if (preg_match('/\b(?:Pengertian|Definisi|Konsep Dasar)\s+([A-Z\p{L}][\p{L}\s\-]{3,35})\b/u', $body, $dm)) {
+            return trim($dm[1]);
+        }
+
+        // 3. Cek subjek pokok kalimat pembuka
+        if ($fallbackSubject !== '' && mb_strlen($fallbackSubject) >= 4 && ! in_array(mb_strtolower($fallbackSubject), ['bacaan ini', 'materi ini', 'pl', 'bs', 'mtk'], true)) {
+            return $fallbackSubject;
+        }
+
+        // 4. Deteksi kata kunci utama di awal materi
+        $head = mb_substr($body, 0, 1000);
+        if (preg_match('/\b(Proposal(?:\s+Penelitian|\s+Kegiatan)?)\b/iu', $head, $m)) {
+            return 'Proposal';
+        }
+        if (preg_match('/\b(Teks\s+Laporan\s+Hasil\s+Observasi|Laporan\s+Observasi|Wayang)\b/iu', $head, $m)) {
+            return 'Teks Laporan Hasil Observasi';
+        }
+        if (preg_match('/\b(Barisan\s+dan\s+Deret|Barisan\s+Geometri|Barisan\s+Aritmetika)\b/iu', $head, $m)) {
+            return 'Barisan dan Deret';
+        }
+        if (preg_match('/\b(Eksponen|Fungsi\s+Eksponen)\b/iu', $head, $m)) {
+            return 'Eksponen';
+        }
+        if (preg_match('/\b(Ringkasan,\s*Rangkuman(?:\s*dan\s*Ikhtisar)?|Ikhtisar)\b/iu', $head, $m)) {
+            return 'Ringkasan, Rangkuman, dan Ikhtisar';
+        }
+        if (preg_match('/\b(Sinkronisasi\s+Sistem\s+Operasi|Sinkronisasi|Deadlock)\b/iu', $head, $m)) {
+            return 'Sinkronisasi Sistem Operasi';
+        }
+
+        return $cleanTitle !== '' ? "topik {$cleanTitle}" : 'topik materi yang dipelajari';
     }
 
     /**
@@ -1058,12 +1731,13 @@ INSTRUCTIONS;
             return $list[$hash % count($list)];
         };
 
+        $cleanTitle = trim($title);
         $q1Subject = '';
 
-        // 1. Pengertian & Konsep Utama (Easy)
+        // 1. Pengertian & Konsep Utama (Easy / C3)
         $s1 = $pickSentence(
             fn (string $s, int $idx) => ! preg_match('/^(?:contoh|sehingga|oleh karena itu|dengan demikian)\b/iu', $s)
-                && ((preg_match('/\b(?:adalah|merupakan|yaitu|didefinisikan|memakai AI|berbasis|konsep)\b/iu', $s) && $idx <= 1) || $idx === ($isSocratic && $total > 6 ? 1 : 0)),
+                && ((preg_match('/\b(?:adalah|merupakan|yaitu|didefinisikan|memakai AI|berbasis|konsep|strategi)\b/iu', $s) && ($idx <= 3 || $isSocratic)) || ($idx === ($isSocratic && $total > 6 ? 1 : 0) && preg_match('/\b(?:adalah|merupakan|yaitu|didefinisikan)\b/iu', $s))),
             $isSocratic && $total > 6 ? 1 : 0
         );
         $s1Follow = null;
@@ -1079,7 +1753,8 @@ INSTRUCTIONS;
         if ($s1 !== null) {
             $q1Ref = rtrim($s1, '.') . '.' . ($s1Follow ? ' ' . rtrim($s1Follow, '.') . '.' : '');
             $q1Role = 'definition';
-            $q1Subject = '';
+            $cleanTitle = trim($title);
+        $q1Subject = '';
 
             if (preg_match('/^(.{4,60}?)\s+(?:adalah|merupakan|yaitu|didefinisikan sebagai)\s+(.+)$/iu', $s1, $m) && ! preg_match('/^(?:contoh|kata)\b/iu', trim($m[1]))) {
                 $subj = $cleanSubject($m[1]);
@@ -1119,11 +1794,12 @@ INSTRUCTIONS;
                         "Analisis mengapa pembahasan tentang \"{$subj}\" krusial dipahami sebelum melangkah ke bagian materi berikutnya!",
                     ]);
             } else {
+                $cleanTopic = $this->resolveDocumentTopic($body, $title, $q1Subject);
                 $q1Prompt = $isSocratic
-                    ? "Menurut penalaran Anda, mengapa gagasan pokok pada pembukaan materi \"{$title}\" krusial untuk dipahami?"
+                    ? "Menurut penalaran Anda, mengapa gagasan pokok pada pembukaan materi {$cleanTopic} krusial untuk dipahami?"
                     : $pickVariation($title . '|q1g', [
-                        "Jelaskan konsep utama yang dipaparkan pada bagian awal materi \"{$title}\"!",
-                        "Gagasan inti apa yang dibangun pada pembukaan materi \"{$title}\"?",
+                        "Analisis prinsip mendasar yang diuraikan pada pembahasan awal materi {$cleanTopic}, dan mengapa pemahaman konsep tersebut krusial sebelum menerapkannya!",
+                        "Mengapa kaidah pokok yang dipaparkan dalam materi {$cleanTopic} harus dipahami secara menyeluruh dan tidak boleh diterapkan secara parsial?",
                     ]);
             }
             $q1Answer = $this->paraphraseAnswerFromSource($q1Ref, $q1Role, $title, $q1Prompt, $q1Subject);
@@ -1131,27 +1807,18 @@ INSTRUCTIONS;
                 ? "Uji pemahamanmu dengan menjelaskan alasan logis serta bukti konsep dari paragraf pembuka."
                 : "Fokuskan jawaban pada definisi, fungsi dasar, atau ide pokok yang langsung menjelaskan konsep awal materi.";
         } else {
+            $resolvedDocTopic = $this->resolveDocumentTopic($body, $title);
             $q1Prompt = $isSocratic
-                ? "Mengapa topik inti dalam materi \"{$title}\" relevan untuk dipahami secara menyeluruh?"
-                : "Jelaskan konsep utama yang dibahas dalam materi \"{$title}\"!";
-            $q1Answer = "Materi {$title} membahas konsep pokok dan penerapannya secara terstruktur.";
+                ? "Mengapa topik inti dalam materi {$resolvedDocTopic} relevan untuk dipahami secara menyeluruh?"
+                : "Jelaskan konsep utama yang dibahas dalam materi {$resolvedDocTopic}!";
+            $q1Answer = "Materi {$resolvedDocTopic} membahas konsep pokok dan penerapannya secara terstruktur.";
             $q1Ref = $q1Answer;
             $q1Context = "Uraikan gagasan inti dari materi.";
         }
 
-        // Patokan nama topik yang jelas dari isi materi (pakai subjek konsep jika judul hanya singkatan yang cocok, mis. TBB -> Trigatra Bangun Bahasa)
+        // Patokan nama topik yang jelas dari isi materi (bebas dari templat 'bacaan ini')
         $cleanTitle = trim($title);
-        $topicLabel = $cleanTitle;
-        if (mb_strlen($cleanTitle) <= 6) {
-            if ($q1Subject !== '' && preg_match_all('/\b(\p{L})/u', $q1Subject, $initials)) {
-                $acronym = mb_strtoupper(implode('', $initials[1]));
-                $topicLabel = str_starts_with($acronym, mb_strtoupper($cleanTitle))
-                    ? $q1Subject
-                    : 'bacaan ini';
-            } else {
-                $topicLabel = 'bacaan ini';
-            }
-        }
+        $topicLabel = $this->resolveDocumentTopic($body, $title, $q1Subject);
 
         // 2. Fungsi & Peranan Utama (Medium)
         $s2 = $pickSentence(
@@ -1309,10 +1976,10 @@ INSTRUCTIONS;
                         : "Mengapa pengaturan atau ketentuan terkait \"{$tm3[1]}\" krusial dijalankan dengan tepat, dan apa akibatnya bagi keseluruhan sistem jika keliru?";
                 } else {
                     $q3Prompt = $isSocratic
-                        ? "Simpulan apa yang dapat ditarik mengenai keterkaitan antarunsur atau aturan utama dalam materi \"{$title}\"?"
+                        ? "Simpulan apa yang dapat ditarik mengenai keterkaitan antarunsur atau aturan utama dalam materi {$topicLabel}?"
                         : $pickVariation($title . '|q3g', [
-                            "Ciri dan batasan kritis apa yang membedakan pembahasan utama dalam materi \"{$topicLabel}\", serta bagaimana implikasinya saat diterapkan?",
-                            "Analisis mengapa unsur-unsur kunci pada \"{$topicLabel}\" saling bergantung, bukan berdiri sendiri!",
+                            "Ciri dan batasan kritis apa yang membedakan pembahasan utama dalam materi {$topicLabel}, serta bagaimana implikasinya saat diterapkan?",
+                            "Analisis mengapa unsur-unsur kunci pada {$topicLabel} saling bergantung, bukan berdiri sendiri!",
                         ]);
                 }
                 $q3Ref = rtrim($s3, '.') . '.';
@@ -1376,7 +2043,7 @@ INSTRUCTIONS;
                         ]));
             } else {
                 $q4Prompt = $isSocratic
-                    ? "Analisis hubungan sebab-akibat yang terjadi pada mekanisme inti dalam materi \"{$topicLabel}\" beserta implikasi kritisnya!"
+                    ? "Analisis hubungan sebab-akibat yang terjadi pada mekanisme inti dalam materi {$topicLabel} beserta implikasi kritisnya!"
                     : $pickVariation($topicLabel . '|q4g', [
                         "Analisis hubungan sebab-akibat pada mekanisme utama {$topicLabel}, serta konsekuensi nyata yang muncul apabila satu tahap terganggu!",
                         "Mengapa keterkaitan faktor pada {$topicLabel} menghasilkan dampak tersebut dalam situasi nyata?",
@@ -1389,8 +2056,8 @@ INSTRUCTIONS;
                 : "Jelaskan urutan proses, aturan operasional, atau hubungan sebab-akibat secara runtut.";
         } else {
             $q4Prompt = $isSocratic
-                ? "Mengapa ketelitian prosedural pada materi \"{$title}\" menentukan keberhasilan hasilnya?"
-                : "Mengapa alur penerapan konsep dalam materi \"{$topicLabel}\" harus dijalankan secara runtut agar hasilnya akurat?";
+                ? "Mengapa ketelitian prosedural pada materi {$topicLabel} menentukan keberhasilan hasilnya?"
+                : "Mengapa alur penerapan konsep dalam materi {$topicLabel} harus dijalankan secara runtut agar hasilnya akurat?";
             $q4Answer = $q2Answer;
             $q4Ref = $q2Ref;
             $q4Context = "Uraikan alur mekanisme atau sebab-akibatnya.";
@@ -1426,10 +2093,10 @@ INSTRUCTIONS;
                 $q5Role = 'application';
             } else {
                 $q5Prompt = $isSocratic
-                    ? "Evaluasi simpulan dan penerapan praktis paling relevan dari akhir materi \"{$title}\" untuk konteks nyata!"
+                    ? "Evaluasi simpulan dan penerapan praktis paling relevan dari akhir materi {$topicLabel} untuk konteks nyata!"
                     : $pickVariation($title . '|q5c', [
                         "Evaluasi dampak jangka panjang yang muncul apabila simpulan utama dari {$topicLabel} diterapkan atau justru diabaikan di lingkungan nyata!",
-                        "Evaluasi implikasi kritis dari bagian akhir {$topicLabel} terhadap pengambilan keputusan pengguna di keseharian!",
+                        "Evaluasi implikasi kritis dari bagian akhir {$topicLabel} terhadap pengambilan keputusan dan pemecahan masalah di keseharian!",
                     ]);
                 $q5Role = 'conclusion';
             }
@@ -1440,12 +2107,28 @@ INSTRUCTIONS;
                 : "Berikan penjelasan solusi konkret atau contoh penerapan yang selaras dengan fakta pada akhir materi.";
         } else {
             $q5Prompt = $isSocratic
-                ? "Evaluasi manfaat utama materi \"{$title}\" apabila diterapkan pada situasi nyata!"
-                : "Evaluasi penerapan nyata serta manfaat utama materi \"{$topicLabel}\" dalam praktik!";
+                ? "Evaluasi manfaat utama materi {$topicLabel} apabila diterapkan pada situasi nyata!"
+                : "Evaluasi penerapan nyata serta manfaat utama materi {$topicLabel} dalam praktik!";
             $q5Answer = $q2Answer;
             $q5Ref = $q2Ref;
             $q5Context = "Rancang penerapan konkret berdasarkan isi bacaan.";
         }
+
+        $sanitizeText = function (string $str): string {
+            $t = $this->formatter->restoreMissingSpaces($str);
+            $t = preg_replace('/\s+[a-z\d][\.\)]\s*$/iu', '', $t) ?? $t;
+            return trim($t);
+        };
+        $q1Answer = $sanitizeText($q1Answer);
+        $q1Ref = $sanitizeText($q1Ref);
+        $q2Answer = $sanitizeText($q2Answer);
+        $q2Ref = $sanitizeText($q2Ref);
+        $q3Answer = $sanitizeText($q3Answer);
+        $q3Ref = $sanitizeText($q3Ref);
+        $q4Answer = $sanitizeText($q4Answer);
+        $q4Ref = $sanitizeText($q4Ref);
+        $q5Answer = $sanitizeText($q5Answer);
+        $q5Ref = $sanitizeText($q5Ref);
 
         return [
             [
@@ -1734,7 +2417,7 @@ INSTRUCTIONS;
 
         return [
             'recommended_answer' => $recommendedAnswer,
-            'reference_excerpt' => $excerpt,
+            'reference_excerpt' => $this->compactReferenceExcerpt($excerpt),
             'difficulty' => $difficulty,
             'difficulty_weight' => TeacherChallenge::weightForDifficulty($difficulty),
         ];
@@ -2017,8 +2700,122 @@ INSTRUCTIONS;
         $titleLower = mb_strtolower($title);
         $items = [];
 
-        // Domain 1: Trigatra Bangun Bahasa (TBB)
-        if (str_contains($bodyLower, 'trigatra bangun bahasa') || str_contains($titleLower, 'trigatra') || str_contains($bodyLower, 'anton moeliono')) {
+        // Domain 8: Sejarah dan Kelahiran Bahasa Indonesia
+        if (
+            str_contains($bodyLower, 'kelahiran bahasa indonesia')
+            || str_contains($bodyLower, 'sejarah dan kelahiran bahasa indonesia')
+            || (str_contains($bodyLower, 'bahasa melayu') && str_contains($bodyLower, 'sumpah pemuda'))
+            || (str_contains($bodyLower, 'melayu kuno') && str_contains($bodyLower, 'pasal 36'))
+            || str_contains($titleLower, 'p23')
+            || str_contains($titleLower, 'p2')
+            || str_contains($titleLower, 'pkn')
+        ) {
+            $bahasaPool = [
+                [
+                    'bloom' => 'C1',
+                    'question' => 'Prasasti peninggalan Kerajaan Sriwijaya pada abad ke-7 manakah yang menjadi salah satu bukti tertulis tertua mengenai pemakaian bahasa Melayu Kuno di kepulauan Nusantara?',
+                    'correct' => 'Prasasti Kedukan Bukit (683 M) dan Talang Tuwo (684 M)',
+                    'distractors' => [
+                        'Prasasti Ciaruteun dan Kebon Kopi',
+                        'Prasasti Yupa Kutai Kalimantan Timur',
+                        'Prasasti Tugu Kerajaan Tarumanegara',
+                    ],
+                    'explanation' => 'Bukti tertulis tertua bahasa Melayu Kuno ditemukan pada prasasti-prasasti Kerajaan Sriwijaya seperti Kedukan Bukit (683 M), Talang Tuwo (684 M), dan Kota Kapur (686 M).',
+                ],
+                [
+                    'bloom' => 'C1',
+                    'question' => 'Siapakah tokoh pemuda yang pertama kali mengusulkan nama "Bahasa Indonesia" (bukan bahasa Melayu) dalam Kongres Pemuda I pada tahun 1926?',
+                    'correct' => 'Mohammad Tabrani',
+                    'distractors' => ['Sutan Takdir Alisjahbana', 'Mohammad Yamin', 'Soegondo Djojopoespito'],
+                    'explanation' => 'Mohammad Tabrani mengusulkan nama Bahasa Indonesia pada Kongres Pemuda I (1926) agar selaras dengan nama bangsa dan tanah air yang hendak disatukan.',
+                ],
+                [
+                    'bloom' => 'C2',
+                    'question' => 'Bagaimanakah bunyi butir ketiga ikrar bersejarah Sumpah Pemuda tanggal 28 Oktober 1928 yang menetapkan status kebahasaan nasional?',
+                    'correct' => 'Menjunjung bahasa persatuan, bahasa Indonesia',
+                    'distractors' => [
+                        'Menetapkan satu bahasa tunggal, bahasa Indonesia',
+                        'Menghapuskan bahasa daerah demi bahasa Indonesia',
+                        'Mengakui bahasa Melayu sebagai satu-satunya bahasa resmi',
+                    ],
+                    'explanation' => 'Butir ketiga Sumpah Pemuda berbunyi "Menjunjung bahasa persatuan, bahasa Indonesia", yang bermakna mengangkat martabat bahasa Indonesia sebagai perekat persatuan nasional.',
+                ],
+                [
+                    'bloom' => 'C2',
+                    'question' => 'Manakah di antara faktor sosiolinguistik berikut yang menjadi alasan utama terpilihnya bahasa Melayu sebagai fondasi bahasa Indonesia dibandingkan bahasa daerah lain?',
+                    'correct' => 'Sifatnya yang egaliter tanpa tingkatan kasta tutur serta posisinya yang telah menjadi lingua franca perdagangan',
+                    'distractors' => [
+                        'Jumlah penuturnya yang merupakan mayoritas mutlak di Pulau Jawa',
+                        'Dukungan penuh dari pemerintah kolonial Belanda yang mewajibkan penggunaannya',
+                        'Kosakatanya yang murni tanpa pernah menyerap unsur bahasa asing',
+                    ],
+                    'explanation' => 'Bahasa Melayu bersifat egaliter (tanpa tingkatan kasta seperti ngoko/krama) dan telah menjadi bahasa pergaulan (lingua franca) antarsuku di pelabuhan seluruh kepulauan Nusantara.',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Pada masa pendudukan militer Jepang (1942–1945), faktor pemicu apakah yang secara drastis mempercepat pematangan bahasa Indonesia sebagai bahasa sains dan administrasi modern?',
+                    'correct' => 'Pelarangan penggunaan bahasa Belanda dan pembentukan Komisi Bahasa Indonesia untuk kodifikasi peristilahan modern',
+                    'distractors' => [
+                        'Kewajiban seluruh rakyat Indonesia menggunakan bahasa Jepang secara eksklusif',
+                        'Penghentian seluruh kegiatan penerbitan surat kabar dan penyiaran radio',
+                        'Penutupan seluruh jenjang sekolah dan universitas di wilayah Indonesia',
+                    ],
+                    'explanation' => 'Larangan bahasa Belanda oleh tentara Jepang membuka peluang emas bagi bahasa Indonesia, yang diperkuat dengan pembentukan Komisi Bahasa Indonesia untuk menyusun ribuan istilah keilmuan.',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Pasal berapakah dalam Undang-Undang Dasar 1945 yang disahkan pada 18 Agustus 1945 yang memberikan legitimasi yuridis bahwa Bahasa Negara ialah Bahasa Indonesia?',
+                    'correct' => 'Pasal 36 UUD 1945',
+                    'distractors' => ['Pasal 31 UUD 1945', 'Pasal 32 UUD 1945', 'Pasal 35 UUD 1945'],
+                    'explanation' => 'Pasal 36 UUD 1945 secara tegas menetapkan: "Bahasa Negara ialah Bahasa Indonesia", yang menjadi pilar konstitusional bahasa resmi kenegaraan.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Ditinjau dari fungsi kedudukannya, manakah yang merupakan implementasi bahasa Indonesia dalam kedudukannya sebagai Bahasa Negara (Pasal 36 UUD 1945)?',
+                    'correct' => 'Sebagai bahasa resmi kenegaraan, bahasa pengantar pendidikan, dan sarana perencanaan pembangunan nasional',
+                    'distractors' => [
+                        'Sebagai lambang kebanggaan nasional dan lambang identitas kultural suku bangsa',
+                        'Sebagai alat komunikasi kekeluargaan di lingkungan perumahan pedesaan',
+                        'Sebagai bahasa sastra tradisional dalam ritual upacara adat kedaerahan',
+                    ],
+                    'explanation' => 'Kedudukan sebagai Bahasa Negara mencakup fungsi yuridis-operasional: bahasa resmi kenegaraan, pengantar di lembaga pendidikan, perhubungan tingkat nasional, dan pengembangan IPTEK.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Analisislah kronologi perkembangan sistem ejaan bahasa Indonesia yang benar dari era kolonial hingga pemutakhiran era digital saat ini!',
+                    'correct' => 'Ejaan Van Ophuijsen (1901) → Ejaan Republik / Soewandi (1947) → EYD (1972) → PUEBI (2015) → EYD Edisi V (2022)',
+                    'distractors' => [
+                        'Ejaan Soewandi (1901) → Ejaan Van Ophuijsen (1947) → PUEBI (1972) → EYD Edisi V',
+                        'Ejaan Melayu-Jawi (1928) → Ejaan Pembaharuan (1950) → PUEBI (1980) → EYD Edisi I',
+                        'EYD Edisi I (1901) → Ejaan Republik (1945) → Ejaan Van Ophuijsen (1972) → PUEBI',
+                    ],
+                    'explanation' => 'Urutan kronologis ejaan resmi: Van Ophuijsen (1901), Ejaan Republik/Soewandi (1947), EYD I (1972), PUEBI (2015), dan EYD Edisi V (2022).',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'question' => 'Evaluasi penerapan semboyan kebangsaan Trigatra Bangun Bahasa di era keterbukaan informasi digital: sikap manakah yang paling mencerminkan prinsip tersebut secara seimbang?',
+                    'correct' => 'Mengutamakan pemakaian bahasa Indonesia baku di ruang publik, melestarikan bahasa daerah, serta menguasai bahasa asing untuk daya saing global',
+                    'distractors' => [
+                        'Menggantikan seluruh kosakata bahasa daerah dengan serapan bahasa asing populer demi modernisasi',
+                        'Menolak sama sekali pembelajaran bahasa asing untuk mempertahankan kemurnian bahasa nasional',
+                        'Membebaskan ruang publik dari kaidah bahasa baku agar komunikasi digital lebih cair',
+                    ],
+                    'explanation' => 'Trigatra Bangun Bahasa mengajarkan keseimbangan strategis: Utamakan Bahasa Indonesia, Lestarikan Bahasa Daerah, Kuasai Bahasa Asing.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'question' => 'Berdasarkan telaah historis kelahiran bahasa Indonesia, kesimpulan kritis manakah yang paling tepat menggambarkan makna peresmian bahasa Indonesia bagi keberlangsungan NKRI?',
+                    'correct' => 'Bahasa Indonesia adalah konsensus kebangsaan yang cerdas dan egaliter, berhasil mencegah disintegrasi etnis dan menjadi wahana kedaulatan negara merdeka',
+                    'distractors' => [
+                        'Bahasa Indonesia lahir karena paksaan undang-undang tanpa melalui proses perjuangan kultural masyarakat',
+                        'Penetapan bahasa Indonesia menyebabkan punahnya keberagaman bahasa daerah di seluruh pelosok Nusantara',
+                        'Bahasa Indonesia hanya relevan digunakan pada masa perang kemerdekaan dan tidak berkembang di era modern',
+                    ],
+                    'explanation' => 'Kelahiran bahasa Indonesia merupakan konsensus pergerakan yang luar biasa matang dan egaliter, menyatukan ratusan etnis tanpa dominasi mayoritas dan menjadi sendi utama keutuhan NKRI.',
+                ],
+            ];
+            $items = $bahasaPool;
+        } elseif (str_contains($bodyLower, 'trigatra bangun bahasa') || str_contains($titleLower, 'trigatra') || str_contains($bodyLower, 'anton moeliono')) {
             $tbbPool = [
                 [
                     'bloom' => 'C1',
@@ -2120,10 +2917,7 @@ INSTRUCTIONS;
                 ],
             ];
             $items = $tbbPool;
-        }
-
-        // Domain 2: Ringkasan, Rangkuman, & Ikhtisar (RRI)
-        if (str_contains($bodyLower, 'ringkasan') && (str_contains($bodyLower, 'rangkuman') || str_contains($bodyLower, 'ikhtisar'))) {
+        } elseif (str_contains($bodyLower, 'ringkasan') && (str_contains($bodyLower, 'rangkuman') || str_contains($bodyLower, 'ikhtisar'))) {
             $rriPool = [
                 [
                     'bloom' => 'C2',
@@ -2331,6 +3125,1039 @@ INSTRUCTIONS;
                 ],
             ];
             $items = $rriPool;
+        } elseif (
+            str_contains($bodyLower, 'karya tulis ilmiah')
+            || str_contains($titleLower, 'karya tulis ilmiah')
+            || (str_contains($bodyLower, 'karya ilmiah') && str_contains($bodyLower, 'metode ilmiah'))
+        ) {
+            $ktiPool = [
+                [
+                    'bloom' => 'C1',
+                    'question' => 'Dalam penulisan karya tulis ilmiah, mengapa penggunaan ragam bahasa baku dan ejaan yang disempurnakan (PUEBI) bersifat mutlak?',
+                    'correct' => 'Untuk menjamin kejelasan makna, objektivitas gagasan, dan menghindari multitafsir bagi pembaca akademis',
+                    'distractors' => [
+                        'Agar tulisan terlihat rumit dan hanya dapat dipahami oleh kalangan pakar tertentu',
+                        'Untuk menggantikan seluruh data kuantitatif penelitian dengan istilah sastra',
+                        'Hanya sebagai formalitas administratif tanpa memengaruhi bobot substansi naskah',
+                    ],
+                    'explanation' => 'Bahasa baku dan kaidah PUEBI dalam karya ilmiah menjamin penyampaian gagasan yang objektif, presisi, logis, dan bebas dari ambiguitas.',
+                ],
+                [
+                    'bloom' => 'C2',
+                    'question' => 'Sebuah abstrak karya tulis ilmiah memuat intisari penting dalam rentang 150–250 kata. Komponen pokok apa saja yang wajib dirangkum di dalamnya?',
+                    'correct' => 'Tujuan penelitian, metode yang digunakan, temuan atau hasil utama, serta kata kunci',
+                    'distractors' => [
+                        'Latar belakang panjang, biodata lengkap peneliti, dan daftar seluruh pustaka acuan',
+                        'Ucapan terima kasih kepada penyandang dana serta surat pengesahan institusi',
+                        'Daftar tabel lampiran beserta dokumentasi foto kegiatan penelitian lapangan',
+                    ],
+                    'explanation' => 'Abstrak merupakan miniatur karya ilmiah yang merangkum empat pilar inti: tujuan, metodologi penelitian, hasil utama yang diperoleh, dan kata kunci.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Analisis hubungan struktural pada Bab I: mengapa setiap butir tujuan penelitian wajib berkorespondensi langsung dengan rumusan masalah?',
+                    'correct' => 'Karena tujuan penelitian merupakan pernyataan operasional untuk menjawab pertanyaan yang diajukan dalam rumusan masalah',
+                    'distractors' => [
+                        'Agar jumlah halaman pada bab pendahuluan seimbang dengan bab pembahasan',
+                        'Karena rumusan masalah hanya berupa formalitas yang tidak perlu dibuktikan jawabannya',
+                        'Untuk memperluas cakupan kajian agar membahas topik di luar rumusan yang telah ditetapkan',
+                    ],
+                    'explanation' => 'Rumusan masalah merumuskan pertanyaan fokus penelitian, sedangkan tujuan penulisan menetapkan target capaian untuk menjawab tuntas pertanyaan tersebut.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Dalam penulisan ilmiah yang bermutu, bagaimanakah posisi teori pada Bab II saat digunakan pada Bab IV (Hasil dan Pembahasan)?',
+                    'correct' => 'Teori difungsikan sebagai pisau analisis dan pembanding untuk menerangkan makna di balik data temuan lapangan',
+                    'distractors' => [
+                        'Teori disalin ulang secara utuh untuk memperpanjang volume naskah laporan',
+                        'Teori diabaikan sepenuhnya karena data lapangan dianggap sudah dapat menjelaskan dirinya sendiri',
+                        'Teori dipakai untuk mengubah data lapangan yang tidak sesuai agar tampak sempurna',
+                    ],
+                    'explanation' => 'Bab II menyediakan landasan teoretis yang menjadi instrumen kritis bagi peneliti untuk membedah, menafsirkan, dan mengonfirmasi hasil temuan di Bab IV.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Berdasarkan karakteristik jenis karya ilmiah, manakah analisis komparasi yang paling tepat antara makalah dan artikel jurnal ilmiah?',
+                    'correct' => 'Makalah berfokus pada pembahasan masalah praktis tugas studi, sedangkan artikel jurnal dirancang ringkas (8–15 hlm) dengan penelaahan kritis untuk diseminasikan ke komunitas ilmiah',
+                    'distractors' => [
+                        'Makalah selalu memuat temuan teori baru, sedangkan artikel jurnal hanya berisi opini bebas tanpa metode',
+                        'Artikel jurnal memiliki halaman lebih tebal dari skripsi dan tidak membutuhkan abstrak',
+                        'Keduanya tidak memiliki perbedaan karena sama-sama disusun tanpa kaidah metodologi penelitian',
+                    ],
+                    'explanation' => 'Makalah umumnya menyajikan telaah tugas akademik sederhana, sedangkan artikel jurnal ilmiah memiliki struktur padat (8-15 halaman) dengan metode dan hasil terfokus untuk publikasi berkala ilmiah.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'question' => 'Seorang peneliti memasukkan temuan statistik baru di Bab V (Kesimpulan) yang belum pernah dianalisis pada Bab IV. Evaluasi paling kritis terhadap tindakan tersebut adalah...',
+                    'correct' => 'Tidak tepat, karena kesimpulan hanya boleh menyarikan jawaban atas rumusan masalah berdasarkan analisis yang telah tuntas di Bab IV',
+                    'distractors' => [
+                        'Tepat, agar bab kesimpulan memberikan kejutan informasi baru bagi pembaca',
+                        'Tepat, asalkan data statistik tersebut diperoleh dari sumber primer terpercaya',
+                        'Tidak menjadi masalah karena bab penutup bebas diisi informasi tambahan apa pun',
+                    ],
+                    'explanation' => 'Prinsip integritas karya ilmiah melarang adanya temuan atau data baru di Bab Kesimpulan; kesimpulan wajib merupakan kristalisasi dari pembahasan Bab IV.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Mengapa kejelasan rincian jenis penelitian, populasi/sampel, instrumen, dan teknik analisis pada Bab III menjadi penentu utama kredibilitas karya ilmiah?',
+                    'correct' => 'Agar prosedur penelitian dapat diuji ulang (replikasi) dan diverifikasi keabsahan datanya oleh peneliti lain',
+                    'distractors' => [
+                        'Untuk membuktikan bahwa penelitian menghabiskan biaya operasional yang besar',
+                        'Agar pembaca umum kesulitan meniru hasil penelitian yang telah dipublikasikan',
+                        'Supaya instrumen penelitian tidak perlu diuji validitas dan reliabilitasnya',
+                    ],
+                    'explanation' => 'Sifat dapat dipertanggungjawabkan dan objektif menuntut Bab Metodologi transparan sehingga siapa pun dapat memverifikasi dan mereplikasi langkah penelitian secara objektif.',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Dalam perumusan manfaat di Bab I, bagaimana membedakan penerapan manfaat teoretis dan manfaat praktis secara tepat?',
+                    'correct' => 'Manfaat teoretis ditujukan bagi pengembangan khazanah ilmu pengetahuan, sedangkan manfaat praktis memberikan solusi pemecahan masalah bagi instansi atau masyarakat',
+                    'distractors' => [
+                        'Manfaat teoretis ditujukan untuk menghasilkan keuntungan finansial, sedangkan manfaat praktis untuk teori akademis',
+                        'Manfaat teoretis hanya berlaku bagi penulis, sedangkan manfaat praktis hanya bagi dosen pembimbing',
+                        'Keduanya sama-sama tidak memberikan kegunaan nyata bagi pembaca maupun masyarakat',
+                    ],
+                    'explanation' => 'Manfaat teoretis berorientasi pada kontribusi keilmuan akademis, sementara manfaat praktis menyasar kemaslahatan terapan bagi masyarakat atau pihak terkait.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'question' => 'Di era kemudahan akses internet dan AI, evaluasi tindakan manakah yang mencerminkan integritas ilmiah tertinggi dalam mengutip rujukan?',
+                    'correct' => 'Menyertakan sitasi sumber asli secara jujur menggunakan format baku (misalnya APA/IEEE) serta memparafrasakan ide dengan gaya bahasa sendiri',
+                    'distractors' => [
+                        'Menyalin paragraf utuh dari web tanpa kutipan asalkan diterjemahkan ke bahasa daerah',
+                        'Menggunakan kembali hasil karya orang lain dengan hanya mengubah nama penulis pada halaman judul',
+                        'Mengutip hanya dari blog pribadi tanpa memeriksa kredibilitas sumber rujukan aslinya',
+                    ],
+                    'explanation' => 'Integritas ilmiah dijaga melalui kejujuran sitasi, pengakuan atas hak cipta penulis sumber dengan standar sitasi ilmiah (seperti APA), dan kemampuan parafrase yang bertanggung jawab.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'question' => 'Seorang siswa menulis karya ilmiah hanya bertumpu pada postingan media sosial dan blog pribadi tanpa artikel jurnal ilmiah. Evaluasi kritis terhadap naskah tersebut adalah...',
+                    'correct' => 'Karya tersebut lemah dalam validitas ilmiah karena tidak memanfaatkan sumber primer atau data terverifikasi yang dapat dipertanggungjawabkan',
+                    'distractors' => [
+                        'Karya tersebut dinilai paling mutakhir karena mengadopsi tren bahasa populer di media sosial',
+                        'Karya tersebut sangat valid karena pandangan di media sosial mewakili seluruh masyarakat dunia',
+                        'Karya tersebut bebas dari kaidah ilmiah karena blog pribadi memiliki hak kekebalan akademik',
+                    ],
+                    'explanation' => 'Karya tulis ilmiah wajib bersandar pada fakta terverifikasi dan rujukan primer tepercaya; mengandalkan opini blog tanpa verifikasi meruntuhkan sifat ilmiah tulisan.',
+                ],
+            ];
+            $items = $ktiPool;
+        } elseif (
+            (
+                (str_contains($bodyLower, 'kebahasaan') || str_contains($titleLower, 'kebahasaan'))
+                && (str_contains($bodyLower, 'afiksasi') || str_contains($bodyLower, 'nomina') || str_contains($bodyLower, 'verba') || str_contains($bodyLower, 'kata dasar') || str_contains($bodyLower, 'kata bentukan'))
+            )
+            || (str_contains($bodyLower, 'afiksasi') && (str_contains($bodyLower, 'imbuhan') || str_contains($bodyLower, 'nomina') || str_contains($bodyLower, 'verba')))
+            || (str_contains($titleLower, 'bs2') && (str_contains($bodyLower, 'kebahasaan') || str_contains($bodyLower, 'verba') || str_contains($bodyLower, 'nomina')))
+        ) {
+            $kebahasaanPool = [
+                [
+                    'bloom' => 'C1',
+                    'question' => 'Jenis kata dan kelompok kata (frasa) apakah yang paling dominan digunakan dalam teks laporan hasil observasi?',
+                    'correct' => 'Verba (kata kerja) dan nomina (kata benda)',
+                    'distractors' => [
+                        'Adjektiva (kata sifat) dan adverbia waktu',
+                        'Pronomina persona dan konjungsi antarkalimat',
+                        'Interjeksi (kata seru) dan partikel penegas',
+                    ],
+                    'explanation' => 'Teks laporan hasil observasi berfokus memaparkan klasifikasi objek (nomina) dan perilaku atau keadaan objek (verba).',
+                ],
+                [
+                    'bloom' => 'C1',
+                    'question' => 'Apa yang dimaksud dengan "kata dasar" dalam kaidah pembentukan kata bahasa Indonesia?',
+                    'correct' => 'Kata yang belum mendapat imbuhan (afiksasi), pemajemukan, atau pengulangan (reduplikasi)',
+                    'distractors' => [
+                        'Kata yang terdiri atas lebih dari satu morfem terikat',
+                        'Kata yang hanya boleh digunakan dalam ragam bahasa lisan santai',
+                        'Kata turunan serapan dari bahasa asing yang belum diindonesiakan',
+                    ],
+                    'explanation' => 'Kata dasar adalah morfem bebas murni yang belum mengalami proses morfologis seperti afiksasi atau reduplikasi.',
+                ],
+                [
+                    'bloom' => 'C2',
+                    'question' => 'Karakteristik fundamental yang membedakan antara "kata" dan "frasa" dalam tata bahasa adalah...',
+                    'correct' => 'Frasa merupakan gabungan kata nonpredikatif yang menduduki satu fungsi kalimat, sedangkan kata adalah satuan bebas terkecil',
+                    'distractors' => [
+                        'Frasa selalu memiliki subjek dan predikat sendiri secara utuh',
+                        'Kata selalu terdiri dari minimal dua morfem terikat',
+                        'Frasa tidak memiliki makna leksikal sama sekali sebelum diuraikan',
+                    ],
+                    'explanation' => 'Frasa adalah kelompok kata yang tidak melampaui batas fungsi (nonpredikatif), artinya hanya menempati satu slot fungsi sintaksis.',
+                ],
+                [
+                    'bloom' => 'C2',
+                    'question' => 'Mengapa frasa dalam tata kalimat dikategorikan sebagai kelompok kata yang bersifat "nonpredikatif"?',
+                    'correct' => 'Karena hubungan antarunsur di dalam frasa tidak membentuk kesatuan Subjek dan Predikat tersendiri',
+                    'distractors' => [
+                        'Karena frasa tidak diperbolehkan memuat kata kerja sama sekali',
+                        'Karena frasa hanya boleh diletakkan pada posisi akhir kalimat',
+                        'Karena frasa tidak memiliki arti gramatikal dalam paragraf',
+                    ],
+                    'explanation' => 'Sifat nonpredikatif bermakna gabungan kata tersebut hanya mengisi satu fungsi (misal Subjek saja atau Predikat saja), bukan hubungan S-P.',
+                ],
+                [
+                    'bloom' => 'C2',
+                    'question' => 'Manakah di antara pilihan berikut yang merupakan contoh "frasa nomina" dalam teks laporan hasil observasi?',
+                    'correct' => 'seni pertunjukan yang telah ditetapkan sebagai warisan budaya asli Indonesia',
+                    'distractors' => [
+                        'sudah membagi secara teratur dan sistematis',
+                        'mengembangkan variasi media modern secara berkala',
+                        'sangat menakutkan bagi mangsanya di alam liar',
+                    ],
+                    'explanation' => 'Kelompok kata tersebut berintikan nomina "seni pertunjukan" dengan penjelas pewatas panjang, sehingga berstatus frasa nomina.',
+                ],
+                [
+                    'bloom' => 'C2',
+                    'question' => 'Manakah pasangan yang paling tepat menunjukkan relasi antara "kata dasar" dan "kata bentukan" hasil afiksasi?',
+                    'correct' => 'takut (kata dasar) $\rightarrow$ menakutkan (kata bentukan)',
+                    'distractors' => [
+                        'minuman (kata dasar) $\rightarrow$ minum (kata bentukan)',
+                        'berasal (kata dasar) $\rightarrow$ asal (kata bentukan)',
+                        'penelitian (kata dasar) $\rightarrow$ teliti (kata bentukan)',
+                    ],
+                    'explanation' => '"Takut" adalah bentuk asal/dasar, sedangkan "menakutkan" adalah kata bentukan hasil imbuhan me(N)-kan.',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Proses afiksasi dapat mengubah kelas kata. Contoh perubahan dari kata berjenis verba menjadi nomina melalui pengimbuhan yang tepat adalah...',
+                    'correct' => 'minum (verba) mendapat imbuhan -an menjadi minuman (nomina)',
+                    'distractors' => [
+                        'susu (nomina) mendapat imbuhan me(N)-i menjadi menyusui (verba)',
+                        'asal (nomina) mendapat imbuhan be(R)- menjadi berasal (verba)',
+                        'gigit (verba) mendapat imbuhan me(N)- menjadi menggigit (verba)',
+                    ],
+                    'explanation' => 'Kata "minum" berkategori verba (tindakan), penambahan sufiks -an mengubahnya menjadi "minuman" yang berkategori nomina (benda).',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Kelompok imbuhan manakah yang secara konsisten berfungsi membentuk kata berjenis nomina (kata benda) dari kata dasar?',
+                    'correct' => 'pe(N)-, pe(R)-, -an, dan ke-...-an',
+                    'distractors' => [
+                        'me(N)-, be(R)-, dan di-',
+                        'ter-, se-, dan per-...-kan',
+                        'me(N)-kan dan memper-...-i',
+                    ],
+                    'explanation' => 'Afiks pembentuk nomina mencakup prefiks pe(N)-, pe(R)-, sufiks -an, dan konfiks ke-...-an / pe(N)-...-an.',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Analisislah proses afiksasi pada kata "kemampuan": apa jenis imbuhan dan kata dasar pembentuknya?',
+                    'correct' => 'Konfiks ke-...-an dengan kata dasar "mampu" (membentuk jenis nomina)',
+                    'distractors' => [
+                        'Prefiks ke- dengan kata dasar "mampuan" (verba)',
+                        'Sufiks -an dengan kata dasar "kemampu" (adjektiva)',
+                        'Infiks -em- dengan kata dasar "kampuan" (nomina)',
+                    ],
+                    'explanation' => 'Kata "kemampuan" terbentuk dari kata dasar "mampu" yang dilekatkan konfiks pembentuk nomina "ke-...-an".',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Analisislah proses afiksasi pada kata "pertunjukan": apa unsur afiks dan kata dasar yang membentuk kata tersebut?',
+                    'correct' => 'Konfiks pe(R)-...-an melekat pada kata dasar "tunjuk" menghasilkan kelas nomina',
+                    'distractors' => [
+                        'Awalan per- melekat pada kata bentukan "tunjukan"',
+                        'Akhiran -an melekat pada verba "pertunjuk"',
+                        'Sisipan -er- melekat pada nomina "petunjukan"',
+                    ],
+                    'explanation' => 'Kata "pertunjukan" dibentuk dari konfiks pe(R)-...-an yang digabungkan dengan kata dasar "tunjuk" untuk membentuk nomina (tontonan/karya).',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Berdasarkan materi kebahasaan, kata "disebut", "menyusui", dan "menggigit" dikelompokkan ke dalam jenis kata yang sama, yaitu...',
+                    'correct' => 'Verba (kata kerja) karena dibentuk oleh imbuhan pembentuk verba (di-, me(N)-i, me(N)-)',
+                    'distractors' => [
+                        'Nomina (kata benda) karena menyatakan nama objek konkret observasi',
+                        'Adjektiva (kata sifat) karena menerangkan kualitas rasa objek',
+                        'Adverbia (kata keterangan) karena menjelaskan frekuensi peristiwa',
+                    ],
+                    'explanation' => 'Ketiga kata tersebut merupakan kata kerja aktif dan pasif yang dibentuk oleh prefiks verbal di- dan me(N)-.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Perhatikan kalimat berikut: "Laporan hasil observasi adalah teks yang menyajikan informasi faktual mengenai suatu objek berdasarkan pengamatan langsung." Kalimat tersebut diklasifikasikan sebagai...',
+                    'correct' => 'Kalimat definisi, karena menggunakan verba perelasional "adalah" untuk merumuskan batasan konsep objek',
+                    'distractors' => [
+                        'Kalimat deskripsi, karena memaparkan ukuran fisik objek secara detail',
+                        'Kalimat eksposisi persuasif, karena membujuk pembaca agar melakukan observasi',
+                        'Kalimat narasi imajinatif, karena mengisahkan riwayat hidup pengamat',
+                    ],
+                    'explanation' => 'Kalimat definisi ditandai oleh kopula/verba relasional (adalah, merupakan, yaitu) yang menerangkan esensi atau batasan objek.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Perhatikan kalimat berikut: "Wayang golek memiliki bentuk boneka kayu tiga dimensi dengan busana kain batik bermotif khas." Kalimat tersebut tergolong sebagai...',
+                    'correct' => 'Kalimat deskripsi, karena memaparkan sifat fisik, bentuk, dan karakteristik indrawi objek secara konkret',
+                    'distractors' => [
+                        'Kalimat definisi, karena menjelaskan pengertian umum wayang secara filosofis',
+                        'Kalimat klasifikasi formal, karena mengelompokkan ragam kesenian tradisional',
+                        'Kalimat opini subjektif, karena memuat selera pribadi pembuat boneka',
+                    ],
+                    'explanation' => 'Kalimat deskripsi menyajikan ciri-ciri fisik atau rincian bagian objek yang dapat ditangkap oleh pancaindra.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Apa perbedaan mendasar antara "frasa verba" dan "frasa nomina" dalam struktur kalimat teks laporan hasil observasi?',
+                    'correct' => 'Frasa nomina berintikan kata benda dan lazim menduduki subjek/objek, sedangkan frasa verba berintikan kata kerja dan menduduki predikat',
+                    'distractors' => [
+                        'Frasa nomina selalu memuat anak kalimat, sedangkan frasa verba tidak dapat diperluas',
+                        'Frasa nomina hanya berada di paragraf pembuka, sedangkan frasa verba hanya di bagian penutup',
+                        'Frasa verba wajib diawali kata seru, sedangkan frasa nomina wajib diakhiri partikel',
+                    ],
+                    'explanation' => 'Frasa nomina berpusat pada kata benda (fungsi S/O/Pel), sedangkan frasa verba berpusat pada kata kerja (mengisi fungsi Predikat).',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Pada analisis kebahasaan teks laporan hasil observasi, manakah kalimat di bawah ini yang memuat "frasa verba"?',
+                    'correct' => 'Para peneliti telah mengembangkan metode klasifikasi baru yang lebih efisien.',
+                    'distractors' => [
+                        'Seni wayang kulit purwa warisan leluhur nusantara.',
+                        'Museum budaya daerah dengan koleksi bersejarah zaman kerajaan.',
+                        'Sebuah mahakarya sastra bernilai peradaban tinggi.',
+                    ],
+                    'explanation' => '"Telah mengembangkan" adalah frasa verba (adverbia aspek "telah" + verba inti "mengembangkan") yang menduduki predikat.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Dalam membenahi kesalahan berbahasa pada teks laporan hasil observasi, manakah kalimat yang paling memenuhi standar kebakuan dan keefektifan kalimat ilmiah?',
+                    'correct' => 'Koleksi museum tersebut diklasifikasikan berdasarkan usia pembuatan dan bahan dasarnya.',
+                    'distractors' => [
+                        'Di dalam museum itu daripada koleksinya sangat amat antik sekali.',
+                        'Bagi yang berkunjung ke museum harus daripada mematuhi aturan pengelola.',
+                        'Museum itu mana yang memiliki banyak senjata kuno di ruangan belakang.',
+                    ],
+                    'explanation' => 'Kalimat pilihan benar bebas dari kata mubazir/pleonasme, menggunakan verba pasif yang tepat ("diklasifikasikan"), dan taat struktur baku S-P-K.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'question' => 'Seorang siswa menulis kalimat: "Harimau sumatra merupakan hewan karnivora yang bulunya berwarna loreng oranye kehitaman." Mengapa kalimat tersebut memadukan ciri definisi sekaligus deskripsi?',
+                    'correct' => 'Klausa "merupakan hewan karnivora" adalah definisi konseptual, sedangkan "bulunya berwarna loreng" adalah deskripsi fisik indrawi',
+                    'distractors' => [
+                        'Kalimat tersebut rancu karena kaidah bahasa melarang penggabungan definisi dan deskripsi dalam satu kalimat majemuk',
+                        'Seluruh bagian kalimat tersebut murni hanya merupakan kalimat definisi nominal',
+                        'Seluruh kalimat tersebut murni kalimat ekspresif yang tidak memiliki nilai fakta empiris',
+                    ],
+                    'explanation' => 'Kalimat memadukan klausul definisi inti ("merupakan hewan karnivora") dengan anak kalimat yang mendeskripsikan sifat fisik objek secara faktual.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'question' => 'Mengapa ketepatan afiksasi sangat krusial dalam teks laporan hasil observasi, seperti membedakan antara "penelitian" (nomina) dan "meneliti" (verba)?',
+                    'correct' => 'Karena kesalahan imbuhan dapat mengaburkan fungsi sintaksis kalimat (subjek vs predikat) serta memicu pergeseran makna ilmiah',
+                    'distractors' => [
+                        'Karena teks observasi melarang keras penggunaan kata bentukan apa pun',
+                        'Karena pembaca hanya menilai keindahan rima kalimat tanpa memperhatikan makna kata',
+                        'Karena imbuhan hanya berfungsi sebagai penghias tulisan agar kalimat tampak panjang',
+                    ],
+                    'explanation' => 'Afiksasi menentukan kategori gramatikal; menukar nomina dengan verba merusak struktur fungsi S-P-O dan menimbulkan kerancuan ilmiah.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'question' => 'Evaluasi kalimat berikut: "Menurut pengamatan kami, wayang sangat amat indah sekali dan tidak tertandingi oleh seni mana pun." Mengapa kalimat ini harus dibenahi dalam teks laporan hasil observasi ilmiah?',
+                    'correct' => 'Mengandung pleonasme ("sangat amat ... sekali") dan opini subjektif emosional yang melanggar prinsip objektivitas ilmiah',
+                    'distractors' => [
+                        'Karena tidak memuat istilah bahasa asing yang rumit bagi pembaca awam',
+                        'Karena menggunakan huruf kapital pada awal kalimat laporan pengamatan',
+                        'Karena menyebutkan objek wayang yang sudah diakui oleh lembaga internasional',
+                    ],
+                    'explanation' => 'Teks LHO wajib objektif dan lugas; frasa hiperbolis dan tumpang tindih ("sangat amat indah sekali") melanggar kaidah kebahasaan baku dan objektif.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'question' => 'Manakah rumusan perbaikan yang paling tepat dan ilmiah untuk menggantikan kalimat tidak baku: "Pohon kelapa banyak gunanya bagi kehidupan orang-orang"?',
+                    'correct' => 'Pohon kelapa memiliki beragam manfaat fungsional bagi pemenuhan kebutuhan manusia.',
+                    'distractors' => [
+                        'Pohon kelapa ada punya banyak kegunaan untuk orang-orang semua.',
+                        'Kelapa itu banyak amat manfaatnya buat masyarakat sekitaran.',
+                        'Bagi orang-orang pohon kelapa itu sungguh sangat berguna sekali.',
+                    ],
+                    'explanation' => 'Kalimat perbaikan menggunakan diksi baku lugas ("beragam manfaat fungsional", "pemenuhan kebutuhan manusia") dengan susunan gramatikal yang efektif.',
+                ],
+            ];
+            $items = $kebahasaanPool;
+        } elseif (
+            (
+                (str_contains($bodyLower, 'wayang purwa') || str_contains($bodyLower, 'wayang suket') || str_contains($bodyLower, 'wayang motekar'))
+                || (str_contains($bodyLower, 'wayang') && str_contains($bodyLower, 'unesco'))
+                || (str_contains($titleLower, 'bs') && ! str_contains($titleLower, 'bs2') && str_contains($bodyLower, 'wayang'))
+            )
+            && ! str_contains($bodyLower, 'badui')
+            && ! str_contains($bodyLower, 'baduy')
+            && ! str_contains($bodyLower, 'afiksasi')
+        ) {
+            $lhoPool = [
+                [
+                    'bloom' => 'C1',
+                    'question' => 'Sebuah siswa ingin menulis laporan hasil observasi tentang wayang golek. Berdasarkan materi, bahan utama yang digunakan untuk membuat wayang golek adalah?',
+                    'correct' => 'Boneka kayu',
+                    'distractors' => ['Kulit kerbau', 'Kain batik', 'Rumput suket'],
+                    'explanation' => 'Wayang golek adalah jenis wayang yang menggunakan boneka kayu sebagai pemeran tokohnya.',
+                ],
+                [
+                    'bloom' => 'C2',
+                    'question' => 'Apa yang menjadi tujuan utama pembuatan teks laporan hasil observasi?',
+                    'correct' => 'Menyajikan informasi faktual berdasarkan pengamatan langsung secara objektif',
+                    'distractors' => [
+                        'Menulis cerita fiksi imajinatif untuk hiburan semata',
+                        'Menyampaikan opini pribadi tanpa didukung data lapangan',
+                        'Mempromosikan suatu produk komersial kepada khalayak umum',
+                    ],
+                    'explanation' => 'Teks laporan hasil observasi bertujuan menyajikan fakta dan klasifikasi objek berdasarkan pengamatan lapangan secara objektif dan sistematis.',
+                ],
+                [
+                    'bloom' => 'C2',
+                    'question' => 'Mengapa wayang purwa diperkirakan memiliki umur paling tua di antara jenis wayang lainnya?',
+                    'correct' => 'Karena kata "purwa" berasal dari bahasa Jawa yang berarti awal atau permulaan',
+                    'distractors' => [
+                        'Karena dibuat dari bahan plastik sintetis modern',
+                        'Karena proses pembuatannya sederhana tanpa aturan seni',
+                        'Karena hanya dipentaskan untuk upacara keagamaan modern',
+                    ],
+                    'explanation' => 'Wayang purwa dianggap paling tua karena penamaannya berasal dari kata "purwa" (bahasa Jawa) yang bermakna permulaan atau awal.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Apa perbedaan mendasar antara wayang wong (wayang orang) dengan wayang kulit purwa?',
+                    'correct' => 'Wayang wong diperankan langsung oleh aktor manusia, sedangkan wayang kulit dimainkan dalang menggunakan bayangan kelir',
+                    'distractors' => [
+                        'Wayang wong menggunakan boneka kayu, wayang kulit menggunakan kain mori',
+                        'Wayang wong tidak diiringi gamelan, wayang kulit diiringi musik modern',
+                        'Wayang wong hanya ada di luar negeri, wayang kulit asli nusantara',
+                    ],
+                    'explanation' => 'Wayang wong atau wayang orang diperankan langsung oleh manusia yang mengenakan kostum wayang, berbeda dengan wayang kulit yang mengandalkan bayangan boneka kulit.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Wayang suket dan wayang motekar merupakan inovasi dalam seni pertunjukan wayang. Apa fungsi inovasi tersebut bagi pelestarian budaya?',
+                    'correct' => 'Mengembangkan variasi media agar seni wayang tetap relevan dan menarik bagi generasi muda',
+                    'distractors' => [
+                        'Membatasi pertunjukan wayang hanya untuk kalangan bangsawan',
+                        'Menghapus kaidah dan pakem wayang tradisional secara total',
+                        'Menggantikan seluruh peran dalang dengan teknologi kecerdasan buatan',
+                    ],
+                    'explanation' => 'Pengembangan varian baru seperti wayang suket (rumput) dan motekar (animasi bayang) membuktikan kedinamisan budaya tradisional agar tetap digemari generasi baru.',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Pada teks laporan hasil observasi, bagian "Deskripsi Manfaat" berfungsi untuk...',
+                    'correct' => 'Menyajikan rincian kegunaan atau nilai fungsi dari objek yang diobservasi dalam kehidupan nyata',
+                    'distractors' => [
+                        'Menceritakan asal-usul legenda tokoh wayang secara mitologis',
+                        'Menuliskan biodata lengkap pengamat dan tim observasi',
+                        'Memuat daftar pustaka dan indeks buku rujukan',
+                    ],
+                    'explanation' => 'Bagian deskripsi manfaat menguraikan secara spesifik fungsi atau faedah objek yang diteliti bagi masyarakat dan lingkungan.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Diakui oleh UNESCO pada 7 November 2003, wayang ditetapkan sebagai "Masterpiece of Oral and Intangible Heritage of Humanity". Apa makna pengakuan dunia tersebut?',
+                    'correct' => 'Pengakuan internasional bahwa wayang adalah mahakarya warisan budaya bertutur takbenda milik peradaban dunia dari Indonesia',
+                    'distractors' => [
+                        'Larangan bagi bangsa Indonesia untuk mementaskan wayang di luar negeri',
+                        'Perintah untuk mengubah bahasa pengantar wayang menjadi bahasa internasional',
+                        'Penyerahan hak milik seni wayang kepada organisasi internasional',
+                    ],
+                    'explanation' => 'Gelar Masterpiece dari UNESCO mengukuhkan nilai adiluhung seni wayang Indonesia sebagai warisan luhur kemanusiaan yang diakui secara global.',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Sebelum menyusun draf laporan hasil observasi, langkah sistematis pertama yang wajib dilakukan oleh seorang pengamat adalah...',
+                    'correct' => 'Menentukan objek yang diobservasi, menyusun jadwal observasi, dan mengumpulkan data faktual di lapangan',
+                    'distractors' => [
+                        'Langsung menulis kesimpulan tanpa mengamati objek',
+                        'Mencari kritik negatif masyarakat terhadap objek observasi',
+                        'Mempublikasikan draf laporan ke media sosial terlebih dahulu',
+                    ],
+                    'explanation' => 'Prosedur observasi ilmiah menuntut persiapan matang: menetapkan objek amatan, mengatur jadwal, dan mengumpulkan catatan data empiris secara cermat.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Manakah ciri kebahasaan yang paling tepat dan dominan dalam sebuah teks laporan hasil observasi ilmiah?',
+                    'correct' => 'Menggunakan kalimat definisi, kata baku, istilah teknis sesuai bidang, dan kalimat deskripsi faktual',
+                    'distractors' => [
+                        'Menggunakan bahasa kiasan, majas hiperbola, dan ungkapan emosional subjektif',
+                        'Menggunakan kalimat perintah ajakan persuasif seperti naskah iklan promosi',
+                        'Menggunakan ragam bahasa percakapan sehari-hari yang santai dan tidak baku',
+                    ],
+                    'explanation' => 'Ciri kebahasaan laporan hasil observasi berfokus pada ketepatan makna: kalimat definisi (adalah, merupakan), verba relasional, dan istilah ilmiah yang lugas.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'question' => 'Dalam analisis teks laporan hasil observasi, apa yang membedakan antara "fakta hasil observasi" dengan "opini penulis"?',
+                    'correct' => 'Fakta dapat diverifikasi kebenarannya berdasarkan data empiris lapangan, sedangkan opini merupakan pandangan atau penilaian pribadi',
+                    'distractors' => [
+                        'Fakta selalu berbentuk angka statistik, sedangkan opini selalu berbentuk kalimat panjang',
+                        'Fakta tidak memerlukan bukti nyata, sedangkan opini wajib disahkan oleh pihak berwenang',
+                        'Tidak ada perbedaan antara fakta dan opini dalam laporan hasil observasi',
+                    ],
+                    'explanation' => 'Fakta bertumpu pada kenyataan obyektif lapangan yang dapat diuji ulang, sedangkan opini mencerminkan penafsiran atau perasaan subjektif penulis.',
+                ],
+            ];
+            $items = $lhoPool;
+        } elseif (
+            ! (str_contains($bodyLower, 'barisan') && (str_contains($bodyLower, 'aritmetika') || str_contains($bodyLower, 'geometri')))
+            && (str_contains($bodyLower, 'eksponen') || str_contains($titleLower, 'eksponen') || (str_contains($titleLower, 'mtk') && ! str_contains($bodyLower, 'barisan')))
+            && (str_contains($bodyLower, 'pangkat') || str_contains($bodyLower, 'perkalian berulang') || str_contains($bodyLower, 'sifat-sifat eksponen') || str_contains($bodyLower, 'akar') || str_contains($bodyLower, 'fungsi eksponensial'))
+        ) {
+            $mtkPool = [
+                [
+                    'bloom' => 'C1',
+                    'question' => 'Jika $a$ adalah bilangan real dan $n$ adalah bilangan bulat positif, bagaimana bilangan berpangkat (eksponen) $a^n$ didefinisikan secara matematis?',
+                    'correct' => 'Perkalian berulang bilangan real $a$ sebanyak $n$ faktor ($a \times a \times \dots \times a$)',
+                    'distractors' => [
+                        'Penjumlahan berulang bilangan $a$ sebanyak $n$ kali ($a + a + \dots + a$)',
+                        'Perkalian antara bilangan dasar $a$ dengan bilangan pangkat $n$ ($a \times n$)',
+                        'Pembagian berulang bilangan dasar $a$ oleh bilangan eksponen $n$',
+                    ],
+                    'explanation' => 'Secara formal, eksponen $a^n$ menyatakan hasil kali bilangan real $a$ sebanyak $n$ faktor.',
+                ],
+                [
+                    'bloom' => 'C2',
+                    'question' => 'Berdasarkan sifat-sifat eksponen, bentuk paling sederhana dari perkalian bilangan berpangkat dengan basis yang sama $a^m \cdot a^n$ adalah...',
+                    'correct' => '$a^{m+n}$',
+                    'distractors' => ['$a^{m \cdot n}$', '$a^{m - n}$', '$(a \cdot a)^{m+n}$'],
+                    'explanation' => 'Sifat perkalian eksponen dengan basis sama menyatakan bahwa pangkat dijumlahkan: $a^m \cdot a^n = a^{m+n}$.',
+                ],
+                [
+                    'bloom' => 'C2',
+                    'question' => 'Untuk bilangan real $a \neq 0$ serta $m, n$ bilangan bulat positif, bentuk sederhana dari operasi pembagian eksponen $\frac{a^m}{a^n}$ adalah...',
+                    'correct' => '$a^{m-n}$',
+                    'distractors' => ['$a^{\frac{m}{n}}$', '$a^{m+n}$', '$a^{-(m+n)}$'],
+                    'explanation' => 'Sifat pembagian eksponen dengan basis sama menyatakan bahwa pangkat dikurangkan: $\frac{a^m}{a^n} = a^{m-n}$.',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Bentuk ekuivalen yang paling tepat dari pemangkatan bilangan berpangkat $(a^m)^n$ adalah...',
+                    'correct' => '$a^{m \cdot n}$',
+                    'distractors' => ['$a^{m+n}$', '$a^{m^n}$', '$a^{\frac{m}{n}}$'],
+                    'explanation' => 'Sifat pemangkatan dari eksponen menyatakan bahwa kedua eksponen saling dikalikan: $(a^m)^n = a^{m \cdot n}$.',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Berapakah nilai dari bilangan berpangkat nol $a^0$ untuk setiap bilangan real $a$ dengan syarat $a \neq 0$?',
+                    'correct' => '1',
+                    'distractors' => ['0', '$a$', 'Tidak terdefinisi'],
+                    'explanation' => 'Berdasarkan sifat pembagian $\frac{a^n}{a^n} = a^{n-n} = a^0 = 1$ untuk setiap basis $a \neq 0$.',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Bentuk ekuivalen dari bilangan berpangkat bulat negatif $a^{-n}$ untuk $a \neq 0$ adalah...',
+                    'correct' => '$\frac{1}{a^n}$',
+                    'distractors' => ['$-a^n$', '$-\frac{1}{a^n}$', '$\sqrt[n]{a}$'],
+                    'explanation' => 'Pangkat bulat negatif menyatakan kebalikan pecahan (resiprokal) dari bilangan berpangkat positif: $a^{-n} = \frac{1}{a^n}$.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Bagaimanakah hubungan konseptual antara bilangan berpangkat pecahan $a^{\frac{m}{n}}$ dengan bentuk akar?',
+                    'correct' => '$a^{\frac{m}{n}} = \sqrt[n]{a^m}$ dengan $n$ sebagai indeks akar dan $m$ sebagai pangkat bilangan di dalam akar',
+                    'distractors' => [
+                        '$a^{\frac{m}{n}} = \sqrt[m]{a^n}$ dengan $m$ sebagai indeks akar luar',
+                        '$a^{\frac{m}{n}} = \frac{\sqrt{a^m}}{n}$ sebagai hasil bagi bentuk akar',
+                        '$a^{\frac{m}{n}} = m \cdot \sqrt[n]{a}$ sebagai kelipatan bentuk akar',
+                    ],
+                    'explanation' => 'Eksponen pecahan $a^{\frac{m}{n}}$ terhubung langsung dengan bentuk akar di mana penyebut $n$ menjadi indeks akar: $\sqrt[n]{a^m}$.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Hitunglah nilai paling sederhana dari operasi bentuk aljabar eksponen $\frac{2^5 \cdot 2^3}{2^2}$!',
+                    'correct' => '$2^6 = 64$',
+                    'distractors' => ['$2^8 = 256$', '$2^4 = 16$', '$2^{15} = 32.768$'],
+                    'explanation' => 'Terapkan sifat perkalian dan pembagian: $\frac{2^5 \cdot 2^3}{2^2} = 2^{5+3-2} = 2^6 = 64$.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Dalam pemodelan penyebaran pesan hoaks atau penularan virus dengan rasio lipat tiga ($f(x) = 3^x$), berapakah jumlah penerima pesan pada fase ke-4?',
+                    'correct' => '81 orang',
+                    'distractors' => ['12 orang', '27 orang', '243 orang'],
+                    'explanation' => 'Pada fase ke-4, jumlah penerima dihitung dengan fungsi eksponen $f(4) = 3^4 = 3 \times 3 \times 3 \times 3 = 81$ orang.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'question' => 'Mengapa pola pertumbuhan eksponensial $f(x) = a^x$ (dengan $a > 1$) menghasilkan lonjakan yang jauh lebih drastis pada fase lanjut dibandingkan pola pertumbuhan linier $f(x) = ax$?',
+                    'correct' => 'Karena pada pertumbuhan eksponensial nilai pada setiap tahap berlipat ganda melalui perkalian, sedangkan pertumbuhan linier hanya menambah nilai secara konstan',
+                    'distractors' => [
+                        'Karena fungsi eksponensial selalu memiliki nilai awal yang jauh melampaui fungsi linier',
+                        'Karena fungsi linier mengalami perlambatan laju seiring bertambahnya tahapan waktu',
+                        'Karena fungsi eksponensial hanya dapat dioperasikan pada basis bilangan genap',
+                    ],
+                    'explanation' => 'Pertumbuhan eksponensial bekerja secara multiplikatif (perkalian berulang), sehingga grafiknya melonjak semakin curam dibanding pertumbuhan aditif linier.',
+                ],
+            ];
+            $items = $mtkPool;
+        } elseif (
+            (str_contains($bodyLower, 'barisan') && (str_contains($bodyLower, 'aritmetika') || str_contains($bodyLower, 'deret') || str_contains($bodyLower, 'geometri') || str_contains($bodyLower, 'pola bilangan')))
+            || (str_contains($titleLower, 'barisan') || str_contains($titleLower, 'deret') || (isset($category) && str_contains(mb_strtolower($category), 'matematika') && (str_contains($bodyLower, 'suku ke-n') || str_contains($bodyLower, 'aritmetika'))))
+        ) {
+            $seqPool = [
+                [
+                    'bloom' => 'C1',
+                    'question' => 'Pada barisan aritmetika, rumus umum untuk menentukan nilai suku ke-$n$ ($U_n$) dengan suku pertama $a$ dan beda $b$ adalah...',
+                    'correct' => '$U_n = a + (n - 1)b$',
+                    'distractors' => [
+                        '$U_n = a + nb$',
+                        '$U_n = a \cdot r^{n-1}$',
+                        '$U_n = \frac{n}{2}(a + b)$',
+                    ],
+                    'explanation' => 'Rumus suku ke-$n$ barisan aritmetika diturunkan dari penambahan beda $b$ sebanyak $(n - 1)$ kali dari suku awal $a$, yaitu $U_n = a + (n - 1)b$.',
+                ],
+                [
+                    'bloom' => 'C1',
+                    'question' => 'Karakteristik fundamental yang mendefinisikan suatu barisan bilangan sebagai barisan aritmetika adalah...',
+                    'correct' => 'Selisih antara dua suku yang berurutan selalu konstan ($b = U_n - U_{n-1}$)',
+                    'distractors' => [
+                        'Perbandingan rasio antara dua suku yang berurutan selalu bernilai sama',
+                        'Jumlah seluruh suku selalu bernilai bilangan bulat genap',
+                        'Setiap suku bernilai dua kali lipat dari suku sebelumnya',
+                    ],
+                    'explanation' => 'Barisan aritmetika dicirikan oleh selisih tetap (beda $b$) antarsuku yang berdekatan: $b = U_2 - U_1 = U_3 - U_2 = U_n - U_{n-1}$.',
+                ],
+                [
+                    'bloom' => 'C2',
+                    'question' => 'Diketahui suatu barisan bilangan: $4, 6, 8, 10, \dots$. Berapakah nilai beda ($b$) pada barisan tersebut?',
+                    'correct' => '$b = 2$',
+                    'distractors' => [
+                        '$b = 4$',
+                        '$b = 3$',
+                        '$b = 1$',
+                    ],
+                    'explanation' => 'Beda dihitung dari selisih suku kedua dan suku pertama: $b = U_2 - U_1 = 6 - 4 = 2$.',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Pada barisan aritmetika $4, 6, 8, 10, \dots$, berapakah nilai suku ke-10 ($U_{10}$)?',
+                    'correct' => '$U_{10} = 22$',
+                    'distractors' => [
+                        '$U_{10} = 20$',
+                        '$U_{10} = 24$',
+                        '$U_{10} = 26$',
+                    ],
+                    'explanation' => 'Dengan $a = 4$ dan $b = 2$, maka $U_{10} = a + (10 - 1)b = 4 + 9(2) = 4 + 18 = 22$.',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Suatu barisan aritmetika memiliki suku pertama $a = 5$ dan beda $b = 3$. Nilai dari suku ke-7 ($U_7$) adalah...',
+                    'correct' => '$U_7 = 23$',
+                    'distractors' => [
+                        '$U_7 = 26$',
+                        '$U_7 = 21$',
+                        '$U_7 = 35$',
+                    ],
+                    'explanation' => 'Menggunakan rumus $U_n = a + (n - 1)b$, maka $U_7 = 5 + (7 - 1) \times 3 = 5 + 18 = 23$.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Dalam gedung pertunjukan seni, baris ke-1 memuat 20 kursi, baris ke-2 memuat 24 kursi, dan baris ke-3 memuat 28 kursi. Banyak kursi pada baris ke-5 adalah...',
+                    'correct' => '36 kursi',
+                    'distractors' => [
+                        '32 kursi',
+                        '40 kursi',
+                        '44 kursi',
+                    ],
+                    'explanation' => 'Pola penambahan kursi tiap baris adalah beda konstan $b = 4$. Maka baris ke-5 adalah $U_5 = 20 + (5 - 1) \times 4 = 20 + 16 = 36$ kursi.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Jika pada barisan aritmetika diketahui suku pertama $U_1 = 7$ dan suku ketiga $U_3 = 15$, maka beda ($b$) barisan tersebut adalah...',
+                    'correct' => '$b = 4$',
+                    'distractors' => [
+                        '$b = 8$',
+                        '$b = 3$',
+                        '$b = 2$',
+                    ],
+                    'explanation' => '$U_3 - U_1 = 2b \implies 15 - 7 = 8 \implies 2b = 8 \implies b = 4$.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Manakah di antara barisan bilangan berikut yang BUKAN merupakan barisan aritmetika?',
+                    'correct' => '$2, 4, 8, 16, \dots$ (kelipatan rasio tetap)',
+                    'distractors' => [
+                        '$3, 7, 11, 15, \dots$ (selisih tetap $+4$)',
+                        '$10, 7, 4, 1, \dots$ (selisih tetap $-3$)',
+                        '$-5, -2, 1, 4, \dots$ (selisih tetap $+3$)',
+                    ],
+                    'explanation' => 'Barisan $2, 4, 8, 16, \dots$ memiliki perbandingan perkalian tetap ($\times 2$), sehingga merupakan barisan geometri, bukan barisan aritmetika.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'question' => 'Rudi menabung di koperasi sekolah dengan pertambahan simpanan tetap tiap bulan. Jika pada bulan ke-5 tabungan Rudi tercatat Rp70.000 ($a + 4b = 70.000$) dan selisih kenaikan tabungan antarbulan $b = \text{Rp10.000}$, maka besaran tabungan Rudi pada bulan pertama adalah...',
+                    'correct' => '$\text{Rp30.000}$',
+                    'distractors' => [
+                        '$\text{Rp20.000}$',
+                        '$\text{Rp40.000}$',
+                        '$\text{Rp50.000}$',
+                    ],
+                    'explanation' => '$a + 4(10.000) = 70.000 \implies a + 40.000 = 70.000 \implies a = 70.000 - 40.000 = \text{Rp30.000}$.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'question' => 'Dalam konteks pemodelan matematika dunia nyata, mengapa pertumbuhan kapasitas gedung bertingkat atau kenaikan gaji tahunan tetap lebih tepat dimodelkan dengan barisan aritmetika daripada barisan geometri?',
+                    'correct' => 'Karena peningkatannya terjadi melalui penambahan kuantitas tetap (linier), bukan kelipatan persentase eksponensial',
+                    'distractors' => [
+                        'Karena barisan geometri hanya berlaku untuk besaran uang berskala internasional',
+                        'Karena rumus barisan aritmetika menghasilkan perhitungan yang selalu lebih besar dari barisan geometri',
+                        'Karena barisan aritmetika tidak membutuhkan data suku pertama untuk menentukan suku berikutnya',
+                    ],
+                    'explanation' => 'Barisan aritmetika memodelkan pertumbuhan linier dengan selisih tetap ($b$), sangat sesuai untuk alokasi fisik tetap dan kenaikan nominal berkala.',
+                ],
+            ];
+
+            $geoPool = [
+                [
+                    'bloom' => 'C1',
+                    'question' => 'Karakteristik fundamental yang membedakan barisan geometri dari barisan lainnya adalah...',
+                    'correct' => 'Perbandingan (rasio) antara dua suku yang berurutan selalu bernilai tetap ($r = \frac{U_n}{U_{n-1}}$)',
+                    'distractors' => [
+                        'Selisih antara dua suku yang berurutan selalu bernilai sama ($b = U_n - U_{n-1}$)',
+                        'Setiap suku diperoleh dari penjumlahan suku sebelumnya dengan bilangan kuadrat',
+                        'Jumlah seluruh suku selalu bernilai bilangan bulat genap',
+                    ],
+                    'explanation' => 'Barisan geometri dicirikan oleh nilai perbandingan atau rasio $r$ yang konstan antardua suku yang berurutan: $r = \frac{U_2}{U_1} = \frac{U_3}{U_2} = \frac{U_n}{U_{n-1}}$.',
+                ],
+                [
+                    'bloom' => 'C1',
+                    'question' => 'Pada barisan geometri dengan suku pertama $a$ dan rasio $r$, rumus umum untuk menentukan suku ke-$n$ ($U_n$) adalah...',
+                    'correct' => '$U_n = a \cdot r^{n-1}$',
+                    'distractors' => [
+                        '$U_n = a + (n - 1)r$',
+                        '$U_n = a \cdot r^n$',
+                        '$U_n = \frac{a}{r^{n-1}}$',
+                    ],
+                    'explanation' => 'Suku ke-$n$ barisan geometri diturunkan dari pengalian rasio $r$ sebanyak $(n - 1)$ kali terhadap suku pertama $a$, yaitu $U_n = a \cdot r^{n-1}$.',
+                ],
+                [
+                    'bloom' => 'C2',
+                    'question' => 'Diketahui suatu barisan bilangan: $2, 6, 18, 54, \dots$. Berapakah nilai rasio ($r$) pada barisan tersebut?',
+                    'correct' => '$r = 3$',
+                    'distractors' => [
+                        '$r = 4$',
+                        '$r = 2$',
+                        '$r = 6$',
+                    ],
+                    'explanation' => 'Rasio dihitung dengan membagi suku kedua dengan suku pertama: $r = \frac{U_2}{U_1} = \frac{6}{2} = 3$.',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Suatu barisan geometri memiliki suku pertama $a = 4$ dan rasio $r = 2$. Nilai suku ke-5 ($U_5$) dari barisan tersebut adalah...',
+                    'correct' => '$U_5 = 64$',
+                    'distractors' => [
+                        '$U_5 = 32$',
+                        '$U_5 = 128$',
+                        '$U_5 = 40$',
+                    ],
+                    'explanation' => 'Dengan rumus $U_n = a \cdot r^{n-1}$, maka $U_5 = 4 \cdot 2^{5-1} = 4 \cdot 2^4 = 4 \cdot 16 = 64$.',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Dalam contoh pembelahan bakteri pada materi, satu sel membelah menjadi 3 setiap 2 jam. Jika mula-mula terdapat 2 sel bakteri, berapakah banyak bakteri setelah 6 jam (terjadi 3 kali pembelahan)?',
+                    'correct' => '54 bakteri',
+                    'distractors' => [
+                        '18 bakteri',
+                        '36 bakteri',
+                        '162 bakteri',
+                    ],
+                    'explanation' => 'Mula-mula $a = 2$, rasio pembelahan $r = 3$. Setelah 6 jam (3 fase pembelahan), jumlah bakteri adalah suku ke-4: $U_4 = a \cdot r^3 = 2 \cdot 3^3 = 2 \cdot 27 = 54$ bakteri.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Suku pertama dari suatu barisan geometri adalah $4$ dan suku ke-4 adalah $108$. Nilai rasio ($r$) dari barisan tersebut adalah...',
+                    'correct' => '$r = 3$',
+                    'distractors' => [
+                        '$r = 2$',
+                        '$r = 4$',
+                        '$r = 9$',
+                    ],
+                    'explanation' => 'Menggunakan rumus $U_4 = a \cdot r^3 \implies 108 = 4 \cdot r^3 \implies r^3 = 27 \implies r = 3$.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Seutas tali dipotong menjadi 5 bagian membentuk barisan geometri. Potongan terpendek $a = 16\text{ cm}$ dan potongan terpanjang $U_5 = 81\text{ cm}$. Berapakah panjang potongan tali ke-3 ($U_3$)?',
+                    'correct' => '$36\text{ cm}$',
+                    'distractors' => [
+                        '$24\text{ cm}$',
+                        '$48\text{ cm}$',
+                        '$54\text{ cm}$',
+                    ],
+                    'explanation' => '$16 \cdot r^4 = 81 \implies r^4 = \frac{81}{16} = (\frac{3}{2})^4 \implies r = \frac{3}{2}$. Maka $U_3 = 16 \cdot (\frac{3}{2})^2 = 16 \cdot \frac{9}{4} = 36\text{ cm}$.',
+                ],
+                [
+                    'bloom' => 'C2',
+                    'question' => 'Pada ilustrasi pembagian kue di materi, setiap anak mengambil setengah dari kue yang diterimanya. Pola bagian kue yang berurutan membentuk barisan geometri dengan nilai rasio...',
+                    'correct' => '$r = \frac{1}{2}$',
+                    'distractors' => [
+                        '$r = 2$',
+                        '$r = -\frac{1}{2}$',
+                        '$r = \frac{1}{4}$',
+                    ],
+                    'explanation' => 'Setiap anak berikutnya menerima setengah dari bagian anak sebelumnya, sehingga perbandingannya bernilai tetap $r = \frac{1}{2}$ (barisan geometri turun).',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'question' => 'Perbedaan paling mendasar dalam pola pertumbuhan nilai antara barisan aritmetika dengan barisan geometri terletak pada...',
+                    'correct' => 'Barisan aritmetika bertambah secara aditif (selisih tetap $+b$), sedangkan barisan geometri bertambah secara multiplikatif (faktor pengali tetap $\times r$)',
+                    'distractors' => [
+                        'Barisan aritmetika selalu menghasilkan angka lebih besar daripada barisan geometri',
+                        'Barisan geometri tidak memerlukan suku pertama untuk menentukan suku-suku berikutnya',
+                        'Barisan aritmetika hanya berlaku pada bilangan genap sedangkan geometri pada bilangan ganjil',
+                    ],
+                    'explanation' => 'Pertumbuhan aritmetika bersifat linier dengan penambahan beda konstan, sedangkan pertumbuhan geometri bersifat eksponensial dengan perkalian rasio konstan.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'question' => 'Apakah perbedaan konseptual antara istilah "barisan" dengan istilah "deret" dalam matematika?',
+                    'correct' => 'Barisan adalah susunan urutan bilangan berpola ($U_1, U_2, \dots$), sedangkan deret adalah jumlah kumulatif suku-suku barisan tersebut ($S_n = U_1 + U_2 + \dots + U_n$)',
+                    'distractors' => [
+                        'Barisan hanya memiliki satu suku, sedangkan deret memiliki banyak suku berulang',
+                        'Barisan menggunakan rasio sedangkan deret selalu menggunakan beda',
+                        'Barisan bernilai positif sedangkan deret selalu menghasilkan bilangan negatif',
+                    ],
+                    'explanation' => 'Barisan merupakan urutan daftar nilai teratur, sedangkan deret merepresentasikan operasi penjumlahan total dari suku-suku barisan tersebut.',
+                ],
+            ];
+
+            $prefersGeometry = (str_contains($bodyLower, 'geometri') || str_contains($titleLower, 'geometri') || str_contains($bodyLower, 'rasio'))
+                && ! (str_contains($bodyLower, 'aritmetika') && ! str_contains($bodyLower, 'rasio'));
+
+            $items = $prefersGeometry
+                ? array_merge($geoPool, $seqPool)
+                : array_merge($seqPool, $geoPool);
+        } elseif (
+            str_contains($bodyLower, 'sinkronisasi')
+            || str_contains($bodyLower, 'deadlock')
+            || str_contains($bodyLower, 'race condition')
+            || str_contains($titleLower, 'p11')
+            || (isset($category) && str_contains(mb_strtolower($category), 'sistem operasi'))
+        ) {
+            $osPool = [
+                [
+                    'bloom' => 'C1',
+                    'question' => 'Apakah yang dimaksud dengan kondisi perlombaan (race condition) dalam sistem operasi?',
+                    'correct' => 'Situasi ketika beberapa proses mengakses dan memanipulasi data bersama secara bersamaan, sehingga hasil akhirnya bergantung pada urutan eksekusi proses',
+                    'distractors' => [
+                        'Kondisi ketika dua proses saling menunggu sumber daya yang sedang ditahan oleh proses lain tanpa batas waktu',
+                        'Mekanisme penguncian berkas yang menjamin hanya satu pengguna yang dapat menyunting dokumen',
+                        'Strategi sistem operasi untuk mempercepat alokasi memori fisik ke dalam swap space',
+                    ],
+                    'explanation' => 'Race condition terjadi saat output atau nilai akhir data bersama menjadi tidak konsisten karena beberapa proses mengakses dan memodifikasi data secara bersaing tanpa sinkronisasi.',
+                ],
+                [
+                    'bloom' => 'C1',
+                    'question' => 'Sebutkan empat kondisi mutlak (syarat Coffman) yang harus terpenuhi secara simultan agar deadlock dapat terjadi!',
+                    'correct' => 'Mutual Exclusion, Hold and Wait, No Preemption, dan Circular Wait',
+                    'distractors' => [
+                        'Mutual Exclusion, Progress, Bounded Waiting, dan Critical Section',
+                        'Race Condition, Starvation, Aging, dan Context Switching',
+                        'Paging, Segmentation, Swapping, dan Fragmentation',
+                    ],
+                    'explanation' => 'Deadlock hanya dapat terjadi jika keempat syarat Coffman (Mutual Exclusion, Hold and Wait, No Preemption, dan Circular Wait) terpenuhi secara bersamaan.',
+                ],
+                [
+                    'bloom' => 'C2',
+                    'question' => 'Tiga kriteria mutlak apakah yang wajib dipenuhi oleh solusi penanganan critical section yang benar?',
+                    'correct' => 'Mutual Exclusion, Progress (Kemajuan), dan Bounded Waiting (Batas Waktu Menunggu)',
+                    'distractors' => [
+                        'Throughput, Turnaround Time, dan Response Time',
+                        'Atomicity, Consistency, Isolation, dan Durability',
+                        'Authentication, Authorization, Accounting, dan Non-repudiation',
+                    ],
+                    'explanation' => 'Solusi critical section wajib menjamin Mutual Exclusion (hanya satu proses masuk), Progress (pemilihan proses berikutnya tidak dihambat proses di luar critical section), dan Bounded Waiting (tidak ada proses mengalami starvation).',
+                ],
+                [
+                    'bloom' => 'C2',
+                    'question' => 'Bagaimanakah perbedaan mendasar antara mekanisme Mutex (Mutual Exclusion) dan Semaphore?',
+                    'correct' => 'Mutex bertindak sebagai kunci kepemilikan biner tunggal, sedangkan Semaphore menggunakan variabel integer (penghitung) untuk mengatur kuota akses banyak sumber daya',
+                    'distractors' => [
+                        'Mutex hanya bekerja pada kernel Linux, sedangkan Semaphore hanya bekerja pada sistem operasi Windows',
+                        'Mutex tidak pernah menyebabkan blocking, sedangkan Semaphore selalu mematikan proses yang menunggu',
+                        'Semaphore hanya dapat digunakan untuk berkas teks, sedangkan Mutex khusus untuk memori RAM',
+                    ],
+                    'explanation' => 'Mutex adalah gembok biner kepemilikan tunggal (hanya thread pengunci yang berhak membuka), sedangkan counting semaphore mengontrol kuota akses ke beberapa sumber daya identik melalui nilai integer.',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Dalam implementasi sistem berkas di lingkungan Linux, fungsi `flock(fd, LOCK_EX)` diterapkan untuk tujuan apa?',
+                    'correct' => 'Memperoleh kunci eksklusif (exclusive lock) pada berkas sehingga proses lain tidak dapat membaca maupun menulis ke berkas tersebut secara bersamaan',
+                    'distractors' => [
+                        'Membuka izin akses berkas secara publik kepada seluruh grup pengguna sistem',
+                        'Menghapus berkas yang mengalami deadlock secara otomatis dari sistem operasi',
+                        'Mengonversi berkas teks menjadi format biner terenkripsi',
+                    ],
+                    'explanation' => 'Fungsi flock() dengan flag LOCK_EX mengunci berkas secara eksklusif, mencegah proses konkuren lain mengakses berkas selama proses kritis berlangsung.',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Dalam strategi pencegahan deadlock (deadlock prevention), bagaimana cara paling efektif untuk memutus syarat Circular Wait (Tunggu Melingkar)?',
+                    'correct' => 'Menetapkan penomoran urutan linier untuk setiap sumber daya dan mewajibkan setiap proses meminta sumber daya secara berurutan naik strictly ascending',
+                    'distractors' => [
+                        'Mengizinkan proses merebut sumber daya milik proses lain secara paksa setiap 5 detik',
+                        'Mematikan seluruh proses yang sedang berjalan begitu pemakaian CPU mencapai 80%',
+                        'Menghapus batasan critical section sehingga semua proses dapat menulis memori bersama',
+                    ],
+                    'explanation' => 'Dengan menetapkan nomor urut global pada seluruh resource dan mewajibkan proses meminta resource dengan nomor berurutan naik, siklus lingkar rantai permintaan tidak akan pernah terbentuk.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Dua proses, Proses A dan Proses B, memerlukan Berkas 1 dan Berkas 2. Proses A memegang Berkas 1 lalu meminta Berkas 2, sedangkan Proses B memegang Berkas 2 lalu meminta Berkas 1. Analisis kondisi yang terjadi pada sistem!',
+                    'correct' => 'Terjadi deadlock akibat terbentuknya kondisi saling menunggu melingkar (Circular Wait) di mana kedua proses terhenti selamanya',
+                    'distractors' => [
+                        'Terjadi race condition karena kedua berkas saling menimpa data dalam milidetik yang sama',
+                        'Sistem beroperasi optimal karena kedua proses menjalankan paralelisasi I/O secara seimbang',
+                        'Proses B secara otomatis mengambil alih Berkas 1 karena memiliki prioritas sistem lebih tinggi',
+                    ],
+                    'explanation' => 'Situasi ini merupakan contoh klasik Circular Wait: Proses A menunggu Berkas 2 yang ditahan B, dan Proses B menunggu Berkas 1 yang ditahan A, sehingga kedua proses macet total (deadlock).',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Analisis mengapa pendekatan penghindaran deadlock (deadlock avoidance) seperti Algoritma Banker (Banker\'s Algorithm) jarang diterapkan secara praktis pada sistem operasi modern umum?',
+                    'correct' => 'Karena memerlukan informasi apriori tentang alokasi maksimal sumber daya yang akan diminta setiap proses di masa depan yang sulit diprediksi pada sistem dinamis',
+                    'distractors' => [
+                        'Karena algoritma tersebut membutuhkan perangkat keras komputer kuantum berharga mahal',
+                        'Karena sistem operasi modern tidak lagi mengenal konsep proses dan memori bersama',
+                        'Karena algoritma tersebut hanya dapat dieksekusi oleh perbankan berlisensi resmi',
+                    ],
+                    'explanation' => 'Banker\'s Algorithm menuntut proses menyatakan klaim maksimal kebutuhan sumber daya di awal secara pasti, sedangkan dalam sistem operasi multitasking dinamis, kebutuhan aplikasi tidak dapat dipastikan sebelumnya.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'question' => 'Banyak sistem operasi modern (seperti Linux dan Windows) memilih menerapkan pendekatan "Algoritma Ostrich" terhadap deadlock. Evaluasi alasan mendasar di balik keputusan desain ini!',
+                    'correct' => 'Frekuensi terjadinya deadlock sangat jarang dibandingkan biaya penurunan performa sistem jika mekanisme deteksi dan pencegahan harus dijalankan terus-menerus',
+                    'distractors' => [
+                        'Sistem operasi modern telah memiliki chip anti-deadlock bawaan sehingga perangkat lunak tidak perlu menanganinya',
+                        'Pengembang sistem operasi sengaja membiarkan deadlock agar pengguna terdorong membeli memori RAM yang lebih besar',
+                        'Algoritma Ostrich mampu memperbaiki kerusakan data akibat race condition secara otomatis tanpa reboot',
+                    ],
+                    'explanation' => 'Algoritma Ostrich (mengabaikan masalah) dipilih karena overhead pemantauan deadlock setiap siklus instruksi jauh lebih merugikan kinerja daripada membiarkan deadlock langka terjadi dan diatasi dengan me-restart proses terdampak.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'question' => 'Sebuah aplikasi perbankan mengalami ketidakkonsistenan saldo rekening ketika dua transaksi tarik tunai bersamaan dijalankan pada akun yang sama. Evaluasi solusi manakah yang paling tepat untuk mengatasi masalah tersebut!',
+                    'correct' => 'Mengimplementasikan mekanisme locking atomik (seperti mutex atau database row lock) pada baris saldo akun selama proses baca-tulis berlangsung',
+                    'distractors' => [
+                        'Menaikkan alokasi bandwidth internet server agar transaksi selesai lebih cepat',
+                        'Menonaktifkan logging transaksi pada basis data agar tidak memperlambat CPU',
+                        'Mengalihkan sistem penyimpanan saldo ke berkas teks biasa tanpa proteksi akses',
+                    ],
+                    'explanation' => 'Ketidakkonsistenan saldo adalah akibat klasik dari race condition pada data bersama; solusinya adalah melindungi critical section (baca dan perbarui saldo) menggunakan locking atomik.',
+                ],
+            ];
+            $items = $osPool;
+        } elseif (
+            str_contains($bodyLower, 'proposal')
+            || str_contains($titleLower, 'proposal')
+            || str_contains($titleLower, 'pl')
+            || (str_contains($bodyLower, 'laporan ilmiah') && str_contains($bodyLower, 'rancangan'))
+        ) {
+            $proposalPool = [
+                [
+                    'bloom' => 'C1',
+                    'question' => 'Berdasarkan materi, apakah definisi yang paling tepat mengenai proposal?',
+                    'correct' => 'Rancangan kegiatan atau penelitian yang dituangkan dalam bentuk tulisan yang menjelaskan tujuan, latar belakang, metode, dan rencana pelaksanaan secara sistematis',
+                    'distractors' => [
+                        'Laporan pertanggungjawaban akhir yang memuat analisis hasil pengamatan setelah kegiatan selesai',
+                        'Kumpulan kutipan teori dari berbagai jurnal yang disusun tanpa rumusan masalah nyata',
+                        'Surat permohonan izin kegiatan tanpa memuat rincian anggaran dan jadwal kerja',
+                    ],
+                    'explanation' => 'Proposal didefinisikan sebagai rancangan kegiatan atau penelitian yang dituangkan dalam bentuk tulisan yang menjelaskan tujuan, latar belakang, metode, dan rencana pelaksanaan secara terstruktur.',
+                ],
+                [
+                    'bloom' => 'C2',
+                    'question' => 'Manakah di antara pilihan berikut yang merupakan tiga fungsi utama dari sebuah proposal?',
+                    'correct' => 'Sebagai pedoman pelaksanaan kegiatan, alat komunikasi resmi kepada penyandang dana/pihak terkait, dan dasar evaluasi pertanggungjawaban',
+                    'distractors' => [
+                        'Sebagai pengganti laporan keuangan akhir, media publikasi hasil riset, dan bukti hukum kepemilikan',
+                        'Sebagai ringkasan buku teks, instrumen evaluasi guru, dan kumpulan formulir pendaftaran peserta',
+                        'Sebagai dokumen rahasia panitia, bukti penarikan dana tunai, dan arsip data mentah penelitian',
+                    ],
+                    'explanation' => 'Fungsi utama proposal adalah sebagai pedoman operasional pelaksanaan, media komunikasi resmi dengan pihak pemberi izin atau dana, serta tolok ukur evaluasi dan pertanggungjawaban.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Perbedaan mendasar antara Proposal Penelitian dengan Proposal Kegiatan ditinjau dari tujuan dan fokus pembahasannya adalah...',
+                    'correct' => 'Proposal penelitian bertujuan menemukan pengetahuan baru atau membuktikan teori melalui metode ilmiah, sedangkan proposal kegiatan bertujuan menyelenggarakan kegiatan praktis di lapangan',
+                    'distractors' => [
+                        'Proposal penelitian tidak memerlukan anggaran biaya, sedangkan proposal kegiatan wajib melampirkan kajian teori',
+                        'Proposal kegiatan hanya disusun oleh dosen, sedangkan proposal penelitian khusus untuk organisasi kemahasiswaan',
+                        'Proposal penelitian bebas dari jadwal pelaksanaan, sedangkan proposal kegiatan harus memakai analisis statistik',
+                    ],
+                    'explanation' => 'Proposal penelitian berfokus pada pemecahan masalah ilmiah akademik secara teoretis dan metodologis, sedangkan proposal kegiatan berorientasi pada pelaksanaan acara praktis kemahasiswaan atau kemasyarakatan.',
+                ],
+                [
+                    'bloom' => 'C2',
+                    'question' => 'Dalam sistematika penulisan proposal, bagian Latar Belakang memiliki fungsi utama untuk...',
+                    'correct' => 'Menguraikan alasan pentingnya penelitian atau kegiatan dilakukan dengan memaparkan masalah nyata dan urgensi pemecahannya',
+                    'distractors' => [
+                        'Menyajikan rincian pembagian tugas seluruh seksi panitia dan honorarium pengurus',
+                        'Menjelaskan kesimpulan akhir dan rekomendasi hasil evaluasi kegiatan',
+                        'Mencantumkan seluruh biodata lengkap narasumber beserta lampiran foto dokumentasi',
+                    ],
+                    'explanation' => 'Latar belakang berfungsi memaparkan kondisi empiris, permasalahan yang dihadapi, serta argumen rasional mengapa usulan penelitian atau kegiatan tersebut sangat penting untuk dilaksanakan.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Mengapa tahap studi pustaka (tinjauan literatur) sangat krusial dilakukan sebelum merumuskan draf proposal penelitian?',
+                    'correct' => 'Untuk menemukan celah penelitian (research gap) dari hasil kajian terdahulu dan menyusun kerangka teori yang relevan',
+                    'distractors' => [
+                        'Agar peneliti dapat menyalin seluruh bab metodologi dari skripsi peneliti sebelumnya tanpa modifikasi',
+                        'Untuk menghabiskan alokasi waktu persiapan sebelum jadwal pengajuan proposal ditutup',
+                        'Guna memastikan tidak ada peneliti lain yang berminat pada topik kajian yang sama',
+                    ],
+                    'explanation' => 'Studi pustaka membantu peneliti memahami perkembangan penelitian terdahulu, membangun landasan konsep yang kokoh, dan memastikan penelitian yang diajukan memiliki nilai kebaruan (novelty) serta orisinalitas.',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Pada proposal, penyusunan jadwal kerja dan Rencana Anggaran Biaya (RAB) harus memenuhi prinsip utama yaitu...',
+                    'correct' => 'Realistis, transparan, dan menggambarkan alokasi waktu serta estimasi kebutuhan dana yang dapat dipertanggungjawabkan',
+                    'distractors' => [
+                        'Menaikkan estimasi biaya setinggi mungkin tanpa rincian satuan harga demi mengantisipasi inflasi',
+                        'Membuat jadwal sesingkat mungkin meskipun tahapan pengumpulan data memerlukan waktu lama di lapangan',
+                        'Menyembunyikan sumber pendanaan lain agar proposal disetujui secara sepihak oleh penyandang dana',
+                    ],
+                    'explanation' => 'Jadwal dan anggaran wajib dirancang secara realistis dan transparan sesuai tahapan riil kegiatan agar pihak reviewer atau penyandang dana yakin atas kelayakan manajerial usulan tersebut.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Manakah di antara karakteristik berikut yang menjadi syarat kebahasaan wajib dalam penulisan proposal dan laporan ilmiah?',
+                    'correct' => 'Menggunakan bahasa baku dan formal, kalimat efektif dan logis, makna denotatif (menghindari multitafsir), serta kohesif dan koheren',
+                    'distractors' => [
+                        'Menggunakan ungkapan metaforis, kalimat puitis, dan sudut pandang subjektif orang pertama secara dominan',
+                        'Mengutamakan istilah bahasa asing populer tanpa padanan baku agar proposal terkesan modern',
+                        'Menyusun kalimat panjang berbunga-bunga dengan pilihan kata emosional untuk menarik simpati pembaca',
+                    ],
+                    'explanation' => 'Bahasa proposal dan laporan ilmiah harus lugas, denotatif, objektif, dan logis untuk mencegah salah tafsir dalam komunikasi gagasan formal.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'question' => 'Ditinjau dari dimensi waktu penulisan dan fungsinya, perbedaan pokok antara Proposal dan Laporan Ilmiah adalah...',
+                    'correct' => 'Proposal disusun sebelum kegiatan sebagai rencana kerja dan pedoman, sedangkan laporan ilmiah disusun setelah kegiatan sebagai dokumentasi dan pertanggungjawaban hasil',
+                    'distractors' => [
+                        'Proposal disusun setelah kegiatan selesai, sedangkan laporan ilmiah disusun saat kegiatan sedang berlangsung di lapangan',
+                        'Proposal berisi analisis temuan data empiris, sedangkan laporan ilmiah hanya memuat estimasi anggaran biaya',
+                        'Proposal bersifat mengikat secara hukum, sedangkan laporan ilmiah hanya bersifat opsional bagi panitia',
+                    ],
+                    'explanation' => 'Proposal berorientasi prospektif (rencana ke depan sebelum kegiatan dimulai), sedangkan laporan ilmiah berorientasi retrospektif (pertanggungjawaban fakta dan temuan setelah kegiatan tuntas).',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Sebuah laporan ilmiah dituntut bersifat objektif. Hal ini bermakna bahwa penyajian laporan harus...',
+                    'correct' => 'Berpijak pada fakta empiris dan data valid, serta tidak menggunakan sudut pandang subjektif emotif seperti "saya" atau "kami"',
+                    'distractors' => [
+                        'Memuat opini pribadi penulis secara bebas tanpa perlu diverifikasi dengan hasil penelitian di lapangan',
+                        'Mengikuti keinginan penyandang dana dengan merekayasa data temuan agar sesuai hipotesis awal',
+                        'Menghapus seluruh tabel dan grafik agar pembaca fokus pada kesimpulan yang diinginkan penulis',
+                    ],
+                    'explanation' => 'Objektivitas menuntut penulis menyajikan fakta apa adanya berdasarkan data empiris yang dapat diverifikasi, bukan berdasarkan perasaan atau kepentingan pribadi.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Dalam sistematika laporan ilmiah, bagian yang berisi uraian fakta pelaksanaan secara deskriptif-analitis yang dilengkapi data, tabel, dan interpretasi temuan adalah...',
+                    'correct' => 'Hasil dan Pembahasan',
+                    'distractors' => [
+                        'Kata Pengantar',
+                        'Daftar Pustaka',
+                        'Lampiran Mentah',
+                    ],
+                    'explanation' => 'Bab Hasil dan Pembahasan memaparkan data temuan riil di lapangan serta menganalisisnya secara kritis dengan mengaitkannya pada teori dan rumusan masalah.',
+                ],
+            ];
+            $items = $proposalPool;
         }
 
         if (empty($items)) {
@@ -2378,11 +4205,11 @@ INSTRUCTIONS;
      */
     public function generateHeuristicQuizQuestions(string $body, string $title, ?string $category = null, int $count = 10): array
     {
-        $count = min(100, max(5, $count));
+        $count = min(50, max(5, $count));
 
         // 1. Prioritaskan pemetaan domain pengetahuan terstruktur (bebas templat kaku, opsi terdistribusi unik, dan analitis)
         $domainQuestions = $this->generateStructuredKnowledgeQuiz($body, $title, $category, $count);
-        if (! empty($domainQuestions) && count($domainQuestions) >= min($count, 10)) {
+        if (! empty($domainQuestions) && count($domainQuestions) >= $count) {
             return array_slice($domainQuestions, 0, $count);
         }
 
@@ -2413,6 +4240,20 @@ INSTRUCTIONS;
 
         $selectedItems = [];
         $usedQuestions = [];
+        if (! empty($domainQuestions)) {
+            foreach ($domainQuestions as $dq) {
+                $qKey = mb_strtolower(trim($dq['question']));
+                $usedQuestions[$qKey] = true;
+                $selectedItems[] = [
+                    'bloom_level' => $dq['bloom_level'] ?? 'C2',
+                    'question' => $dq['question'],
+                    'correct' => '',
+                    'distractors' => [],
+                    'explanation' => $dq['explanation'] ?? '',
+                    'preformatted' => $dq,
+                ];
+            }
+        }
         $bloomCycle = ['C1', 'C2', 'C3', 'C4', 'C5'];
 
         // Distribusi merata lintas kalimat sekaligus menyeimbangkan jenjang Bloom C1–C5 (termasuk Mengevaluasi)
@@ -2460,9 +4301,40 @@ INSTRUCTIONS;
         }
 
         // Pengaman bila teks sangat mini namun target $count besar:
-        // gunakan templat kata kerja Bloom C1–C5 tanpa menyalin paragraf utuh ke soal/opsi.
+        // gunakan templat variatif berjenjang Taksonomi Bloom C1–C5 tanpa menyalin paragraf utuh ke soal/opsi.
+        $stemVariants = [
+            0 => fn (string $dt, string $tp) => "Berdasarkan materi {$dt}, manakah pernyataan yang paling tepat mengenai \"{$tp}\"?",
+            1 => fn (string $dt, string $tp) => "Pernyataan di bawah ini yang paling akurat menjelaskan prinsip \"{$tp}\" dalam materi adalah...",
+            2 => fn (string $dt, string $tp) => "Dalam penerapan materi {$dt}, bagaimanakah pemahaman yang tepat terkait gagasan \"{$tp}\"?",
+            3 => fn (string $dt, string $tp) => "Analisis hubungan konsep inti yang mendasari \"{$tp}\" dalam pembahasan materi!",
+            4 => fn (string $dt, string $tp) => "Evaluasi simpulan manakah yang paling selaras dengan penjelasan mengenai \"{$tp}\"?",
+            5 => fn (string $dt, string $tp) => "Bagaimanakah kedudukan atau peranan konsep \"{$tp}\" ditinjau dari keseluruhan materi {$dt}?",
+            6 => fn (string $dt, string $tp) => "Karakteristik atau ciri utama apakah yang paling melekat pada pembahasan \"{$tp}\"?",
+            7 => fn (string $dt, string $tp) => "Manakah penerapan praktis yang mencerminkan pemahaman mendalam tentang \"{$tp}\"?",
+            8 => fn (string $dt, string $tp) => "Apa implikasi konseptual yang ditegaskan materi saat menguraikan pokok bahasan \"{$tp}\"?",
+            9 => fn (string $dt, string $tp) => "Berdasarkan uraian materi {$dt}, mengapa pemahaman mengenai \"{$tp}\" menjadi sangat mendasar?",
+            10 => fn (string $dt, string $tp) => "Simpulan logis apa yang dapat ditarik terkait relevansi pokok bahasan \"{$tp}\"?",
+            11 => fn (string $dt, string $tp) => "Bagaimanakah materi menguraikan keterkaitan konsep \"{$tp}\" dengan konteks pembahasannya?",
+            12 => fn (string $dt, string $tp) => "Kaidah atau prinsip kunci apakah yang harus diperhatikan mengenai \"{$tp}\"?",
+            13 => fn (string $dt, string $tp) => "Dalam konteks pembahasan {$dt}, manakah inferensi yang paling sahih mengenai \"{$tp}\"?",
+            14 => fn (string $dt, string $tp) => "Fakta penting apakah yang diuraikan dalam materi sehubungan dengan gagasan \"{$tp}\"?",
+            15 => fn (string $dt, string $tp) => "Tinjauan analitis manakah yang paling tepat menggambarkan esensi dari \"{$tp}\"?",
+            16 => fn (string $dt, string $tp) => "Di antara pernyataan berikut, manakah yang paling sesuai dengan kaidah materi mengenai \"{$tp}\"?",
+            17 => fn (string $dt, string $tp) => "Bagaimanakah penerapan prinsip \"{$tp}\" agar selaras dengan maksud pembahasan materi {$dt}?",
+            18 => fn (string $dt, string $tp) => "Penjelasan manakah yang paling tepat merangkum hakikat dari konsep \"{$tp}\"?",
+            19 => fn (string $dt, string $tp) => "Evaluasi manakah yang paling objektif dalam menelaah gagasan \"{$tp}\" pada materi?",
+            20 => fn (string $dt, string $tp) => "Identifikasi poin pokok yang menjadi pijakan dalam menguraikan \"{$tp}\"!",
+            21 => fn (string $dt, string $tp) => "Bagaimanakah keterikatan logis antara prinsip \"{$tp}\" dengan tujuan umum materi {$dt}?",
+            22 => fn (string $dt, string $tp) => "Manakah rumusan yang paling tepat dalam mendeskripsikan peran inti dari \"{$tp}\"?",
+            23 => fn (string $dt, string $tp) => "Telaah manakah yang paling akurat dalam menguji keabsahan penjelasan tentang \"{$tp}\"?",
+            24 => fn (string $dt, string $tp) => "Sintesis manakah yang paling utuh merefleksikan makna dari \"{$tp}\" dalam materi?",
+        ];
+
         $fallbackAttempt = 0;
-        while (count($selectedItems) < $count && $fallbackAttempt < $count * 4) {
+        $totalVariants = count($stemVariants);
+        $docTopic = $this->resolveDocumentTopic($body, $title);
+
+        while (count($selectedItems) < $count && $fallbackAttempt < $count * 6) {
             $sIdx = $fallbackAttempt % $totalSentences;
             $sentence = $sentences[$sIdx];
             $conciseOption = $this->condenseClauseToOption($sentence);
@@ -2470,21 +4342,21 @@ INSTRUCTIONS;
                 array_map(fn ($s) => $this->condenseClauseToOption($s), $sentences),
                 fn ($s) => mb_strtolower($s) !== mb_strtolower($conciseOption)
             ));
-            $angleIndex = intdiv($fallbackAttempt, $totalSentences) % 5;
+            $variantIdx = $fallbackAttempt % $totalVariants;
+            $repeatCycle = intdiv($fallbackAttempt, $totalVariants);
             $topicPhrase = $this->condenseSentenceToTopic($sentence, 6);
-            $slotNum = count($selectedItems) + 1;
-            $qPrompt = match ($angleIndex) {
-                0 => "Identifikasi fakta pokok nomor {$slotNum} terkait \"{$topicPhrase}\" berdasarkan materi!",
-                1 => "Jelaskan makna gagasan nomor {$slotNum} tentang \"{$topicPhrase}\" sesuai pembahasan!",
-                2 => "Terapkan konsep \"{$topicPhrase}\" (butir {$slotNum}): tindakan manakah yang paling sesuai?",
-                3 => "Analisis hubungan inti nomor {$slotNum} di balik konsep \"{$topicPhrase}\"!",
-                default => "Evaluasi pernyataan nomor {$slotNum} manakah yang paling tepat mengenai \"{$topicPhrase}\"!",
-            };
+
+            $generator = $stemVariants[$variantIdx];
+            $qPrompt = $generator($docTopic, $topicPhrase);
+            if ($repeatCycle > 0) {
+                $qPrompt .= " (Fokus Telaah " . ($repeatCycle + 1) . ")";
+            }
+
             $qKey = mb_strtolower($qPrompt);
             if (! isset($usedQuestions[$qKey])) {
                 $usedQuestions[$qKey] = true;
                 $selectedItems[] = [
-                    'bloom_level' => $bloomCycle[$angleIndex],
+                    'bloom_level' => $bloomCycle[$variantIdx % count($bloomCycle)],
                     'question' => $qPrompt,
                     'correct' => $conciseOption,
                     'distractors' => $otherPool,
@@ -2498,6 +4370,13 @@ INSTRUCTIONS;
         $globalUsedDistractors = [];
         foreach (array_slice($selectedItems, 0, $count) as $index => $built) {
             $seq = $index + 1;
+            if (! empty($built['preformatted'])) {
+                $pf = $built['preformatted'];
+                $pf['sequence'] = $seq;
+                $questions[] = $pf;
+                continue;
+            }
+
             $options = $this->buildUniqueQuizOptions(
                 $built['correct'],
                 $built['distractors'],
@@ -2535,7 +4414,7 @@ INSTRUCTIONS;
     private function extractSubstantiveSentences(string $body, string $title): array
     {
         $rawLines = preg_split('/\R/u', $body) ?: [];
-        $lineBoilerplate = '/^(?:setelah mengikuti|tujuan pembelajaran|capaian pembelajaran|kompetensi|mahasiswa diharapkan|siswa diharapkan|peserta didik|daftar pustaka|sumber rujukan|terima kasih|thank you|halaman|page\s*\d+|lembar kerja|latar belakang|ringkasan eksekutif|rumusan masalah|proposal perancangan|menjelaskan pengertian|mengidentifikasi\s+(?:kedudukan|perbedaan)|menyusun\s+(?:strategi|ringkasan|rangkuman)|menunjukkan\s+(?:sikap|kemampuan))/iu';
+        $lineBoilerplate = '/^(?:setelah mengikuti|tujuan pembelajaran|capaian pembelajaran|kompetensi|mahasiswa diharapkan|siswa diharapkan|peserta didik|daftar pustaka|sumber rujukan|terima kasih|thank you|halaman|page\s*\d+|lembar kerja|latar belakang|ringkasan eksekutif|rumusan masalah|proposal perancangan|menjelaskan pengertian|mengidentifikasi\s+(?:kedudukan|perbedaan)|menyusun\s+(?:strategi|ringkasan|rangkuman)|menunjukkan\s+(?:sikap|kemampuan)|matematika\s+untuk\s+sma|bahasa\s+indonesia\s+untuk\s+sma|buku\s+siswa\s+kelas|bab\s+\d+|world\s+our\s+world|data\s+source|cc\s+by|ayo,?\s*(?:bereksplorasi|berpikir|berdiskusi|mengingat|mencoba)|berkumpullah\s+dengan|siapkan\s+kertas|lipatlah\s+kertas|diskusikanlah\s+dengan|tuliskan\s+hasil\s+diskusi|kerjakan\s+(?:kegiatan|latihan|tugas)|jawablah\s+pertanyaan|perhatikan\s+(?:gambar|tabel|contoh)|alternatif\s+penyelesaian|latihan\s+[\d\.]+|tugas\s+\d+)/iu';
         $biblioPattern = '/(?:^|\s)[\-\•]?\s*[A-Z][\p{L}\-]+,\s*[A-Z][\p{L}\.\s,dkk]*\(\d{4}\)/u';
         $publisherPattern = '/\b(?:Raja\s+Grafindo\s+Persada|Balai\s+Pustaka|Nusa\s+Indah|Angkasa|Gramedia|Erlangga|Kemdikbud|Rineka\s+Cipta|Pusat\s+Pembinaan|Remaja\s+Rosdakarya|Kencana|Alfabeta|Pustaka\s+Pelajar|Bumi\s+Aksara)\b/iu';
         $titleLower = mb_strtolower(trim($title));
@@ -2564,6 +4443,14 @@ INSTRUCTIONS;
 
             if ($line === '') {
                 $keptLines[] = '';
+                continue;
+            }
+
+            $tNoZero = str_replace("\0", '', $line);
+            if (preg_match('#^/(?:IQIR|IFYH|6ITY|1EXI|4IRY)#i', $tNoZero)
+                || preg_match('/^(?:6ITY|1EXI|4IRY|6MWI|8IOR)/i', $tNoZero)
+                || preg_match('/^(?:[\/\p{L}\p{N}%&_()\-]\s+){5,}/u', $tNoZero)
+                || preg_match('/^[-–—\s]*\d+\s*&\s*\d+/u', $tNoZero)) {
                 continue;
             }
 
@@ -2615,6 +4502,13 @@ INSTRUCTIONS;
             if (preg_match('/\p{L}/u', $line) && mb_strtoupper($line) === $line && mb_strlen($line) < 120) {
                 continue;
             }
+            // Lewati baris nama pengarang / judul sampul (mis. "Bahasa Indonesia Ringkasan, Rangkuman & Ikhtisar Rizal D. Syifa")
+            if (preg_match('/^(?:Bahasa Indonesia\s+)?(?:Ringkasan,\s*Rangkuman(?:\s*&?\s*Ikhtisar)?)\s+[A-Z][\p{L}\-]*\s+[A-Z]\.?\s*(?:Syifa)?$/iu', $line)) {
+                continue;
+            }
+            if (preg_match('/\b(?:Rizal\s+D\.?|Syifa)\b/iu', $line) && ! preg_match('/\b(?:adalah|merupakan|yaitu|didefinisikan|konsep|memadukan)\b/iu', $line)) {
+                continue;
+            }
             if (preg_match($lineBoilerplate, preg_replace('/^[\-\•\d\.\s]+/u', '', $line)) && mb_strlen($line) < 120) {
                 continue;
             }
@@ -2632,6 +4526,9 @@ INSTRUCTIONS;
                 continue;
             }
             if (preg_match('/(?:logicodix|subtema:|@[a-z0-9_]+|\b\d{4}\s*·|masukan\s+perintah\s*:\s*$|masukkan\s+perintah\s*:\s*$)/iu', $line)) {
+                continue;
+            }
+            if (preg_match('/\b(?:politeknik|universitas|fakultas|jurusan teknologi informasi|program studi d3|prodi|dosen pengampu|nip\.?\s*\d+|bobot mif|\b\d+\s*sks\b|semester\s*\/\s*ta|alokasi waktu|tahapan pbl|logbook\s+minggu|paraf dosen|fathushahib)\b/iu', $line)) {
                 continue;
             }
             $line = preg_replace('/\s*Proposal Perancangan Aplikasi:\s*SocratesRead AI\s*/iu', ' ', $line) ?? $line;
@@ -2726,12 +4623,15 @@ INSTRUCTIONS;
                     $s = trim(preg_replace('/\s+\d+\.?$/u', '', $s) ?? '');
                 }
                 $s = preg_replace('/\b([\p{L}\-]{3,25})(?:\s+\1){1,3}\b/iu', '$1', $s) ?? $s;
-                $s = trim($s, "\"“”' ");
+                $s = preg_replace('/^[\s"“”\']+|[\s"“”\']+$/u', '', $s) ?? trim($s);
 
                 if ($s === '' || mb_strlen($s) < 28 || mb_strlen($s) > 540) {
                     continue;
                 }
                 if (preg_match($lineBoilerplate, $s) || preg_match($biblioPattern, $s) || preg_match($publisherPattern, $s)) {
+                    continue;
+                }
+                if (preg_match('/\b(?:Rizal\s+D\.?|Syifa)\b/iu', $s) && ! preg_match('/\b(?:adalah|merupakan|yaitu|menurut|menjelaskan)\b/iu', $s)) {
                     continue;
                 }
                 if (preg_match('/^[A-Z][\p{L}\-]+:\s*(?:Balai Pustaka|Kemdikbud|Rineka Cipta|Pusat Pembinaan|Remaja Rosdakarya)/iu', $s)) {
@@ -2759,6 +4659,22 @@ INSTRUCTIONS;
                 if (preg_match('/^Saya\s+setuju\b/iu', $s)) {
                     continue;
                 }
+                // Tolak kalimat tujuan pembelajaran / capaian kurikulum yang bukan materi ajar
+                if (preg_match('/^(?:Setelah\s+mempelajari\s+bab|Kamu\s+diharapkan|Diharapkan\s+kamu|Pada\s+akhir\s+fase|Peserta\s+didik\s+mampu)\b/iu', $s)) {
+                    continue;
+                }
+                // Tolak instruksi tugas / eksplorasi / diskusi kelompok
+                if (preg_match('/^(?:Ayo,?\s+Bereksplorasi|Ayo,?\s+Berdiskusi|Ayo,?\s+Berpikir|Ayo,?\s+Berkolaborasi|Jawablah\s+pertanyaan|Diskusikan\s+dengan|Kerjakan\s+latihan|Perhatikan\s+Tabel|Tabel\s+\d+\.\d+)\b/iu', $s)) {
+                    continue;
+                }
+                // Tolak bagan peta materi atau diagram alur teks
+                if (preg_match('/\b(?:Peta\s+Materi|Bagan\s+Alur|Diagram\s+Konsep)\b/iu', $s)) {
+                    continue;
+                }
+                // Tolak kalimat terpotong di kata penghubung/preposisi (dangling sentence)
+                if (preg_match('/\b(?:yang|dan|atau|dari|untuk|pada|dengan|dalam|oleh|sebagai|adalah|merupakan|yaitu|yakni|bahwa)$/iu', $s)) {
+                    continue;
+                }
 
                 $key = mb_strtolower($s);
                 if (! isset($seen[$key])) {
@@ -2781,11 +4697,38 @@ INSTRUCTIONS;
         $seen = [];
 
         $addTerm = function (string $term) use (&$terms, &$seen): void {
-            $clean = trim($term, " \t\n\r\0\x0B.,;:!?\"'()");
+            if (! mb_check_encoding($term, 'UTF-8')) {
+                return;
+            }
+            $clean = preg_replace('/^[\s.,;:!?"\'()\[\]{}±~–—“”‘’…]+|[\s.,;:!?"\'()\[\]{}±~–—“”‘’…]+$/u', '', $term) ?? trim($term);
             $clean = preg_replace('/\s+(?:yang|dan|atau|dari|untuk|pada|dengan|dalam|oleh|sebagai|ini|itu|tersebut)$/iu', '', $clean) ?? $clean;
             $clean = preg_replace('/^(?:yang|dan|atau|dari|untuk|pada|dengan|dalam|oleh|sebagai|ini|itu|tersebut)\s+/iu', '', $clean) ?? $clean;
             $clean = trim($clean);
             if (mb_strlen($clean) < 4 || mb_strlen($clean) > 55) {
+                return;
+            }
+            // Istilah kunci kuis wajib mengandung kata huruf yang valid
+            if (! preg_match('/\p{L}{3,}/u', $clean)) {
+                return;
+            }
+            // TOLAK karakter simbol atau rentang angka (misal ±, %, ~, /, \, [, ])
+            if (preg_match('/[±~%\/\\_\[\]{}]/u', $clean)) {
+                return;
+            }
+            // TOLAK angka yang menempel dengan kata atau awalan penomoran (misal 150-250kata, 3.Bagian, 1.Objektif)
+            if (preg_match('/\d+[\-–—\.]*\d*\s*kata\b/iu', $clean) || preg_match('/^\d+[\.\)]\s*/u', $clean) || preg_match('/\b\d+[a-zA-Z]/u', $clean)) {
+                return;
+            }
+            // TOLAK penamaan bab, label daftar isi, atau heading struktural
+            if (preg_match('/^(?:Bab\s+[IVXLCDM\d]+|Bagian\s+(?:Awal|Isi|Akhir)|Daftar\s+Pustaka|Lampiran|Struktur\s+Umum)\b/iu', $clean)) {
+                return;
+            }
+            // TOLAK kata yang menempel tanpa spasi (panjang >= 14 huruf tanpa tanda hubung dan memuat sub-kata umum)
+            if (preg_match('/^[a-zA-Z]{14,}$/u', $clean) && preg_match('/(?:dan|atau|serta|pada|untuk|dalam|yang|dari|dengan|kesimpulan|saran|bagian|penutup)/iu', $clean)) {
+                return;
+            }
+            // TOLAK tanda kurung yang tidak seimbang
+            if (substr_count($clean, '(') !== substr_count($clean, ')')) {
                 return;
             }
             if (preg_match('/^(?:yang|dan|atau|dari|untuk|pada|dengan|dalam|oleh|sebagai|adalah|merupakan|yaitu|ini|itu|tersebut|sehingga|karena|bahwa|akan|telah|dapat|harus|lebih|sangat|secara|antara|melalui|setelah)$/iu', $clean)) {
@@ -2843,13 +4786,17 @@ INSTRUCTIONS;
     {
         $pool = [];
         foreach ($sentences as $s) {
+            // Abaikan kalimat ajakan, instruksi buku, atau meta-teks yang tidak substantif
+            if (preg_match('/\b(?:kamu pasti|apakah kamu|tugasmu|pada pelajaran ini|pelajari lebih dulu|sumber foto|perhatikan gambar|halaman \d+|agar kamu lebih mudah|untuk membekali kemampuan)\b/iu', $s)) {
+                continue;
+            }
             if (preg_match('/^.{8,70}?\s+(?:adalah|merupakan|yaitu|yakni|dirancang\s+(?:untuk|guna)|bertujuan\s+(?:untuk|guna)|diarahkan\s+untuk|berfungsi\s+sebagai|berperan\s+sebagai|mendeteksi|menunjukkan\s+bahwa|bertumpu\s+pada|memerlukan|memiliki\s+makna|artinya)\s+(.+)$/iu', $s, $m)) {
                 $clause = ucfirst(rtrim(trim($m[1]), '.'));
-                if (mb_strlen($clause) >= 15) {
+                if (mb_strlen($clause) >= 15 && mb_strlen($clause) <= 150) {
                     $pool[] = $clause;
                 }
-            } else {
-                $pool[] = rtrim($s, '.');
+            } elseif (preg_match('/^[A-Z][a-z].{15,120}$/u', trim($s)) && ! str_contains($s, '?') && ! str_contains($s, '!') && str_word_count($s) >= 4 && str_word_count($s) <= 20) {
+                $pool[] = rtrim(trim($s), '.');
             }
         }
 
@@ -2873,9 +4820,36 @@ INSTRUCTIONS;
         string $title = ''
     ): array {
         $candidates = [];
+        $isJunkOptionOrSubject = function (string $text): bool {
+            $t = mb_strtolower(trim($text));
+            if ($t === '') return true;
+            if (in_array($t, ['berikut', 'sebagai berikut', 'berikut ini', 'di bawah ini', 'di atas', 'seperti berikut', 'hal ini', 'hal tersebut', 'antara lain', 'adalah', 'merupakan', 'yaitu', 'yakni'], true)) {
+                return true;
+            }
+            if (str_starts_with($t, 'berikut:') || str_starts_with($t, 'sebagai berikut:')) {
+                return true;
+            }
+            if (preg_match('/^(?:matematika\s+untuk|bahasa\s+indonesia\s+untuk|sma\/ma\/smk|buku\s+siswa|bab\s+\d+|kelas\s+[x\d]+|world\s+our\s+world|data\s+source|cc\s+by)/iu', $t)) {
+                return true;
+            }
+            if (preg_match('/^(?:setelah\s+mempelajari|diharapkan\s+kamu|kamu\s+diharapkan|ayo,?\s+bereksplorasi|ayo,?\s+berkolaborasi|ayo,?\s+berpikir|jawablah\s+pertanyaan|peta\s+materi|kementerian\s+pendidikan|tabel\s+\d+|gambar\s+\d+)/iu', $t)) {
+                return true;
+            }
+            if (preg_match('/\b(?:politeknik|universitas|fakultas|jurusan|program studi|prodi|dosen|pengampu|nip|sks|semester|ta ganjil|ta genap|pertemuan ke-|alokasi waktu|mif-\d+|logbook|paraf dosen|pbl fase|fathushahib)\b/iu', $t)) {
+                return true;
+            }
+            if (preg_match('/\b(?:yang|dan|atau|dari|untuk|pada|dengan|dalam|oleh|sebagai|adalah|merupakan|yaitu|yakni|bahwa)$/iu', $t)) {
+                return true;
+            }
+            if (mb_strlen($t) < 8 && str_word_count($t) < 2) {
+                return true;
+            }
+            return false;
+        };
+
         $condensedOptionPool = array_values(array_filter(
             array_map(fn ($p) => $this->condenseClauseToOption($p), $predicatePool),
-            fn ($p) => $p !== ''
+            fn ($p) => $p !== '' && ! $isJunkOptionOrSubject($p)
         ));
 
         // Angle 1 (C1 Mengingat): Fakta Pasal Hukum / Besaran Teknis (tanpa menyalin kalimat utuh)
@@ -2911,37 +4885,57 @@ INSTRUCTIONS;
 
         // Angle 2 (C2 Memahami / C4 Menganalisis): Makna, Peran, & Cakupan Unsur
         if (preg_match('/^(.{4,65}?)\s+(adalah|merupakan|yaitu|yakni|didefinisikan sebagai|berfungsi sebagai|berperan sebagai|mencakup|terdiri dari|memiliki makna|artinya)\s+(.+)$/iu', $sentence, $m)) {
-            $subject = trim($m[1], " \t\"'“”‘’");
-            $verb = mb_strtolower(trim($m[2]));
+            $rawSubject = preg_replace('/^[\s"“”‘’\']+|[\s"“”‘’\']+$/u', '', $m[1]) ?? trim($m[1]);
+            $subject = preg_replace('/^(?:salah satu|sebagai contoh|contohnya|pada dasarnya|dalam hal ini|secara umum)\s+/iu', '', $rawSubject) ?? $rawSubject;
             $definition = $this->condenseClauseToOption(ucfirst(rtrim(trim($m[3]), '.')));
+            if (
+                preg_match('/\b(?:karena|sebab|sehingga|walaupun|meskipun)\b/iu', $subject)
+                || preg_match('/^(?:jenis yang|hal yang|bagian yang)\b/iu', $subject)
+                || $isJunkOptionOrSubject($subject)
+                || $isJunkOptionOrSubject($definition)
+            ) {
+                // Lewati subjek yang merupakan klausa relatif, tidak substantif, atau definisi rusak/kata sambung
+            } else {
+                $verb = mb_strtolower(trim($m[2]));
 
-            [$bloom, $qPrompt] = match (true) {
-                str_contains($verb, 'berfungsi'), str_contains($verb, 'berperan') => ['C2', "Jelaskan fungsi atau peran utama dari konsep \"{$subject}\"!"],
-                str_contains($verb, 'mencakup'), str_contains($verb, 'terdiri') => ['C4', "Analisis unsur atau cakupan penting yang membangun \"{$subject}\"!"],
-                str_contains($verb, 'makna'), str_contains($verb, 'artinya') => ['C2', "Jelaskan makna konsep \"{$subject}\" sesuai inti pembahasan!"],
-                default => ['C2', "Jelaskan pengertian paling tepat mengenai \"{$subject}\"!"],
-            };
+                [$bloom, $qPrompt] = match (true) {
+                    str_contains($verb, 'berfungsi'), str_contains($verb, 'berperan') => ['C2', "Jelaskan fungsi atau peran utama dari konsep \"{$subject}\"!"],
+                    str_contains($verb, 'mencakup'), str_contains($verb, 'terdiri') => ['C4', "Analisis unsur atau cakupan penting yang membangun \"{$subject}\"!"],
+                    str_contains($verb, 'makna'), str_contains($verb, 'artinya') => ['C2', "Jelaskan makna konsep \"{$subject}\" sesuai inti pembahasan!"],
+                    default => ['C2', "Jelaskan pengertian paling tepat mengenai \"{$subject}\"!"],
+                };
 
-            $candidates[] = [
-                'bloom_level' => $bloom,
-                'question' => $qPrompt,
-                'correct' => $definition,
-                'distractors' => $condensedOptionPool,
-                'explanation' => "Pembahasan: Konsep \"{$subject}\" dijelaskan sebagai {$definition}. Hal ini menjadi inti pemahaman pada bagian tersebut.",
-            ];
+                $candidates[] = [
+                    'bloom_level' => $bloom,
+                    'question' => $qPrompt,
+                    'correct' => $definition,
+                    'distractors' => $condensedOptionPool,
+                    'explanation' => "Pembahasan: Konsep \"{$subject}\" dijelaskan sebagai {$definition}. Hal ini menjadi inti pemahaman pada bagian tersebut.",
+                ];
+            }
         }
 
         // Angle 3 (C3 Menerapkan): Tujuan & Penerapan Langkah
         if (preg_match('/^(.{15,150}?)\s+(?:dirancang\s+(?:untuk|guna)|bertujuan\s+(?:untuk|guna)|diarahkan\s+untuk|untuk|guna|demi|agar)\s+(.{15,})$/iu', $sentence, $m)) {
-            $subjectAction = $this->condenseSentenceToTopic(rtrim(trim($m[1]), ', '), 5);
+            $rawAction = rtrim(trim($m[1]), ', ');
+            $cleanAction = preg_replace('/^(?:jenis-jenis\s+[a-z0-9_\-]+\s*\d*[\.\:]*\s*|aspek\s+[a-z0-9_\-]+\s*\d*[\.\:]*\s*|\d+[\.\)]\s*|[a-z][\.\)]\s*)/iu', '', $rawAction) ?? $rawAction;
+            $cleanAction = $this->formatter->restoreMissingSpaces($cleanAction);
+            $subjectAction = $this->condenseSentenceToTopic($cleanAction, 5);
             $goal = $this->condenseClauseToOption(ucfirst(rtrim(trim($m[2]), '.')));
-            $candidates[] = [
-                'bloom_level' => 'C3',
-                'question' => "Terapkan pemahaman materi: untuk sasaran apa \"{$subjectAction}\" dijalankan?",
-                'correct' => $goal,
-                'distractors' => array_map(fn ($g) => $this->condenseClauseToOption($g), $this->buildGoalDistractors($goal, $allSentences, $predicatePool)),
-                'explanation' => "Pembahasan: Tindakan \"{$subjectAction}\" ditujukan untuk " . lcfirst($goal) . '.',
-            ];
+            if (! $isJunkOptionOrSubject($subjectAction) && ! $isJunkOptionOrSubject($goal)) {
+                $isVerb = (bool) preg_match('/^(?:melakukan|menggunakan|menyusun|merumuskan|mengembangkan|menerapkan|menentukan)\b/iu', $subjectAction);
+                $qStem = $isVerb
+                    ? "Berdasarkan materi, apakah sasaran atau tujuan utama dari {$subjectAction}?"
+                    : "Dalam konteks materi, untuk sasaran utama apakah {$subjectAction} dirancang atau dilaksanakan?";
+
+                $candidates[] = [
+                    'bloom_level' => 'C3',
+                    'question' => $qStem,
+                    'correct' => $goal,
+                    'distractors' => array_map(fn ($g) => $this->condenseClauseToOption($g), $this->buildGoalDistractors($goal, $allSentences, $predicatePool)),
+                    'explanation' => "Pembahasan: Tindakan {$subjectAction} ditujukan untuk " . lcfirst($goal) . '.',
+                ];
+            }
         }
 
         // Angle 3b (C4 Menganalisis): Temuan / Mekanisme / Hubungan Kausal
@@ -2950,28 +4944,30 @@ INSTRUCTIONS;
             $connector = mb_strtolower(trim($m[2]));
             $detail = $this->condenseClauseToOption(ucfirst(rtrim(trim($m[3]), '.')));
 
-            $qPrompt = match (true) {
-                str_contains($connector, 'mendeteksi') => "Analisis temuan apa yang berhasil diidentifikasi oleh \"{$subjectPart}\"!",
-                str_contains($connector, 'menunjukkan') => "Analisis simpulan utama yang ditunjukkan oleh \"{$subjectPart}\"!",
-                str_contains($connector, 'bertumpu') => "Analisis prinsip utama yang menjadi tumpuan \"{$subjectPart}\"!",
-                str_contains($connector, 'memerlukan') => "Analisis kebutuhan pokok yang diperlukan oleh \"{$subjectPart}\"!",
-                default => "Analisis alasan mengapa kondisi \"{$subjectPart}\" terjadi dalam materi!",
-            };
+            if (! $isJunkOptionOrSubject($subjectPart) && ! $isJunkOptionOrSubject($detail)) {
+                $qPrompt = match (true) {
+                    str_contains($connector, 'mendeteksi') => "Analisis temuan apa yang berhasil diidentifikasi oleh \"{$subjectPart}\"!",
+                    str_contains($connector, 'menunjukkan') => "Analisis simpulan utama yang ditunjukkan oleh \"{$subjectPart}\"!",
+                    str_contains($connector, 'bertumpu') => "Analisis prinsip utama yang menjadi tumpuan \"{$subjectPart}\"!",
+                    str_contains($connector, 'memerlukan') => "Analisis kebutuhan pokok yang diperlukan oleh \"{$subjectPart}\"!",
+                    default => "Analisis alasan mengapa kondisi \"{$subjectPart}\" terjadi dalam materi!",
+                };
 
-            $candidates[] = [
-                'bloom_level' => 'C4',
-                'question' => $qPrompt,
-                'correct' => $detail,
-                'distractors' => $condensedOptionPool,
-                'explanation' => "Pembahasan: Hubungan kausal/mekanisme dalam materi menjelaskan bahwa: \"{$sentence}\"",
-            ];
+                $candidates[] = [
+                    'bloom_level' => 'C4',
+                    'question' => $qPrompt,
+                    'correct' => $detail,
+                    'distractors' => $condensedOptionPool,
+                    'explanation' => "Pembahasan: Hubungan kausal/mekanisme dalam materi menjelaskan bahwa: \"{$sentence}\"",
+                ];
+            }
         }
 
         // Angle 4 (C5 Mengevaluasi & C3 Menerapkan): Evaluasi Pernyataan Berdasarkan Istilah Kunci (pencarian kata utuh)
         $matchedTerms = [];
         foreach ($termPool as $term) {
-            if ($this->containsWholeWordTerm($sentence, $term) && preg_match('/(?<!\p{L}\p{N})' . preg_quote($term, '/') . '(?!\p{L}\p{N})/iu', $sentence, $tm)) {
-                $matchedTerms[] = $tm[0];
+            if ($this->containsWholeWordTerm($sentence, $term)) {
+                $matchedTerms[] = $term;
             }
         }
         $condensedCoreOption = $this->condenseClauseToOption($sentence);
@@ -2986,10 +4982,10 @@ INSTRUCTIONS;
                 fn ($s) => ! $this->containsWholeWordTerm($s, $concept)
             ));
             [$bloom, $promptByConcept] = match ($idxTerm % 4) {
-                0 => ['C5', "Berdasarkan materi, pernyataan manakah yang paling tepat menggambarkan peran {$concept}?"],
-                1 => ['C3', "Tindakan atau penerapan manakah yang paling selaras dengan kaidah {$concept}?"],
-                2 => ['C4', "Bagaimanakah analisis yang tepat mengenai kedudukan atau fungsi dari {$concept}?"],
-                default => ['C2', "Bagaimanakah penjelasan materi mengenai inti gagasan dari {$concept}?"],
+                0 => ['C5', "Evaluasi penerapan prinsip \"{$concept}\": tindakan atau simpulan manakah yang paling selaras dengan kaidah materi?"],
+                1 => ['C3', "Terapkan pemahaman kaidah: dalam situasi nyata, bagaimana perlakuan yang tepat terhadap \"{$concept}\"?"],
+                2 => ['C4', "Analisis kritis materi: konsekuensi logis apa yang timbul apabila ketentuan mengenai \"{$concept}\" diabaikan?"],
+                default => ['C4', "Berdasarkan analisis materi, keterkaitan peran atau fungsi manakah yang paling tepat menjelaskan \"{$concept}\"?"],
             };
 
             $candidates[] = [
@@ -3003,7 +4999,7 @@ INSTRUCTIONS;
 
         // Angle 5 (C4 Menganalisis & C5 Mengevaluasi): Peranan Struktural & Evaluasi Prinsip (tanpa pemotongan acak di tengah kalimat)
         if (preg_match('/^(.{4,55}?)\s+(?:berfungsi|berperan|bertujuan|memadukan|menuntut|mengatur|menjamin|melindungi|mencakup|menjadi)\s+(.{12,})$/iu', $sentence, $predMatch)) {
-            $entitySubject = trim($predMatch[1], " \t\"'“”‘’");
+            $entitySubject = preg_replace('/^[\s"“”‘’\']+|[\s"“”‘’\']+$/u', '', $predMatch[1]) ?? trim($predMatch[1]);
             $predicateClause = $this->condenseClauseToOption(ucfirst(rtrim(trim($predMatch[2]), '.')));
             $qAnalisis = "Analisis fungsi atau peranan penting dari \"{$entitySubject}\" menurut materi!";
             if (mb_strlen($predicateClause) >= 12 && ! $this->isQuestionLeakingAnswer($qAnalisis, $predicateClause)) {
@@ -3239,9 +5235,11 @@ INSTRUCTIONS;
         $options = [];
         $dIdx = 0;
         foreach ($keys as $key) {
+            $rawText = $key === $correctKey ? $correctClean : ($distractors[$dIdx++] ?? 'Pernyataan tidak sesuai dengan prinsip materi');
+            $cleanText = $this->formatter->restoreMissingSpaces($rawText);
             $options[] = [
                 'key' => $key,
-                'text' => $key === $correctKey ? $correctClean : ($distractors[$dIdx++] ?? 'Pernyataan tidak sesuai dengan prinsip bacaan'),
+                'text' => $cleanText,
             ];
         }
 
@@ -3261,7 +5259,15 @@ INSTRUCTIONS;
             return false;
         }
 
-        return preg_match('/(?<![\p{L}\p{N}])' . preg_quote($cleanNeedle, '/') . '(?![\p{L}\p{N}])/iu', $haystack) === 1;
+        if (! mb_check_encoding($cleanNeedle, 'UTF-8') || ! mb_check_encoding($haystack, 'UTF-8')) {
+            return false;
+        }
+
+        try {
+            return @preg_match('/(?<![\p{L}\p{N}])' . preg_quote($cleanNeedle, '/') . '(?![\p{L}\p{N}])/iu', $haystack) === 1;
+        } catch (Throwable) {
+            return false;
+        }
     }
 
     /**
@@ -3276,9 +5282,23 @@ INSTRUCTIONS;
             return false;
         }
 
+        if (! mb_check_encoding($haystack, 'UTF-8')) {
+            return false;
+        }
+
+        foreach ($cleanWords as $w) {
+            if (! mb_check_encoding($w, 'UTF-8')) {
+                return false;
+            }
+        }
+
         $pattern = implode('\s+', array_map(fn (string $w) => preg_quote($w, '/'), $cleanWords));
 
-        return preg_match('/(?<![\p{L}\p{N}])' . $pattern . '(?![\p{L}\p{N}])/iu', $haystack) === 1;
+        try {
+            return @preg_match('/(?<![\p{L}\p{N}])' . $pattern . '(?![\p{L}\p{N}])/iu', $haystack) === 1;
+        } catch (Throwable) {
+            return false;
+        }
     }
 
     /**
@@ -3295,7 +5315,8 @@ INSTRUCTIONS;
             $clean = trim($subMatch[1]);
         }
 
-        $words = preg_split('/\s+/u', trim($clean, " \t\n\r\0\x0B.,;:!?\"'“”‘’"), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $cleanWords = preg_replace('/^[\s.,;:!?"\'“”‘’]+|[\s.,;:!?"\'“”‘’]+$/u', '', $clean) ?? trim($clean);
+        $words = preg_split('/\s+/u', $cleanWords, -1, PREG_SPLIT_NO_EMPTY) ?: [];
 
         if (count($words) <= $maxWords) {
             return implode(' ', $words);
@@ -3314,11 +5335,14 @@ INSTRUCTIONS;
      */
     private function condenseClauseToOption(string $text, int $maxChars = 115): string
     {
+        $text = $this->formatter->restoreMissingSpaces($text);
         $clean = trim(preg_replace('/\s+/u', ' ', str_replace(['→', '->'], ', ', strip_tags($text))) ?? '');
+        $clean = $this->formatter->restoreMissingSpaces($clean);
         $clean = trim(preg_replace('/^(?:Kedudukan|Fungsi(?:\s+utama)?|Prinsip|Landasan|Ciri(?:\s+utama)?|Contoh(?:\s+penggunaan)?|Catatan|Aspek|Butir)\s*:\s*/iu', '', $clean) ?? $clean);
-        $clean = preg_replace('/^[&+\-*\/,;:|~_–—\s]+|[&+\-*\/,;:|~_–—\s]+$/u', '', $clean) ?? $clean;
+        $clean = trim(preg_replace('/^(?:Bab\s+[IVXLCDM\d]+[:.]?\s*|[\d]+[.)]\s*|Bagian\s+(?:Awal|Isi|Akhir)[:.]?\s*)+/iu', '', $clean) ?? $clean);
+        $clean = preg_replace('/^[&+\-*\/,;:|~_–—\s\)]+|[&+\-*\/,;:|~_–—\s\(]+$/u', '', $clean) ?? $clean;
         $clean = preg_replace('/^(?:dan|atau|serta|yaitu|yakni|adalah|merupakan|bahwa|sehingga|karena|dengan demikian)\s+/iu', '', $clean) ?? $clean;
-        $clean = rtrim(trim($clean, " \t\n\r\0\x0B\"'“”‘’"), '.');
+        $clean = preg_replace('/^[\s"\'“”‘’()]+|[\s"\'“”‘’().]+$/u', '', $clean) ?? trim($clean);
 
         if ($clean === '') {
             return '';
@@ -3334,13 +5358,17 @@ INSTRUCTIONS;
         // Ambil klausa pertama yang bermakna apabila panjang melebihi batas opsi PG
         $clauses = preg_split('/(?<=.{38})[.;]\s+|,\s*(?=sehingga|agar|dengan tujuan|yang\s+(?:berfungsi|berperan))/iu', $clean, 2) ?: [];
         if (! empty($clauses[0]) && mb_strlen(trim($clauses[0])) <= $maxChars) {
-            return rtrim(trim($clauses[0]), '.,;:');
+            $candidate = rtrim(trim($clauses[0]), '.,;:');
+        } else {
+            $cut = mb_substr($clean, 0, $maxChars - 1);
+            $lastSpace = mb_strrpos($cut, ' ');
+            $candidate = rtrim(($lastSpace !== false ? mb_substr($cut, 0, $lastSpace) : $cut), '.,;: ');
         }
 
-        $cut = mb_substr($clean, 0, $maxChars - 1);
-        $lastSpace = mb_strrpos($cut, ' ');
+        // Pastikan opsi jawaban tidak pernah terpotong menggantung di kata sambung atau preposisi
+        $candidate = preg_replace('/\s+(?:yang|dan|atau|dari|untuk|pada|dengan|dalam|oleh|sebagai|adalah|merupakan|yaitu|yakni|bahwa)$/iu', '', $candidate) ?? $candidate;
 
-        return rtrim(($lastSpace !== false ? mb_substr($cut, 0, $lastSpace) : $cut), '.,;: ') . '';
+        return trim($candidate);
     }
 
     /**
@@ -3398,7 +5426,7 @@ INSTRUCTIONS;
     ): array {
         $cleanQ = trim($question);
         $cleanKey = trim($answerKey);
-        $cleanRef = trim($referenceExcerpt);
+        $cleanRef = $this->compactReferenceExcerpt($referenceExcerpt);
 
         if ($this->isQuestionAnsweredByKey($cleanQ, $cleanKey, $cleanRef)) {
             return [
@@ -3418,7 +5446,7 @@ INSTRUCTIONS;
 
         $repaired = $this->recommendHeuristicAnswerForQuestion($body, $title, $cleanQ);
         $repairedKey = trim((string) ($repaired['recommended_answer'] ?? ''));
-        $repairedRef = trim((string) ($repaired['reference_excerpt'] ?? ''));
+        $repairedRef = $this->compactReferenceExcerpt((string) ($repaired['reference_excerpt'] ?? ''));
 
         if ($repairedKey !== '' && $this->isQuestionAnsweredByKey($cleanQ, $repairedKey, $repairedRef)) {
             return [
@@ -3433,6 +5461,38 @@ INSTRUCTIONS;
             'reference_excerpt' => $cleanRef !== '' ? $cleanRef : $repairedRef,
             'is_valid' => $cleanKey !== '',
         ];
+    }
+
+    /**
+     * Memadatkan rujukan bukti teks (reference_excerpt) menjadi 1 kalimat inti yang ringkas (15–25 kata).
+     */
+    public function compactReferenceExcerpt(string $excerpt): string
+    {
+        $clean = trim($excerpt);
+        if ($clean === '') {
+            return '';
+        }
+
+        // Pisahkan per kalimat
+        $sentences = preg_split('/(?<=[.!?])\s+/u', $clean) ?: [$clean];
+        $first = trim($sentences[0]);
+
+        // Jika kalimat pertama memiliki panjang ideal (15-25 kata atau 40-200 karakter), gunakan kalimat pertama
+        if (mb_strlen($first) >= 20 && mb_strlen($first) <= 220) {
+            return rtrim($first, '.') . '.';
+        }
+
+        // Jika terlalu panjang (> 200 karakter), potong di batas kata yang rapi
+        if (mb_strlen($clean) > 200) {
+            $truncated = mb_substr($clean, 0, 190);
+            $lastSpace = mb_strrpos($truncated, ' ');
+            if ($lastSpace !== false && $lastSpace > 80) {
+                $truncated = mb_substr($truncated, 0, $lastSpace);
+            }
+            return rtrim($truncated, " ,;:-.") . '...';
+        }
+
+        return $clean;
     }
 
     /**
@@ -3624,15 +5684,46 @@ INSTRUCTIONS;
     private function decodeJsonObject(string $raw): ?array
     {
         $trimmed = trim($raw);
-        if (preg_match('/\{[\s\S]*\}/u', $trimmed, $matches)) {
-            $parsed = json_decode($matches[0], true);
-            if (is_array($parsed)) {
-                return $parsed;
+
+        // 1. Bersihkan markdown fences jika ada
+        $cleanJson = preg_replace('/^```(?:json)?\s*/i', '', $trimmed);
+        $cleanJson = trim((string) preg_replace('/\s*```$/', '', (string) $cleanJson));
+
+        // 2. Cari kurung kurawal pertama (abaikan monolog/intro sebelum JSON)
+        $startPos = mb_strpos($cleanJson, '{');
+        if ($startPos !== false) {
+            $candidate = mb_substr($cleanJson, $startPos);
+
+            // Coba decode jika ada penutup lengkap
+            if (preg_match('/\{[\s\S]*\}/u', $candidate, $matches)) {
+                $parsed = json_decode($matches[0], true);
+                if (is_array($parsed)) {
+                    return $parsed;
+                }
+            }
+
+            // 3. Jika terpotong di akhir (token limit), pulihkan secara cerdas dari kurung kurawal terakhir
+            $lastBrace = mb_strrpos($candidate, '}');
+            $safetyLoop = 0;
+            while ($lastBrace !== false && $lastBrace > 15 && $safetyLoop < 20) {
+                $safetyLoop++;
+                $sub = mb_substr($candidate, 0, $lastBrace + 1);
+
+                $attempt1 = json_decode($sub . ']}', true);
+                if (is_array($attempt1) && (! empty($attempt1['quiz_questions']) || ! empty($attempt1['questions']))) {
+                    return $attempt1;
+                }
+
+                $attempt2 = json_decode($sub . '}', true);
+                if (is_array($attempt2) && (! empty($attempt2['excerpt']) || ! empty($attempt2['questions']))) {
+                    return $attempt2;
+                }
+
+                $lastBrace = mb_strrpos(mb_substr($candidate, 0, $lastBrace), '}');
             }
         }
-        $cleanJson = preg_replace('/^```(?:json)?\s*/i', '', $trimmed);
-        $cleanJson = preg_replace('/\s*```$/', '', (string) $cleanJson);
-        $parsed = json_decode((string) $cleanJson, true);
+
+        $parsed = json_decode($cleanJson, true);
 
         return is_array($parsed) ? $parsed : null;
     }
@@ -3640,15 +5731,35 @@ INSTRUCTIONS;
     private function decodeJsonArray(string $raw): ?array
     {
         $trimmed = trim($raw);
-        if (preg_match('/\[[\s\S]*\]/u', $trimmed, $matches)) {
-            $parsed = json_decode($matches[0], true);
-            if (is_array($parsed)) {
-                return $parsed;
+
+        $cleanJson = preg_replace('/^```(?:json)?\s*/i', '', $trimmed);
+        $cleanJson = trim((string) preg_replace('/\s*```$/', '', (string) $cleanJson));
+
+        $startPos = mb_strpos($cleanJson, '[');
+        if ($startPos !== false) {
+            $candidate = mb_substr($cleanJson, $startPos);
+
+            if (preg_match('/\[[\s\S]*\]/u', $candidate, $matches)) {
+                $parsed = json_decode($matches[0], true);
+                if (is_array($parsed)) {
+                    return $parsed;
+                }
+            }
+
+            $lastBrace = mb_strrpos($candidate, '}');
+            $safetyLoop = 0;
+            while ($lastBrace !== false && $lastBrace > 15 && $safetyLoop < 20) {
+                $safetyLoop++;
+                $sub = mb_substr($candidate, 0, $lastBrace + 1);
+                $attempt = json_decode($sub . ']', true);
+                if (is_array($attempt) && ! empty($attempt)) {
+                    return $attempt;
+                }
+                $lastBrace = mb_strrpos(mb_substr($candidate, 0, $lastBrace), '}');
             }
         }
-        $cleanJson = preg_replace('/^```(?:json)?\s*/i', '', $trimmed);
-        $cleanJson = preg_replace('/\s*```$/', '', (string) $cleanJson);
-        $parsed = json_decode((string) $cleanJson, true);
+
+        $parsed = json_decode($cleanJson, true);
 
         return is_array($parsed) ? $parsed : null;
     }
