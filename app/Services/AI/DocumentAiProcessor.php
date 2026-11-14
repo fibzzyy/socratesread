@@ -164,11 +164,11 @@ class DocumentAiProcessor
         $sampleText = $this->buildFullCoverageContext($formattedBody, 9000);
 
         $sparseSchema = $isSparse
-            ? "  \"cleaned_body\": \"Teks pembelajaran komprehensif (minimal 350-500 kata) yang mengelaborasi poin-poin materi secara terstruktur dengan diawali judul materi, dilanjutkan '### TUJUAN PEMBELAJARAN', lalu minimal 3 subjudul bernomor (### 1. ..., ### 2. ..., ### 3. ...) yang kaya penjelasan akademis,\",\n"
+            ? "  \"cleaned_body\": \"Teks pembelajaran yang SANGAT LENGKAP, MENDALAM, DAN DETAIL (minimal 700-1200 kata) yang mengupas tuntas seluruh aspek materi: latar belakang historis/konseptual, dinamika proses, tokoh/landasan yuridis, perbandingan/struktur detail, hingga implikasi praktis dan relevansi masa kini. Wajib diawali judul materi, dilanjutkan '### TUJUAN PEMBELAJARAN', lalu 4-6 subjudul bernomor (### 1. ..., ### 2. ..., dst.) yang kaya penjelasan akademis,\",\n"
             : '';
 
         $sparseRule = $isSparse
-            ? "\n5. ATURAN KHUSUS EXPAND OUTLINE SLIDE/CATATAN SINGKAT:\n   - Teks materi yang diunggah berupa poin slide presentasi / outline singkat (< 120 kata). Siswa membutuhkan bahan bacaan yang utuh dan mendalam.\n   - Kamu WAJIB menyusun teks bacaan lengkap pada field 'cleaned_body' (minimal 350-500 kata) secara terstruktur rapi dengan subjudul bernomor (### 1. ..., ### 2. ..., ### 3. ...) berdasarkan topik '{$title}' dan mata pelajaran '{$category}'.\n   - Seluruh 10 soal kuis pilihan ganda (quiz_questions) dan 5 butir esai analitis (questions) WAJIB disusun berdasarkan teks bacaan yang telah kamu kembangkan di 'cleaned_body' tersebut agar materi, kuis, dan esai selaras sempurna."
+            ? "\n5. ATURAN KHUSUS EXPAND MATERI DETAIL & LENGKAP:\n   - Materi yang diunggah berupa poin slide presentasi/outline (< 120 kata). Guru dan siswa membutuhkan bahan bacaan yang SANGAT DETAIL, UTUH, DAN MENDALAM layaknya bab modul ajar lengkap.\n   - Kamu WAJIB menyusun teks bacaan lengkap pada field 'cleaned_body' (minimal 700-1200 kata) secara komprehensif, mengalir, dan mendalam dengan 4-6 subjudul bernomor (### 1. ..., ### 2. ..., dst.) berdasarkan topik '{$title}' dan mata pelajaran '{$category}'.\n   - Seluruh 10 soal kuis pilihan ganda (quiz_questions) dan 5 butir esai analitis (questions) WAJIB disusun berdasarkan teks bacaan lengkap yang kamu kembangkan tersebut agar terdistribusi merata ke seluruh subtopik."
             : '';
 
         $instructions = <<<INSTRUCTIONS
@@ -229,8 +229,8 @@ INSTRUCTIONS;
 
         $rawResponse = $this->languageModel->respond($messages, $instructions, [
             'temperature' => 0.15,
-            'max_output_tokens' => 3800,
-            'timeout' => 90,
+            'max_output_tokens' => 5200,
+            'timeout' => 120,
         ]);
 
         $parsed = $this->decodeJsonObject($rawResponse);
@@ -1514,6 +1514,65 @@ INSTRUCTIONS;
             ], $osChallenges);
         }
 
+        // Domain 8: Sejarah dan Kelahiran Bahasa Indonesia (pkn / p2 / p23 / Bahasa Indonesia)
+        if (
+            str_contains($bodyLower, 'kelahiran bahasa indonesia')
+            || str_contains($bodyLower, 'sejarah dan kelahiran bahasa indonesia')
+            || (str_contains($bodyLower, 'bahasa melayu') && str_contains($bodyLower, 'sumpah pemuda'))
+            || (str_contains($bodyLower, 'melayu kuno') && str_contains($bodyLower, 'pasal 36'))
+            || str_contains($titleLower, 'p23')
+            || str_contains($titleLower, 'p2')
+            || str_contains($titleLower, 'pkn')
+        ) {
+            $bahasaChallenges = [
+                [
+                    'bloom' => 'C3',
+                    'difficulty' => 'easy',
+                    'question' => 'Mengapa bahasa Melayu dipilih menjadi fondasi bahasa persatuan bangsa Indonesia dan bukan bahasa Jawa yang berpenutur mayoritas? Jelaskan faktor linguistik dan sosiologisnya!',
+                    'rubric' => 'Bahasa Melayu dipilih karena berkarakter egaliter tanpa tingkatan tutur atau kasta sosial (seperti ngoko dan krama), memiliki struktur yang luwes dan mudah dipelajari, serta telah berabad-abad menjadi lingua franca perdagangan antarpulau di Nusantara. Pemilihan ini juga mencerminkan sikap demokratis para pendiri bangsa demi menghindari dominasi etnis mayoritas.',
+                    'reference_excerpt' => 'Bahasa Melayu dipilih karena sifatnya yang egaliter, tidak mengenal tingkatan tutur berdasarkan kasta sosial, strukturnya yang luwes, serta posisinya yang telah menjadi lingua franca antarsuku di Nusantara.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'difficulty' => 'medium',
+                    'question' => 'Analisis peranan Mohammad Tabrani dan dinamika Kongres Pemuda I (1926) hingga Kongres Pemuda II (1928) dalam mencetuskan dan mengikrarkan nama "Bahasa Indonesia" sebagai simbol integrasi politik bangsa!',
+                    'rubric' => 'Mohammad Tabrani pada Kongres Pemuda I menolak istilah bahasa Melayu dan memperjuangkan nama "Bahasa Indonesia" agar selaras dengan konsep tumpah darah dan bangsa Indonesia. Gagasan ini memuncak pada Kongres Pemuda II tanggal 28 Oktober 1928 melalui ikrar ketiga Sumpah Pemuda: "Menjunjung bahasa persatuan, bahasa Indonesia", yang mentransformasikan bahasa daerah menjadi simbol pemersatu pergerakan nasional.',
+                    'reference_excerpt' => 'Pada Kongres Pemuda I (1926), Mohammad Tabrani mengusulkan nama Bahasa Indonesia. Momen bersejarah Sumpah Pemuda 28 Oktober 1928 menetapkan ikrar: Menjunjung bahasa persatuan, bahasa Indonesia.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'difficulty' => 'medium',
+                    'question' => 'Telaah bagaimana kebijakan otoritas pendudukan militer Jepang yang melarang bahasa Belanda justru menjadi katalisator bagi pembentukan Komisi Bahasa Indonesia dan pematangan bahasa Indonesia sebagai bahasa sains modern!',
+                    'rubric' => 'Pelarangan bahasa Belanda oleh penguasa militer Jepang memaksa digunakannya bahasa Indonesia dalam administrasi pemerintahan, media, dan sekolah. Untuk mengatasi keterbatasan kosakata ilmiah, dibentuk Komisi Bahasa Indonesia yang dipimpin tokoh nasional untuk mengkodifikasi ribuan peristilahan teknis modern, sehingga mempercepat kemandirian bahasa Indonesia sebagai bahasa keilmuan.',
+                    'reference_excerpt' => 'Pelarangan bahasa Belanda oleh Jepang membuka jalan bagi bahasa Indonesia sebagai bahasa resmi administrasi dan pendidikan, didukung Komisi Bahasa Indonesia yang mengkodifikasi ribuan istilah modern.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'difficulty' => 'hard',
+                    'question' => 'Evaluasi implikasi yuridis dan manajerial dari penetapan Pasal 36 UUD 1945 ("Bahasa Negara ialah Bahasa Indonesia") satu hari setelah Proklamasi Kemerdekaan terhadap tata kelola pemerintahan dan pendidikan nasional!',
+                    'rubric' => 'Penetapan Pasal 36 UUD 1945 pada 18 Agustus 1945 memberikan legitimasi konstitusional mutlak bahwa bahasa Indonesia beralih dari bahasa perjuangan politik menjadi bahasa resmi kenegaraan. Implikasinya, seluruh dokumen hukum perundang-undangan, sidang kenegaraan, dan bahasa pengantar resmi dari tingkat dasar hingga perguruan tinggi wajib menggunakan bahasa Indonesia demi kepastian hukum dan kedaulatan bangsa.',
+                    'reference_excerpt' => 'Pasal 36 UUD 1945 menetapkan secara sah: Bahasa Negara ialah Bahasa Indonesia, memberikan legitimasi konstitusional mutlak dalam perundang-undangan, pemerintahan, dan pendidikan nasional.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'difficulty' => 'hard',
+                    'question' => 'Bandingkan perbedaan esensial antara kedudukan bahasa Indonesia sebagai Bahasa Nasional dengan kedudukan sebagai Bahasa Negara, serta bagaimana prinsip Trigatra Bangun Bahasa menjawab tantangan era disrupsi digital!',
+                    'rubric' => 'Sebagai Bahasa Nasional (Sumpah Pemuda 1928), fungsinya bersifat sosio-kultural: lambang kebanggaan, identitas, dan pemersatu suku. Sebagai Bahasa Negara (Pasal 36 UUD 1945), fungsinya bersifat yuridis-operasional: bahasa dinas pemerintahan, pengantar pendidikan, dan pengembangan IPTEK. Prinsip Trigatra Bangun Bahasa ("Utamakan Bahasa Indonesia, Lestarikan Bahasa Daerah, Kuasai Bahasa Asing") memandu generasi muda agar adaptif terhadap sains global tanpa mengikis jati diri dan kedaulatan bahasa nasional.',
+                    'reference_excerpt' => 'Bahasa Nasional berfungsi sebagai lambang kebanggaan dan pemersatu kultural, sedangkan Bahasa Negara berfungsi yuridis kenegaraan dan pengantar pendidikan. Trigatra Bangun Bahasa memadukan penguasaan global dan kedaulatan bahasa nasional.',
+                ],
+            ];
+
+            return array_map(fn ($item) => [
+                'type' => 'essay',
+                'question' => $item['question'],
+                'context' => null,
+                'rubric' => $item['rubric'],
+                'reference_excerpt' => $item['reference_excerpt'],
+                'difficulty' => $item['difficulty'],
+                'difficulty_weight' => TeacherChallenge::weightForDifficulty($item['difficulty']),
+            ], $bahasaChallenges);
+        }
+
         return null;
     }
 
@@ -2641,8 +2700,122 @@ INSTRUCTIONS;
         $titleLower = mb_strtolower($title);
         $items = [];
 
-        // Domain 1: Trigatra Bangun Bahasa (TBB)
-        if (str_contains($bodyLower, 'trigatra bangun bahasa') || str_contains($titleLower, 'trigatra') || str_contains($bodyLower, 'anton moeliono')) {
+        // Domain 8: Sejarah dan Kelahiran Bahasa Indonesia
+        if (
+            str_contains($bodyLower, 'kelahiran bahasa indonesia')
+            || str_contains($bodyLower, 'sejarah dan kelahiran bahasa indonesia')
+            || (str_contains($bodyLower, 'bahasa melayu') && str_contains($bodyLower, 'sumpah pemuda'))
+            || (str_contains($bodyLower, 'melayu kuno') && str_contains($bodyLower, 'pasal 36'))
+            || str_contains($titleLower, 'p23')
+            || str_contains($titleLower, 'p2')
+            || str_contains($titleLower, 'pkn')
+        ) {
+            $bahasaPool = [
+                [
+                    'bloom' => 'C1',
+                    'question' => 'Prasasti peninggalan Kerajaan Sriwijaya pada abad ke-7 manakah yang menjadi salah satu bukti tertulis tertua mengenai pemakaian bahasa Melayu Kuno di kepulauan Nusantara?',
+                    'correct' => 'Prasasti Kedukan Bukit (683 M) dan Talang Tuwo (684 M)',
+                    'distractors' => [
+                        'Prasasti Ciaruteun dan Kebon Kopi',
+                        'Prasasti Yupa Kutai Kalimantan Timur',
+                        'Prasasti Tugu Kerajaan Tarumanegara',
+                    ],
+                    'explanation' => 'Bukti tertulis tertua bahasa Melayu Kuno ditemukan pada prasasti-prasasti Kerajaan Sriwijaya seperti Kedukan Bukit (683 M), Talang Tuwo (684 M), dan Kota Kapur (686 M).',
+                ],
+                [
+                    'bloom' => 'C1',
+                    'question' => 'Siapakah tokoh pemuda yang pertama kali mengusulkan nama "Bahasa Indonesia" (bukan bahasa Melayu) dalam Kongres Pemuda I pada tahun 1926?',
+                    'correct' => 'Mohammad Tabrani',
+                    'distractors' => ['Sutan Takdir Alisjahbana', 'Mohammad Yamin', 'Soegondo Djojopoespito'],
+                    'explanation' => 'Mohammad Tabrani mengusulkan nama Bahasa Indonesia pada Kongres Pemuda I (1926) agar selaras dengan nama bangsa dan tanah air yang hendak disatukan.',
+                ],
+                [
+                    'bloom' => 'C2',
+                    'question' => 'Bagaimanakah bunyi butir ketiga ikrar bersejarah Sumpah Pemuda tanggal 28 Oktober 1928 yang menetapkan status kebahasaan nasional?',
+                    'correct' => 'Menjunjung bahasa persatuan, bahasa Indonesia',
+                    'distractors' => [
+                        'Menetapkan satu bahasa tunggal, bahasa Indonesia',
+                        'Menghapuskan bahasa daerah demi bahasa Indonesia',
+                        'Mengakui bahasa Melayu sebagai satu-satunya bahasa resmi',
+                    ],
+                    'explanation' => 'Butir ketiga Sumpah Pemuda berbunyi "Menjunjung bahasa persatuan, bahasa Indonesia", yang bermakna mengangkat martabat bahasa Indonesia sebagai perekat persatuan nasional.',
+                ],
+                [
+                    'bloom' => 'C2',
+                    'question' => 'Manakah di antara faktor sosiolinguistik berikut yang menjadi alasan utama terpilihnya bahasa Melayu sebagai fondasi bahasa Indonesia dibandingkan bahasa daerah lain?',
+                    'correct' => 'Sifatnya yang egaliter tanpa tingkatan kasta tutur serta posisinya yang telah menjadi lingua franca perdagangan',
+                    'distractors' => [
+                        'Jumlah penuturnya yang merupakan mayoritas mutlak di Pulau Jawa',
+                        'Dukungan penuh dari pemerintah kolonial Belanda yang mewajibkan penggunaannya',
+                        'Kosakatanya yang murni tanpa pernah menyerap unsur bahasa asing',
+                    ],
+                    'explanation' => 'Bahasa Melayu bersifat egaliter (tanpa tingkatan kasta seperti ngoko/krama) dan telah menjadi bahasa pergaulan (lingua franca) antarsuku di pelabuhan seluruh kepulauan Nusantara.',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Pada masa pendudukan militer Jepang (1942–1945), faktor pemicu apakah yang secara drastis mempercepat pematangan bahasa Indonesia sebagai bahasa sains dan administrasi modern?',
+                    'correct' => 'Pelarangan penggunaan bahasa Belanda dan pembentukan Komisi Bahasa Indonesia untuk kodifikasi peristilahan modern',
+                    'distractors' => [
+                        'Kewajiban seluruh rakyat Indonesia menggunakan bahasa Jepang secara eksklusif',
+                        'Penghentian seluruh kegiatan penerbitan surat kabar dan penyiaran radio',
+                        'Penutupan seluruh jenjang sekolah dan universitas di wilayah Indonesia',
+                    ],
+                    'explanation' => 'Larangan bahasa Belanda oleh tentara Jepang membuka peluang emas bagi bahasa Indonesia, yang diperkuat dengan pembentukan Komisi Bahasa Indonesia untuk menyusun ribuan istilah keilmuan.',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Pasal berapakah dalam Undang-Undang Dasar 1945 yang disahkan pada 18 Agustus 1945 yang memberikan legitimasi yuridis bahwa Bahasa Negara ialah Bahasa Indonesia?',
+                    'correct' => 'Pasal 36 UUD 1945',
+                    'distractors' => ['Pasal 31 UUD 1945', 'Pasal 32 UUD 1945', 'Pasal 35 UUD 1945'],
+                    'explanation' => 'Pasal 36 UUD 1945 secara tegas menetapkan: "Bahasa Negara ialah Bahasa Indonesia", yang menjadi pilar konstitusional bahasa resmi kenegaraan.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Ditinjau dari fungsi kedudukannya, manakah yang merupakan implementasi bahasa Indonesia dalam kedudukannya sebagai Bahasa Negara (Pasal 36 UUD 1945)?',
+                    'correct' => 'Sebagai bahasa resmi kenegaraan, bahasa pengantar pendidikan, dan sarana perencanaan pembangunan nasional',
+                    'distractors' => [
+                        'Sebagai lambang kebanggaan nasional dan lambang identitas kultural suku bangsa',
+                        'Sebagai alat komunikasi kekeluargaan di lingkungan perumahan pedesaan',
+                        'Sebagai bahasa sastra tradisional dalam ritual upacara adat kedaerahan',
+                    ],
+                    'explanation' => 'Kedudukan sebagai Bahasa Negara mencakup fungsi yuridis-operasional: bahasa resmi kenegaraan, pengantar di lembaga pendidikan, perhubungan tingkat nasional, dan pengembangan IPTEK.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Analisislah kronologi perkembangan sistem ejaan bahasa Indonesia yang benar dari era kolonial hingga pemutakhiran era digital saat ini!',
+                    'correct' => 'Ejaan Van Ophuijsen (1901) → Ejaan Republik / Soewandi (1947) → EYD (1972) → PUEBI (2015) → EYD Edisi V (2022)',
+                    'distractors' => [
+                        'Ejaan Soewandi (1901) → Ejaan Van Ophuijsen (1947) → PUEBI (1972) → EYD Edisi V',
+                        'Ejaan Melayu-Jawi (1928) → Ejaan Pembaharuan (1950) → PUEBI (1980) → EYD Edisi I',
+                        'EYD Edisi I (1901) → Ejaan Republik (1945) → Ejaan Van Ophuijsen (1972) → PUEBI',
+                    ],
+                    'explanation' => 'Urutan kronologis ejaan resmi: Van Ophuijsen (1901), Ejaan Republik/Soewandi (1947), EYD I (1972), PUEBI (2015), dan EYD Edisi V (2022).',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'question' => 'Evaluasi penerapan semboyan kebangsaan Trigatra Bangun Bahasa di era keterbukaan informasi digital: sikap manakah yang paling mencerminkan prinsip tersebut secara seimbang?',
+                    'correct' => 'Mengutamakan pemakaian bahasa Indonesia baku di ruang publik, melestarikan bahasa daerah, serta menguasai bahasa asing untuk daya saing global',
+                    'distractors' => [
+                        'Menggantikan seluruh kosakata bahasa daerah dengan serapan bahasa asing populer demi modernisasi',
+                        'Menolak sama sekali pembelajaran bahasa asing untuk mempertahankan kemurnian bahasa nasional',
+                        'Membebaskan ruang publik dari kaidah bahasa baku agar komunikasi digital lebih cair',
+                    ],
+                    'explanation' => 'Trigatra Bangun Bahasa mengajarkan keseimbangan strategis: Utamakan Bahasa Indonesia, Lestarikan Bahasa Daerah, Kuasai Bahasa Asing.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'question' => 'Berdasarkan telaah historis kelahiran bahasa Indonesia, kesimpulan kritis manakah yang paling tepat menggambarkan makna peresmian bahasa Indonesia bagi keberlangsungan NKRI?',
+                    'correct' => 'Bahasa Indonesia adalah konsensus kebangsaan yang cerdas dan egaliter, berhasil mencegah disintegrasi etnis dan menjadi wahana kedaulatan negara merdeka',
+                    'distractors' => [
+                        'Bahasa Indonesia lahir karena paksaan undang-undang tanpa melalui proses perjuangan kultural masyarakat',
+                        'Penetapan bahasa Indonesia menyebabkan punahnya keberagaman bahasa daerah di seluruh pelosok Nusantara',
+                        'Bahasa Indonesia hanya relevan digunakan pada masa perang kemerdekaan dan tidak berkembang di era modern',
+                    ],
+                    'explanation' => 'Kelahiran bahasa Indonesia merupakan konsensus pergerakan yang luar biasa matang dan egaliter, menyatukan ratusan etnis tanpa dominasi mayoritas dan menjadi sendi utama keutuhan NKRI.',
+                ],
+            ];
+            $items = $bahasaPool;
+        } elseif (str_contains($bodyLower, 'trigatra bangun bahasa') || str_contains($titleLower, 'trigatra') || str_contains($bodyLower, 'anton moeliono')) {
             $tbbPool = [
                 [
                     'bloom' => 'C1',

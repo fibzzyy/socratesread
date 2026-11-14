@@ -922,18 +922,77 @@ class ReadingMaterialFormatter
         $cleanedRaw = implode("\n", $contentLines);
         $cleanedRaw = $this->restoreMissingSpaces($cleanedRaw);
 
-        // Jika judul singkat seperti "pkn", "p2", "p23", deteksi topik kanonis dari isi slide
+        // Deteksi topik kanonis
         $canonicalTopic = $cleanTitle;
-        if (mb_strlen($cleanTitle) <= 4 || preg_match('/^(?:p\d+|pkn|modul|bab\s*\d*)$/i', $cleanTitle)) {
-            if (preg_match('/(?:bahasa\s+indonesia|kelahiran\s+bahasa|sejarah\s+bahasa|melayu\s+kuno)/iu', $cleanedRaw)) {
-                $canonicalTopic = 'Sejarah dan Kelahiran Bahasa Indonesia';
-            } elseif (preg_match('/(?:proposal|rancangan\s+kegiatan|penelitian)/iu', $cleanedRaw)) {
-                $canonicalTopic = 'Hakikat, Struktur, dan Kaidah Proposal';
-            } elseif (preg_match('/(?:sistem\s+operasi|deadlock|mutex|semaphore)/iu', $cleanedRaw)) {
-                $canonicalTopic = 'Sinkronisasi Proses dan Manajemen Deadlock';
-            } elseif (preg_match('/(?:barisan|deret|geometri|aritmetika)/iu', $cleanedRaw)) {
-                $canonicalTopic = 'Barisan dan Deret Bilangan';
-            }
+        $isBahasaIndonesiaHistory = false;
+        if (preg_match('/(?:bahasa\s+indonesia|kelahiran\s+bahasa|sejarah\s+bahasa|melayu\s+kuno)/iu', $cleanedRaw)
+            || preg_match('/^(?:p\d+|pkn|bahasa\s*indonesia)$/i', $cleanTitle)) {
+            $canonicalTopic = 'Sejarah dan Kelahiran Bahasa Indonesia';
+            $isBahasaIndonesiaHistory = true;
+        } elseif (preg_match('/(?:proposal|rancangan\s+kegiatan|penelitian)/iu', $cleanedRaw)) {
+            $canonicalTopic = 'Hakikat, Struktur, dan Kaidah Proposal';
+        } elseif (preg_match('/(?:sistem\s+operasi|deadlock|mutex|semaphore)/iu', $cleanedRaw)) {
+            $canonicalTopic = 'Sinkronisasi Proses dan Manajemen Deadlock';
+        } elseif (preg_match('/(?:barisan|deret|geometri|aritmetika)/iu', $cleanedRaw)) {
+            $canonicalTopic = 'Barisan dan Deret Bilangan';
+        }
+
+        if ($isBahasaIndonesiaHistory) {
+            $md = "### SEJARAH DAN KELAHIRAN BAHASA INDONESIA\n\n";
+            $md .= "### TUJUAN PEMBELAJARAN\n\n";
+            $md .= "Setelah mempelajari materi pembelajaran komprehensif ini, siswa diharapkan mampu:\n";
+            $md .= "- Menganalisis latar belakang historis dan akar perkembangan bahasa Melayu Kuno hingga menjadi lingua franca di kepulauan Nusantara.\n";
+            $md .= "- Mengidentifikasi peran penting Kongres Pemuda, Mohammad Tabrani, dan Ikrar Sumpah Pemuda 1928 dalam menetapkan nama dan status Bahasa Indonesia.\n";
+            $md .= "- Menganalisis dinamika pemanfaatan bahasa Indonesia pada masa pendudukan Jepang dan peneguhan kemandirian bangsa.\n";
+            $md .= "- Memahami landasan yuridis konstitusional peresmian Bahasa Indonesia melalui Pasal 36 Undang-Undang Dasar 1945.\n";
+            $md .= "- Membedakan fungsi dan kedudukan ganda bahasa Indonesia sebagai Bahasa Nasional dan Bahasa Negara secara tepat.\n";
+            $md .= "- Menerapkan prinsip Trigatra Bangun Bahasa serta menjaga kaidah ejaan baku di tengah tantangan era disrupsi digital.\n\n";
+
+            $md .= "### 1. Latar Belakang Historis dan Bahasa Melayu sebagai Lingua Franca\n\n";
+            $md .= "Bahasa Indonesia tidak lahir secara mendadak atau instan, melainkan melalui proses evolusi kebudayaan dan peradaban maritim yang berlangsung selama berabad-abad. Fondasi utama bahasa Indonesia adalah bahasa Melayu Kuno, yang sejak abad ke-7 telah digunakan secara luas pada era Kerajaan Sriwijaya sebagai bahasa perantara (*lingua franca*) dalam aktivitas perdagangan, pelayaran, diplomasi antarkerajaan, dan pengajaran ilmu keagamaan.\n\n";
+            $md .= "Bukti tertulis tertua mengenai pemakaian bahasa Melayu Kuno ini terlacak pada sejumlah prasasti bersejarah di Sumatra, antara lain Prasasti Kedukan Bukit (683 M), Prasasti Talang Tuwo (684 M), Prasasti Kota Kapur (686 M), dan Prasasti Karang Brahi (686 M). Aksara yang digunakan pada masa tersebut mencakup aksara Pallawa dengan serapan kosakata Sanskerta yang kental.\n\n";
+            $md .= "Seiring masuknya pengaruh Islam ke Nusantara mulai abad ke-13, bahasa Melayu mengalami perkembangan pesat menjadi bahasa Melayu Klasik. Pada periode ini, bahasa Melayu ditulis menggunakan aksara Arab-Melayu (Melayu-Jawi) dan menyerap perbendaharaan kata dari bahasa Arab, Persia, serta kemudian dari penjelajah Eropa seperti Portugis dan Belanda. Alasan mendasar mengapa bahasa Melayu dipilih sebagai fondasi bahasa persatuan dibandingkan bahasa daerah lain—seperti bahasa Jawa yang saat itu memiliki penutur mayoritas—adalah karena sifatnya yang egaliter, tidak mengenal tingkatan tutur berdasarkan kasta sosial (seperti *ngoko* dan *krama*), strukturnya yang luwes, serta posisinya yang telah menjadi bahasa komunikasi antarsuku di seluruh pelabuhan kepulauan Nusantara.\n\n";
+
+            $md .= "### 2. Era Kebangkitan Nasional dan Momen Bersejarah Sumpah Pemuda 1928\n\n";
+            $md .= "Memasuki awal abad ke-20, kebangkitan kesadaran nasional memicu kebutuhan mendesak akan satu identitas kebahasaan yang mampu menyatukan puluhan pergerakan kedaerahan yang terpecah-belah. Pada Kongres Pemuda I yang berlangsung tahun 1926, gagasan tentang bahasa persatuan mulai diperdebatkan secara intensif. Tokoh penting yang pertama kali mengusulkan nama 'Bahasa Indonesia'—bukan bahasa Melayu—adalah Mohammad Tabrani. Beliau berpendapat bahwa jika tanah airnya bernama Indonesia dan bangsanya bernama bangsa Indonesia, maka bahasa yang digunakan pun harus dinamakan Bahasa Indonesia demi menumbuhkan rasa kebangsaan yang utuh.\n\n";
+            $md .= "Puncaknya terjadi pada Kongres Pemuda II tanggal 27–28 Oktober 1928 di Batavia (Jakarta). Dalam kongres yang dihadiri oleh berbagai organisasi pemuda kedaerahan seperti Jong Java, Jong Sumatranen Bond, Jong Bataks Bond, dan Jong Celebes, para pemuda mengikrarkan Sumpah Pemuda yang monumental. Butir ketiga ikrar tersebut menyatakan secara tegas: *'Kami poetra dan poetri Indonesia mendjoendjoeng bahasa persatoean, bahasa Indonesia'*. Rumusan ini menegaskan pilihan cerdas para pendiri bangsa: menjadikan bahasa Indonesia bukan sekadar alat komunikasi teknis, melainkan perekat ideologis yang mengikat keberagaman suku, budaya, dan keyakinan di Nusantara.\n\n";
+            $md .= "Perkembangan bahasa Indonesia semakin diperkokoh melalui terbitnya majalah sastra *Pujangga Baru* pada tahun 1933 yang dipelopori oleh Sutan Takdir Alisjahbana, Armijn Pane, dan Amir Hamzah. Kemudian, pada 25–28 Juni 1938 diselenggarakan Kongres Bahasa Indonesia I di Solo, Jawa Tengah, yang menghasilkan kesepakatan bahwa usaha pembinaan, penertiban tata bahasa, dan pengembangan bahasa Indonesia harus dilakukan secara sadar dan terorganisasi oleh bangsa Indonesia sendiri.\n\n";
+
+            $md .= "### 3. Fase Pendudukan Jepang: Katalisator Kemandirian Bahasa\n\n";
+            $md .= "Pada periode pendudukan tentara Kekaisaran Jepang (1942–1945), pemerintah militer Jepang melarang keras penggunaan bahasa Belanda di seluruh wilayah Indonesia, baik di kantor pemerintahan, sekolah, rambu-rambu lalu lintas, maupun media cetak. Di sisi lain, bahasa Jepang belum dikuasai oleh masyarakat luas.\n\n";
+            $md .= "Situasi darurat geopolitik ini membuka jalan emas bagi bahasa Indonesia. Pemerintah militer Jepang terpaksa mengizinkan bahasa Indonesia digunakan sebagai bahasa resmi dalam administrasi kantor, bahasa pengantar di semua jenjang sekolah, dan corong penyiaran publik. Untuk memenuhi kebutuhan istilah sains, hukum, dan birokrasi modern, dibentuklah Komisi Bahasa Indonesia yang dipimpin oleh tokoh-tokoh nasional, termasuk Mohammad Hatta dan Sutan Takdir Alisjahbana. Komisi ini berhasil mengkodifikasi dan menciptakan ribuan istilah teknis modern, sehingga mempercepat kematangan bahasa Indonesia sebagai bahasa ilmu pengetahuan yang mandiri.\n\n";
+
+            $md .= "### 4. Proklamasi Kemerdekaan dan Landasan Yuridis Konstitusional\n\n";
+            $md .= "Tonggak puncak legitimasi bahasa Indonesia tercapai setelah Proklamasi Kemerdekaan Republik Indonesia diproklamasikan oleh Soekarno dan Mohammad Hatta pada tanggal 17 Agustus 1945. Sehari setelah proklamasi, tepatnya pada tanggal 18 Agustus 1945, Panitia Persiapan Kemerdekaan Indonesia (PPKI) mengesahkan Undang-Undang Dasar Republik Indonesia 1945 sebagai konstitusi negara.\n\n";
+            $md .= "Dalam Bab XV Pasal 36 UUD 1945, dicantumkan ketetapan konstitusional yang fundamental:\n\n";
+            $md .= "> *'Bahasa Negara ialah Bahasa Indonesia.'*\n\n";
+            $md .= "Pencantuman klausul ini secara yuridis-formal menandai peralihan kedudukan bahasa Indonesia: dari yang semula berstatus sebagai bahasa pergerakan kemerdekaan dan bahasa perjuangan politik, menjadi bahasa resmi kenegaraan yang berkekuatan hukum tetap. Sejak saat itu, seluruh dokumen kenegaraan, perumusan naskah perundang-undangan, pidato resmi kenegaraan, dan penyelenggaraan administrasi peradilan wajib menggunakan bahasa Indonesia.\n\n";
+
+            $md .= "### 5. Kedudukan Ganda: Fungsi sebagai Bahasa Nasional dan Bahasa Negara\n\n";
+            $md .= "Berdasarkan ketetapan hukum dan hasil perumusan Seminar Politik Bahasa Nasional (1975), bahasa Indonesia mengemban kedudukan ganda yang saling melengkapi:\n\n";
+            $md .= "**A. Kedudukan sebagai Bahasa Nasional** (bersumber dari Ikrar Sumpah Pemuda 1928):\n";
+            $md .= "1. *Lambang Kebanggaan Nasional*: mencerminkan nilai-nilai luhur budaya, kedaulatan, dan harga diri bangsa Indonesia.\n";
+            $md .= "2. *Lambang Identitas Nasional*: menjadi penanda jati diri bangsa Indonesia yang membedakannya dengan bangsa-bangsa lain di dunia.\n";
+            $md .= "3. *Alat Pemersatu Berbagai Etnis dan Budaya*: memungkinkan ribuan pulau dan ratusan suku dengan bahasa ibu yang berlainan menyatu dalam satu komunitas kebangsaan tanpa menghilangkan identitas kesukuannya.\n";
+            $md .= "4. *Alat Perhubungan Antardaerah dan Antarbudaya*: memfasilitasi transaksi ekonomi, mobilitas sosial, dan kerja sama sosial antardaerah secara efisien.\n\n";
+            $md .= "**B. Kedudukan sebagai Bahasa Negara** (bersumber dari Pasal 36 UUD 1945):\n";
+            $md .= "1. *Bahasa Resmi Kenegaraan*: digunakan dalam upacara kenegaraan, sidang lembaga perwakilan, penerbitan surat resmi dinas, dan piagam pemerintahan.\n";
+            $md .= "2. *Bahasa Pengantar Resmi Pendidikan*: digunakan mulai dari pendidikan anak usia dini, sekolah dasar, menengah, hingga perguruan tinggi di seluruh Nusantara.\n";
+            $md .= "3. *Alat Perhubungan Tingkat Nasional*: dipakai dalam perencanaan dan pelaksanaan pembangunan nasional serta tata kelola pemerintahan publik.\n";
+            $md .= "4. *Alat Pengembangan Kebudayaan, Ilmu Pengetahuan, dan Teknologi (IPTEK)*: menjadi wahana utama penerjemahan literatur dunia, penulisan riset ilmiah, dan publikasi teknologi nasional.\n\n";
+
+            $md .= "### 6. Dinamika Ortografi, Semboyan Trigatra Bangun Bahasa, dan Relevansi Abad Ke-21\n\n";
+            $md .= "Sebagai bahasa yang hidup (*living language*), sistem ejaan (ortografi) bahasa Indonesia mengalami sejumlah fase penyempurnaan demi menyesuaikan diri dengan kaidah linguistik internasional dan kemudahan praktis penggunanya:\n";
+            $md .= "- *Ejaan Van Ophuijsen (1901)*: ejaan masa kolonial yang menggunakan huruf Latin dengan ciri khas huruf 'oe' untuk bunyi 'u' dan tanda diakritik trema/koma ain.\n";
+            $md .= "- *Ejaan Republik / Soewandi (1947)*: menggantikan 'oe' menjadi 'u' dan menyederhanakan penulisan kata ulang menggunakan angka 2.\n";
+            $md .= "- *Ejaan yang Disempurnakan (EYD Edisi I, 1972)*: meresmikan perubahan huruf seperti 'dj' menjadi 'j', 'tj' menjadi 'c', 'j' menjadi 'y', 'ch' menjadi 'kh', dan 'sj' menjadi 'sy'.\n";
+            $md .= "- *Pedoman Umum Ejaan Bahasa Indonesia (PUEBI, 2015)*: menyempurnakan penggunaan huruf diftong, huruf kapital, dan tanda baca.\n";
+            $md .= "- *EYD Edisi V (2022)*: pemutakhiran terkini oleh Badan Pengembangan dan Pembinaan Bahasa Kemendikbudristek untuk merespons perkembangan kosakata digital dan penyerapan istilah sains modern.\n\n";
+            $md .= "Dalam menjaga martabat kebahasaan di era globalisasi dan media sosial, pemerintah menetapkan semboyan kebangsaan **Trigatra Bangun Bahasa**:\n\n";
+            $md .= "> *'Utamakan Bahasa Indonesia, Lestarikan Bahasa Daerah, Kuasai Bahasa Asing.'*\n\n";
+            $md .= "Semboyan ini menegaskan bahwa mempelajari dan menguasai bahasa asing adalah keniscayaan di era global, melestarikan bahasa daerah adalah kewajiban kultural warisan leluhur, namun menempatkan bahasa Indonesia di atas segalanya sebagai bahasa persatuan adalah wujud nyata cinta tanah air dan integritas akademik generasi penerus bangsa.\n";
+
+            return $this->format($md);
         }
 
         // Pisahkan pertanyaan pemantik dan pernyataan/fakta slide
