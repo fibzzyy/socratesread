@@ -686,7 +686,7 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
 
-                    <!-- Fitur 1: Reading Room -->
+                    <!-- Fitur 1: Ruang Baca -->
                     <div
                         class="p-8 rounded-2xl bg-white border border-slate-200 shadow-xs hover:shadow-md transition-shadow flex flex-col justify-between">
                         <div class="space-y-4">
@@ -694,7 +694,7 @@
                                 class="w-12 h-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center">
                                 <x-icon name="book-open-text" class="w-6 h-6" />
                             </div>
-                            <h3 class="font-serif-reading text-2xl font-bold text-slate-900">Reading Room</h3>
+                            <h3 class="font-serif-reading text-2xl font-bold text-slate-900">Ruang Baca</h3>
                             <p class="text-sm text-slate-600 leading-relaxed">
                                 Kurasi bacaan esai, filsafat, sains sosial, dan sastra bertingkat (Kelas 10, 11, dan 12)
                                 dengan tipografi nyaman dan anotasi nalar langsung di teks.

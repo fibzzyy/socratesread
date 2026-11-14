@@ -300,11 +300,11 @@
                 </div>
                 <h3 class="text-sm font-bold text-slate-800 mb-1">Belum Ada Kuis Tersedia</h3>
                 <p class="text-xs text-slate-500 max-w-md mx-auto mb-4">
-                    Belum ada kuis yang sesuai dengan filter atau diterbitkan oleh guru untuk bacaan ini. Silakan buka Reading Room untuk membaca materi.
+                    Belum ada kuis yang sesuai dengan filter atau diterbitkan oleh guru untuk bacaan ini. Silakan buka Ruang Baca untuk membaca materi.
                 </p>
                 <a href="{{ route('reading') }}" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition">
                     <x-icon name="book-open-text" class="w-4 h-4" />
-                    <span>Buka Reading Room</span>
+                    <span>Buka Ruang Baca</span>
                 </a>
             </div>
         @endforelse

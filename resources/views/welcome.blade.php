@@ -21,7 +21,7 @@
             <div class="nav-label">MENU UTAMA</div>
             <nav class="nav-list" aria-label="Menu utama">
                 <a class="nav-link is-active" href="{{ route('dashboard') }}" aria-current="page"><x-icon name="layout-dashboard" /><span>Beranda</span></a>
-                <a class="nav-link" href="{{ route('reading') }}"><x-icon name="book-open-text" /><span>Reading Room</span></a>
+                <a class="nav-link" href="{{ route('reading') }}"><x-icon name="book-open-text" /><span>Ruang Baca</span></a>
                 <a class="nav-link {{ request()->routeIs('classrooms.*') ? 'is-active' : '' }}" href="{{ route('classrooms.index') }}"><x-icon name="users" /><span>Kelas saya</span></a>
             </nav>
 
@@ -33,7 +33,6 @@
             </nav>
 
             <div class="sidebar-spacer"></div>
-            <details class="profile-menu"><summary class="profile-button"><span class="avatar avatar-sidebar {{ auth()->user()->avatarUrl() ? '' : 'avatar-empty' }}">@if (auth()->user()->avatarUrl())<img src="{{ auth()->user()->avatarUrl() }}" alt="">@else<x-icon name="user" class="avatar-placeholder-icon" />@endif</span><span class="profile-copy"><strong>{{ auth()->user()->name }}</strong><small>Siswa SocratesRead</small></span><x-icon name="chevron-down" class="profile-chevron" /></summary><div class="profile-dropdown"><a href="{{ route('profile') }}">Profil</a><form method="POST" action="{{ route('logout') }}">@csrf<button type="submit">Keluar</button></form></div></details>
         </aside>
 
         <main class="main-content" id="dashboard">
@@ -82,12 +81,15 @@
 
                                 @foreach ([10, 11, 12] as $g)
                                     @php($isPrior = $user->isPriorGrade($g))
+                                    @php($isFuture = $g > $currentGrade)
                                     @php($isSelected = (string) $selectedGrade === (string) $g)
                                     <a href="{{ route('dashboard', ['grade' => $g]) }}" class="flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-xs font-medium text-slate-700 hover:bg-blue-50/70 hover:text-blue-700 transition {{ $isSelected ? 'bg-blue-50/70 text-blue-700 font-semibold' : '' }}">
                                         <span class="flex items-center gap-2">
                                             <span class="size-1.5 rounded-full {{ $g === 10 ? 'bg-blue-500' : ($g === 11 ? 'bg-indigo-500' : 'bg-violet-500') }}"></span>
                                             <span>Kelas {{ $g }}</span>
-                                            @if ($isPrior)
+                                            @if ($isFuture)
+                                                <span class="text-[10px] text-slate-400 font-normal">(Kosong)</span>
+                                            @elseif ($isPrior)
                                                 <span class="text-[10px] text-slate-400 font-normal">(Kosong)</span>
                                             @endif
                                         </span>
@@ -166,6 +168,11 @@
                                 <span>Gabung Kelas Belajar</span>
                                 <x-icon name="arrow-right" />
                             </a>
+                        @elseif (! $hasClassForSelectedGrade)
+                            <a class="hero-cta" href="{{ route('classrooms.index') }}">
+                                <span>Lihat kelas yang kamu ikuti</span>
+                                <x-icon name="arrow-right" />
+                            </a>
                         @else
                             <a class="hero-cta" href="#bacaan">
                                 <span>Mulai Membaca</span>
@@ -185,7 +192,7 @@
 
                 <div class="content-grid">
                     <section class="panel reading-panel scroll-mt-6" id="bacaan" aria-labelledby="reading-heading">
-                        <div class="section-heading"><div><h2 id="reading-heading">Bacaan untukmu</h2></div><a class="text-link" href="{{ route('reading') }}">Buka Reading Room <x-icon name="arrow-right" /></a></div>
+                        <div class="section-heading"><div><h2 id="reading-heading">Bacaan untukmu</h2></div><a class="text-link" href="{{ route('reading') }}">Buka Ruang Baca <x-icon name="arrow-right" /></a></div>
                         @forelse ($readingDocuments as $document)
                             @php($session = $document->readingSessions->first())
                             @php($isSessionCompleted = $session?->status === 'completed')
@@ -197,9 +204,15 @@
                                 @if ($isPriorGrade)
                                     <strong>Tidak ada materi di Kelas {{ $selectedGrade }}</strong>
                                     <p>Anda terdaftar mulai Kelas {{ $user->entry_grade ?? 10 }}. Beralihlah ke tingkat aktif Anda untuk melanjutkan membaca.</p>
+                                @elseif ($isFutureGrade)
+                                    <strong>Kelas {{ $selectedGrade }} belum tersedia</strong>
+                                    <p>Jenjangmu saat ini Kelas {{ $currentGrade }}. Materi Kelas {{ $selectedGrade }} akan tersedia setelah kamu naik ke jenjang tersebut.</p>
                                 @elseif (! $hasEnrolledClass)
                                     <strong>Belum bergabung ke Kelas {{ $selectedGrade }}</strong>
                                     <p>Materi dan progres kelas akan muncul setelah kamu bergabung kembali ke kelas.</p>
+                                @elseif (! $hasClassForSelectedGrade)
+                                    <strong>Kamu sudah bergabung di kelas lain</strong>
+                                    <p>Kelas yang kamu ikuti: {{ $classrooms->map(fn ($classroom) => $classroom->name.' (Kelas '.($classroom->target_grade ?: 'semua jenjang').')')->join(', ') }}. Sesuaikan filter jenjang untuk melihat materi kelasmu.</p>
                                 @else
                                     <strong>Belum ada bacaan tersedia</strong>
                                     <p>Bacaan baru akan muncul di sini setelah guru menerbitkan materi.</p>
