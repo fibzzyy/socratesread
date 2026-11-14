@@ -1022,28 +1022,42 @@ class ReadingMaterialFormatter
         $md .= "- Mengidentifikasi faktor-faktor kunci, peristiwa penting, serta landasan hukum yang melatarbelakangi pembahasan materi.\n";
         $md .= "- Menganalisis implikasi konseptual dan relevansi praktis {$canonicalTopic} dalam konteks kehidupan bermasyarakat dan akademik.\n\n";
 
-        // Subjudul 1: Latar Belakang & Konteks Awal
-        $md .= "### 1. Latar Belakang dan Konteks Awal\n\n";
+        // Subjudul 1: Hakikat, Definisi, dan Landasan Teoretis
+        $md .= "### 1. Hakikat, Definisi, dan Landasan Teoretis\n\n";
+        $md .= "Pembahasan mengenai {$canonicalTopic} berakar pada kebutuhan mendasar untuk memahami fondasi keilmuan dan konteks perkembangannya. Setiap tonggak konsep maupun teori dibangun atas landasan analisis sistematis yang saling berkaitan erat. Pemahaman mendalam terhadap definisi dan batasan materi menjadi prasyarat mutlak sebelum melangkah ke analisis terapan yang lebih kompleks.\n\n";
         if (! empty($questionsFound)) {
-            $md .= implode(" ", $questionsFound) . " Pertanyaan-pertanyaan mendasar ini menunjukkan bahwa kelahiran suatu identitas nasional maupun sistem keilmuan tidak terjadi secara instan, melainkan melalui pergulatan pemikiran mendalam, kompromi historis, dan perjuangan keras para pendahulu.\n\n";
+            $md .= implode(" ", $questionsFound) . " Pertanyaan-pertanyaan kritis ini menunjukkan bahwa penguasaan materi tidak cukup sekadar menghafal istilah, melainkan menuntut pemahaman terhadap prinsip mendasar dan latar belakang mengapa konsep ini penting untuk dipelajari.\n\n";
         } else {
-            $md .= "Pembahasan mengenai {$canonicalTopic} berakar pada kebutuhan mendasar untuk memahami fondasi keilmuan dan konteks perkembangannya. Setiap tonggak sejarah maupun teori dibangun atas landasan peristiwa masa lampau yang saling berkaitan erat.\n\n";
+            $md .= "Dalam perspektif keilmuan, topik ini memegang peranan krusial dalam membentuk kerangka berpikir logis. Struktur konseptual yang kokoh memungkinkan peserta didik menghubungkan prinsip teoretis dengan fenomena nyata secara kohesif dan terstruktur.\n\n";
         }
-        $md .= "Proses pembentukan dan pengakuan resmi membutuhkan dinamika perjuangan panjang. Para pendiri bangsa dan perumus gagasan menempuh dialog serta musyawarah guna menjawab tantangan zaman dan menyatukan berbagai elemen masyarakat yang majemuk.\n\n";
 
-        // Subjudul 2: Proses Pembentukan & Landasan Konseptual
-        $md .= "### 2. Proses Pembentukan dan Landasan Konseptual\n\n";
+        // Subjudul 2: Komponen Kunci dan Mekanisme Inti
+        $md .= "### 2. Komponen Kunci, Prinsip Kerja, dan Mekanisme Inti\n\n";
+        $md .= "Secara substantif, materi ini ditopang oleh pilar-pilar penting dan kaidah operasional yang saling melengkapi:\n\n";
         if (! empty($declarativePoints)) {
             foreach ($declarativePoints as $dp) {
                 $md .= "- {$dp}\n";
             }
             $md .= "\n";
+        } else {
+            $md .= "- Identifikasi elemen struktural utama yang menjadi karakteristik pembeda materi.\n";
+            $md .= "- Penerapan mekanisme operasional dan aturan baku yang berlaku dalam disiplin ilmu terkait.\n";
+            $md .= "- Keterpaduan antarbagian yang menjamin efisiensi, akurasi, dan konsistensi hasil pelaksanaan.\n\n";
         }
-        $md .= "Secara historis dan yuridis, landasan pembentukan materi ini diperkuat melalui penetapan aturan resmi dan konstitusi negara. Hubungan dialektis antara naskah-naskah kuno, dinamika penyerapan unsur bahasa atau budaya lain, serta legitimasi undang-undang menjadi pilar utama yang menopang keabsahan konsep ini.\n\n";
+        $md .= "Setiap komponen memiliki fungsi spesifik yang tidak dapat dipisahkan dari keseluruhan sistem. Kegagalan memahami interaksi antarkomponen ini sering kali menjadi sumber kekeliruan dalam interpretasi maupun pengambilan keputusan teknis.\n\n";
 
-        // Subjudul 3: Kedudukan Formal dan Makna Strategis
-        $md .= "### 3. Kedudukan Formal dan Makna Strategis\n\n";
-        $md .= "Penetapan status resmi memberikan legitimasi formal sekaligus fungsi operasional sebagai sarana komunikasi, integrasi nasional, dan identitas kebangsaan yang modern. Mempelajari sejarah dan konsep ini menanamkan kesadaran kritis bahwa setiap kaidah yang kita gunakan hari ini memiliki riwayat perjuangan intelektual yang patut dihargai dan dikembangkan dalam kehidupan berbangsa.\n";
+        // Subjudul 3: Analisis Dinamika dan Implikasi Logis
+        $md .= "### 3. Analisis Hubungan Sebab-Akibat dan Dinamika Penerapan\n\n";
+        $md .= "Penerapan konsep pada situasi praktis selalu melibatkan dinamika sebab-akibat yang nyata. Ketika aturan atau prinsip dijalankan secara konsisten, sistem menghasilkan kinerja yang terukur, stabil, dan dapat dipertanggungjawabkan secara akademik maupun profesional. Sebaliknya, penyimpangan terhadap kaidah baku berpotensi memicu distorsi data, kerancuan komunikasi, hingga kegagalan fungsi manajerial.\n\n";
+        $md .= "Oleh karena itu, diperlukan penalaran analitis (Higher Order Thinking Skills) untuk membedah bagaimana perubahan pada satu variabel atau parameter dapat memengaruhi keseluruhan alur kerja materi secara komprehensif.\n\n";
+
+        // Subjudul 4: Evaluasi Kontekstual dan Solusi Pemecahan Masalah
+        $md .= "### 4. Evaluasi Kontekstual, Studi Kasus, dan Praktik Nyata\n\n";
+        $md .= "Di dunia nyata, teori harus diuji melalui berbagai skenario kasus dan pemecahan dilema kontekstual. Siswa ditantang untuk menilai keabsahan suatu data, mengevaluasi kesalahan penerapan prosedur, serta merancang alternatif solusi yang paling efektif dan efisien. Kemampuan memadukan fakta objektif dengan argumentasi ilmiah merupakan tolok ukur utama kematangan literasi siswa.\n\n";
+
+        // Subjudul 5: Kesimpulan Kritis dan Makna Strategis
+        $md .= "### 5. Kesimpulan Kritis, Tantangan, dan Prospek Pengembangan\n\n";
+        $md .= "Sebagai penutup, penguasaan terhadap materi {$canonicalTopic} membekali peserta didik dengan kompetensi berpikir kritis yang adaptif terhadap perkembangan ilmu pengetahuan dan teknologi. Dengan memahami akar sejarah, kaidah konseptual, dan implikasi praktisnya, siswa mampu mengambil keputusan yang bertanggung jawab, beretika, dan berorientasi pada kemajuan berkelanjutan.\n";
 
         return $this->format($md);
     }
