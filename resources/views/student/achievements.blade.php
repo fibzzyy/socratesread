@@ -133,9 +133,12 @@
                     </div>
                 @endif
                 @if ($topThree->count() >= 2)
-                    @php($second = $topThree->get(1))
+                    @php
+                        $second = $topThree->get(1);
+                    @endphp
                     <div class="achievement-place achievement-place-second w-full max-w-xs sm:max-w-none sm:w-1/3 flex flex-col items-center order-2 sm:order-1">
                         <div class="achievement-profile relative mb-3 flex flex-col items-center">
+                            <span class="achievement-trophy achievement-trophy-second" aria-hidden="true"><img src="{{ asset('images/podium-trophies/second.png') }}" alt=""></span>
                             <div class="achievement-avatar w-16 h-16 rounded-2xl ring-4 ring-slate-300 bg-slate-100 grid place-items-center overflow-hidden shadow-md">
                                 @if ($second->avatar_url)
                                     <img src="{{ $second->avatar_url }}" alt="{{ $second->name }}" class="w-full h-full object-cover">
@@ -147,11 +150,11 @@
                         </div>
                         <h4 class="text-xs font-bold text-slate-800 text-center truncate max-w-[140px] flex items-center gap-1">
                             {{ $second->name }}
-                            @if ($second->is_current_user)
-                                <span class="text-[9px] bg-blue-100 text-blue-700 px-1 rounded font-extrabold">Kamu</span>
-                            @endif
                         </h4>
-                        <span class="text-[11px] font-extrabold text-blue-600 mt-0.5">+{{ $second->total_xp }} XP · Lvl {{ $second->level }}</span>
+                        <span class="text-[11px] font-extrabold text-blue-600 mt-0.5">+{{ number_format($second->total_xp) }} XP</span>
+                        @if ($second->highest_exclusive_badge)
+                            <span class="achievement-highest-badge">{{ $second->highest_exclusive_badge }}</span>
+                        @endif
                         <div class="achievement-podium-base achievement-base-second w-full h-24 bg-gradient-to-t from-slate-200 to-slate-100 rounded-t-2xl border-t-2 border-slate-300 mt-3 flex items-center justify-center shadow-inner">
                             <span class="text-slate-500 text-xs font-bold">2nd Place</span>
                         </div>
@@ -160,10 +163,12 @@
 
                 <!-- Juara 1 (Emas) - Paling Tinggi di Tengah -->
                 @if ($topThree->count() >= 1)
-                    @php($first = $topThree->get(0))
+                    @php
+                        $first = $topThree->get(0);
+                    @endphp
                     <div class="achievement-place achievement-place-first w-full max-w-xs sm:max-w-none sm:w-1/3 flex flex-col items-center order-1 sm:order-2">
                         <div class="achievement-profile relative mb-3 flex flex-col items-center">
-                            <span class="achievement-crown"><x-icon name="crown" /></span>
+                            <span class="achievement-trophy achievement-trophy-first" aria-hidden="true"><img src="{{ asset('images/podium-trophies/first.png') }}" alt=""></span>
                             <div class="achievement-avatar w-20 h-20 rounded-2xl ring-4 ring-amber-400 bg-amber-50 grid place-items-center overflow-hidden shadow-lg">
                                 @if ($first->avatar_url)
                                     <img src="{{ $first->avatar_url }}" alt="{{ $first->name }}" class="w-full h-full object-cover">
@@ -175,11 +180,11 @@
                         </div>
                         <h4 class="text-sm font-extrabold text-slate-900 text-center truncate max-w-[160px] flex items-center gap-1">
                             {{ $first->name }}
-                            @if ($first->is_current_user)
-                                <span class="text-[9px] bg-blue-100 text-blue-700 px-1 rounded font-extrabold">Kamu</span>
-                            @endif
                         </h4>
-                        <span class="text-xs font-black text-amber-600 mt-0.5">+{{ $first->total_xp }} XP · Level {{ $first->level }}</span>
+                        <span class="text-xs font-black text-amber-600 mt-0.5">+{{ number_format($first->total_xp) }} XP</span>
+                        @if ($first->highest_exclusive_badge)
+                            <span class="achievement-highest-badge achievement-highest-badge-first">{{ $first->highest_exclusive_badge }}</span>
+                        @endif
                         <div class="achievement-podium-base achievement-base-first w-full h-32 bg-gradient-to-t from-amber-200/80 via-amber-100 to-yellow-50 rounded-t-2xl border-t-4 border-amber-400 mt-3 flex flex-col items-center justify-center shadow-md">
                             <span class="text-amber-800 text-xs font-extrabold uppercase tracking-wider">Juara 1 Angkatan</span>
                             <span class="text-[10px] text-amber-700 font-semibold">{{ $first->challenges_count }} challenge guru tuntas</span>
@@ -188,16 +193,19 @@
                 @endif
 
                 <!-- Juara 3 (Perunggu) -->
-                @if ($topThree->count() === 1)
+                @if ($topThree->count() < 3)
                     <div class="achievement-place achievement-place-placeholder achievement-place-third" aria-hidden="true">
                         <div class="achievement-placeholder-avatar"></div>
                         <div class="achievement-podium-base achievement-base-third"></div>
                     </div>
                 @endif
                 @if ($topThree->count() >= 3)
-                    @php($third = $topThree->get(2))
+                    @php
+                        $third = $topThree->get(2);
+                    @endphp
                     <div class="achievement-place achievement-place-third w-full max-w-xs sm:max-w-none sm:w-1/3 flex flex-col items-center order-3">
                         <div class="achievement-profile relative mb-3 flex flex-col items-center">
+                            <span class="achievement-trophy achievement-trophy-third" aria-hidden="true"><img src="{{ asset('images/podium-trophies/third.png') }}" alt=""></span>
                             <div class="achievement-avatar w-16 h-16 rounded-2xl ring-4 ring-amber-700/40 bg-amber-50/50 grid place-items-center overflow-hidden shadow-md">
                                 @if ($third->avatar_url)
                                     <img src="{{ $third->avatar_url }}" alt="{{ $third->name }}" class="w-full h-full object-cover">
@@ -209,11 +217,11 @@
                         </div>
                         <h4 class="text-xs font-bold text-slate-800 text-center truncate max-w-[140px] flex items-center gap-1">
                             {{ $third->name }}
-                            @if ($third->is_current_user)
-                                <span class="text-[9px] bg-blue-100 text-blue-700 px-1 rounded font-extrabold">Kamu</span>
-                            @endif
                         </h4>
-                        <span class="text-[11px] font-extrabold text-blue-600 mt-0.5">+{{ $third->total_xp }} XP · Lvl {{ $third->level }}</span>
+                        <span class="text-[11px] font-extrabold text-blue-600 mt-0.5">+{{ number_format($third->total_xp) }} XP</span>
+                        @if ($third->highest_exclusive_badge)
+                            <span class="achievement-highest-badge achievement-highest-badge-third">{{ $third->highest_exclusive_badge }}</span>
+                        @endif
                         <div class="achievement-podium-base achievement-base-third w-full h-20 bg-gradient-to-t from-amber-100/70 to-amber-50/40 rounded-t-2xl border-t-2 border-amber-700/40 mt-3 flex items-center justify-center shadow-inner">
                             <span class="text-amber-900/60 text-xs font-bold">3rd Place</span>
                         </div>
@@ -249,7 +257,6 @@
                     <tr class="border-b border-slate-200 text-slate-400 font-bold uppercase tracking-wider text-[10px]">
                         <th class="py-3 px-3 text-center w-16">Peringkat</th>
                         <th class="py-3 px-3">Murid</th>
-                        <th class="py-3 px-3 text-center">Level</th>
                         <th class="py-3 px-3 text-right">Total XP</th>
                         <th class="py-3 px-3 text-center">Tantangan Guru</th>
                         <th class="py-3 px-3 text-center">Rata-rata Skor Guru</th>
@@ -295,13 +302,6 @@
                                 </div>
                             </td>
 
-                            <!-- Level -->
-                            <td class="py-3.5 px-3 text-center">
-                                <span class="inline-flex px-2 py-0.5 rounded-md text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200/60">
-                                    Lvl {{ $student->level }}
-                                </span>
-                            </td>
-
                             <!-- Total XP -->
                             <td class="py-3.5 px-3 text-right">
                                 <span class="font-black text-blue-600 text-sm">+{{ number_format($student->total_xp) }}</span>
@@ -340,7 +340,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="py-8 text-center text-slate-400">
+                            <td colspan="7" class="py-8 text-center text-slate-400">
                                 Belum ada data siswa di angkatan kelas ini.
                             </td>
                         </tr>
@@ -369,41 +369,79 @@
         @endif
     </section>
 
-    <!-- Personal Achievements / Lencana Prestasi Section -->
-    <section class="panel p-6 sm:p-7 rounded-3xl border border-slate-200/80 shadow-xs" aria-labelledby="badges-heading">
-        <div class="flex items-center gap-3 mb-5">
-            <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 grid place-items-center shrink-0 border border-amber-200/60">
-                <x-icon name="medal" class="w-5 h-5" />
-            </div>
-            <div>
-                <h3 id="badges-heading" class="text-base font-bold text-slate-800">Lencana Prestasi Belajar</h3>
-                <p class="text-xs text-slate-500">Koleksi medali penghargaan yang kamu raih selama membaca dan berpikir kritis di SocratesRead.</p>
-            </div>
-        </div>
+    <!-- Lencana Prestasi: visual collection only; XP and activity rules remain in GamificationService/Controller. -->
+    @php
+        $permanentBadges = [
+            ['name' => 'Mind Explorer', 'xp' => 100, 'image' => 'mind-explorer.png', 'tone' => 'amethyst', 'desc' => 'Membuka gerbang rasa ingin tahu.'],
+            ['name' => 'Golden Scholar', 'xp' => 250, 'image' => 'golden-scholar.png', 'tone' => 'gold', 'desc' => 'Menjadi pelajar yang tekun.'],
+            ['name' => 'Growth Master', 'xp' => 450, 'image' => 'growth-master.png', 'tone' => 'emerald', 'desc' => 'Tumbuh melalui latihan konsisten.'],
+            ['name' => 'Knowledge Elite', 'xp' => 750, 'image' => 'knowledge-elite.png', 'tone' => 'sapphire', 'desc' => 'Menguasai banyak ruang pengetahuan.'],
+            ['name' => 'Grand Master', 'xp' => 1025, 'image' => 'grand-master.png', 'tone' => 'ruby', 'desc' => 'Mencapai puncak akademi.'],
+        ];
+        $studentXp = (int) ($personalStats['xp'] ?? 0);
+    @endphp
+    <section class="academy-collection" aria-labelledby="badges-heading">
+        <header class="academy-collection-heading">
+            <span class="academy-heading-seal"><x-icon name="medal" /></span>
+            <div><p class="academy-overline">FANTASY ACADEMY · ROYAL EMBLEM</p><h3 id="badges-heading">Koleksi Lencana</h3><p>Medali kehormatan untuk perjalanan membaca dan berpikir kritis.</p></div>
+            <span class="academy-xp-total"><x-icon name="sparkles" /> {{ number_format($studentXp) }} XP</span>
+        </header>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
-            @foreach ($badges as $badge)
-                <div class="p-4 rounded-2xl border transition flex items-start gap-3.5 {{ $badge['is_unlocked'] ? 'bg-white border-slate-200 shadow-2xs' : 'bg-slate-50/60 border-slate-200/50 opacity-65' }}">
-                    <div class="w-11 h-11 rounded-xl grid place-items-center shrink-0 border {{ $badge['is_unlocked'] ? 'bg-' . $badge['color'] . '-50 text-' . $badge['color'] . '-600 border-' . $badge['color'] . '-200 shadow-2xs' : 'bg-slate-200/80 text-slate-400 border-slate-300' }}">
-                        <x-icon name="{{ $badge['icon'] }}" class="w-5 h-5" />
-                    </div>
-                    <div class="flex-grow min-w-0">
-                        <div class="flex items-center justify-between gap-1.5 mb-0.5">
-                            <h4 class="text-xs font-bold text-slate-800 truncate">{{ $badge['name'] }}</h4>
-                            @if ($badge['is_unlocked'])
-                                <span class="rounded bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.2 text-[9px] font-bold">Tercapai</span>
-                            @else
-                                <span class="rounded bg-slate-100 text-slate-500 border border-slate-200 px-1.5 py-0.2 text-[9px] font-bold flex items-center gap-0.5">
-                                    <x-icon name="lock" class="w-2.5 h-2.5" /> Terkunci
-                                </span>
-                            @endif
-                        </div>
-                        <p class="text-[11px] text-slate-500 leading-tight mb-2">{{ $badge['description'] }}</p>
-                        <div class="text-[10px] text-slate-400 font-semibold">Progres: <strong class="text-slate-600">{{ $badge['progress'] }}</strong></div>
-                    </div>
-                </div>
+        <div class="academy-section-title"><div><h4>Lencana Ekslusif</h4><p>Diraih sekali dan tersimpan selamanya.</p></div></div>
+        <div class="academy-badge-grid">
+            @foreach ($permanentBadges as $index => $badge)
+                @php
+                    $earned = $studentXp >= $badge['xp'];
+                    $previousXp = $index > 0 ? $permanentBadges[$index - 1]['xp'] : 0;
+                    $progress = $earned ? 100 : min(100, max(0, (int) floor((($studentXp - $previousXp) / ($badge['xp'] - $previousXp)) * 100)));
+                @endphp
+                <button type="button" class="academy-badge-card {{ $earned ? 'is-earned' : 'is-locked' }} tone-{{ $badge['tone'] }}" data-academy-badge data-name="{{ $badge['name'] }}" data-description="{{ $badge['desc'] }}" data-requirement="{{ number_format($badge['xp']) }} XP" data-xp-threshold="{{ $badge['xp'] }}" aria-haspopup="dialog">
+                    <span class="academy-medal-wrap"><img class="academy-medal-art" src="{{ asset('images/achievement-badges/' . $badge['image']) }}" alt=""></span>
+                    <span class="academy-badge-copy"><strong>{{ $badge['name'] }}</strong><span>{{ $badge['desc'] }}</span><span class="academy-requirement">{{ number_format($badge['xp']) }} XP</span></span>
+                    @if (! $earned)
+                        <span class="academy-progress"><span style="width: {{ $progress }}%"></span></span>
+                        <span class="academy-progress-label">{{ number_format($studentXp) }} / {{ number_format($badge['xp']) }} XP</span>
+                    @else
+                        <span class="academy-earned-label"><x-icon name="check" /> Tercapai</span>
+                    @endif
+                </button>
             @endforeach
         </div>
+
+        <div class="academy-section-title academy-mission-title"><span>02</span><div><h4>Lencana Aktivitas</h4><p>Penghargaan dari aktivitas belajar yang tercatat.</p></div></div>
+        <div class="academy-mission-grid">
+            @foreach ($badges as $badge)
+                <button type="button" class="academy-mission-card academy-mission-{{ $badge['id'] }} {{ $badge['is_unlocked'] ? 'is-earned' : 'is-locked' }}" data-academy-badge data-name="{{ $badge['name'] }}" data-description="{{ $badge['description'] }}" data-requirement="Progres {{ $badge['progress'] }}" aria-haspopup="dialog">
+                    <span class="academy-mission-art"><img src="{{ asset('images/activity-badges/' . $badge['id'] . '.png') }}" alt="" loading="lazy"></span><span class="academy-mission-copy"><strong>{{ $badge['name'] }}</strong><span>{{ $badge['description'] }}</span><small>{{ $badge['is_unlocked'] ? '✓ Tercapai' : 'Progres ' . $badge['progress'] }}</small></span>
+                </button>
+            @endforeach
+        </div>
+        <dialog class="academy-badge-dialog" aria-labelledby="academy-dialog-title"><button type="button" class="academy-dialog-close" aria-label="Tutup detail"><x-icon name="x" /></button><span class="academy-dialog-emblem"><x-icon name="award" /></span><p class="academy-overline">DETAIL LENCANA</p><h4 id="academy-dialog-title"></h4><p class="academy-dialog-description"></p><span class="academy-dialog-requirement"></span></dialog>
     </section>
+    <script>
+        (() => {
+            const collection = document.querySelector('.academy-collection');
+            if (!collection) return;
+            const dialog = collection.querySelector('.academy-badge-dialog');
+            try {
+                const currentXp = Number(@json($studentXp));
+                const previousXp = Number(sessionStorage.getItem('socratesread-academy-xp'));
+                if (Number.isFinite(previousXp) && currentXp > previousXp) {
+                    collection.querySelectorAll('.academy-badge-card[data-xp-threshold]').forEach((badge) => {
+                        if (previousXp < Number(badge.dataset.xpThreshold) && currentXp >= Number(badge.dataset.xpThreshold)) badge.classList.add('is-newly-earned');
+                    });
+                }
+                sessionStorage.setItem('socratesread-academy-xp', String(currentXp));
+            } catch (_) {}
+            collection.querySelectorAll('[data-academy-badge]').forEach((badge) => badge.addEventListener('click', () => {
+                dialog.querySelector('#academy-dialog-title').textContent = badge.dataset.name;
+                dialog.querySelector('.academy-dialog-description').textContent = badge.dataset.description;
+                dialog.querySelector('.academy-dialog-requirement').textContent = badge.dataset.requirement;
+                dialog.showModal();
+            }));
+            dialog.querySelector('.academy-dialog-close').addEventListener('click', () => dialog.close());
+            dialog.addEventListener('click', (event) => { if (event.target === dialog) dialog.close(); });
+        })();
+    </script>
     </div>
 @endsection

@@ -2742,17 +2742,17 @@ body { color: var(--ink); background: var(--canvas); }
 .my-class-join-eyebrow { position: relative; z-index: 1; display: inline-flex; min-height: 32px; align-items: center; gap: 8px; padding: 5px 12px; border: 1px solid #c8dcf5; border-radius: 999px; color: #2563a8; background: #dceaff; font-size: 11px; font-weight: 700; letter-spacing: .04em; line-height: 1; white-space: nowrap; }
 .my-class-join-eyebrow .lucide-icon { width: 18px; height: 18px; }
 .my-class-join h2 { position: relative; z-index: 1; margin: 8px 0 12px; color: #10264a; font: 700 22px/1.25 var(--font-display); letter-spacing: -.02em; }
-.my-class-join-form { position: relative; z-index: 1; display: flex; width: 100%; max-width: 650px; flex-direction: column; gap: 0; margin-top: 0; }
+.my-class-join-form { position: relative; z-index: 1; display: flex; width: 100%; max-width: 470px; flex-direction: column; gap: 0; margin-top: 0; }
 .my-class-join-form label { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; clip-path: inset(50%); }
-.my-class-join-controls { display: flex; align-items: flex-end; flex-wrap: nowrap; gap: 12px; width: 100%; }
-.my-class-code-field { position: relative; display: flex; min-width: 0; flex: 1 1 0; flex-direction: column; gap: 6px; }
+.my-class-join-controls { display: flex; align-items: flex-end; flex-wrap: nowrap; gap: 8px; width: 100%; }
+.my-class-code-field { position: relative; display: flex; min-width: 0; flex: 1 1 280px; flex-direction: column; gap: 4px; }
 .my-class-code-label { position: static; z-index: 2; display: inline-flex; min-height: 11px; align-items: center; gap: 4px; padding: 0 2px; color: #356ae6; background: transparent; font-size: 9px; font-weight: 700; letter-spacing: .06em; line-height: 1; }
 .my-class-code-label .lucide-icon { width: 11px; height: 11px; }
-.my-class-code-field input { display: block; box-sizing: border-box; width: 100%; min-width: 0; height: 56px; min-height: 56px; max-height: 56px; flex: 0 0 56px; padding: 0 58px 0 16px; border: 1px solid #dce5f2; border-radius: 12px; color: #193a68; background: #fff; font: 500 14px/1 var(--font-body); }
-.my-class-code-field input::placeholder { color: #7890ad; font: 500 13px/1 var(--font-body); }
+.my-class-code-field input { display: block; box-sizing: border-box; width: 100%; min-width: 0; height: 42px; min-height: 42px; max-height: 42px; flex: 0 0 42px; padding: 0 42px 0 12px; border: 1px solid #dce5f2; border-radius: 10px; color: #193a68; background: #fff; font: 500 13px/1 var(--font-body); }
+.my-class-code-field input::placeholder { color: #7890ad; font: 500 12px/1 var(--font-body); }
 .my-class-code-field input:focus { border-color: #80a9e5; outline: 2px solid #b8d2f3; outline-offset: 1px; }
-.my-class-code-count { position: absolute; right: 14px; bottom: 21px; color: #6a7596; font-size: 11px; line-height: 1; pointer-events: none; }
-.my-class-join-button { box-sizing: border-box; display: inline-flex; width: 200px; height: 56px; min-height: 56px; max-height: 56px; flex: 0 0 200px; align-items: center; justify-content: center; gap: 8px; padding: 0 18px; border: 1px solid #102b50; border-radius: 12px; color: #fff; background: linear-gradient(120deg, #102b50, #193a68); box-shadow: 0 4px 10px #102b501c; font: 600 13px/1 var(--font-body); white-space: nowrap; cursor: pointer; transition: background .2s ease, box-shadow .2s ease, transform .2s ease; }
+.my-class-code-count { position: absolute; right: 11px; bottom: 16px; color: #6a7596; font-size: 10px; line-height: 1; pointer-events: none; }
+.my-class-join-button { box-sizing: border-box; display: inline-flex; width: 142px; height: 42px; min-height: 42px; max-height: 42px; flex: 0 0 142px; align-items: center; justify-content: center; gap: 7px; padding: 0 10px; border: 1px solid #102b50; border-radius: 10px; color: #fff; background: linear-gradient(120deg, #102b50, #193a68); box-shadow: 0 4px 10px #102b501c; font: 600 12px/1 var(--font-body); white-space: nowrap; cursor: pointer; transition: background .2s ease, box-shadow .2s ease, transform .2s ease; }
 .my-class-join-button:hover { background: linear-gradient(120deg, #193a68, #356ae6); box-shadow: 0 7px 14px #356ae62e; transform: translateY(-1px); }
 .my-class-join-button .lucide-icon { width: 16px; height: 16px; }
 .my-class-error { margin-top: 7px; color: #a33c49; }

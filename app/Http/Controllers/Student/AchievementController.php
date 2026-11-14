@@ -76,7 +76,13 @@ class AchievementController extends Controller
             $userQuizzes = $quizAttempts->where('user_id', $student->id);
 
             $totalXp = (int) $userActivities->sum('xp_awarded');
-            $level = intdiv($totalXp, 100) + 1;
+            $highestExclusiveBadge = collect([
+                ['name' => 'Grand Master', 'xp' => 1025],
+                ['name' => 'Knowledge Elite', 'xp' => 750],
+                ['name' => 'Growth Master', 'xp' => 450],
+                ['name' => 'Golden Scholar', 'xp' => 250],
+                ['name' => 'Mind Explorer', 'xp' => 100],
+            ])->first(fn (array $badge) => $totalXp >= $badge['xp']);
 
             $readingsCount = $userActivities->where('event_type', 'reading_completed')->count();
             $challengesCount = $userTeacherSubs->count();
@@ -99,7 +105,7 @@ class AchievementController extends Controller
                 'is_current_user' => $student->id === $user->id,
                 'grade' => $student->currentGrade() ?: (int) ($student->entry_grade ?: 10),
                 'total_xp' => $totalXp,
-                'level' => $level,
+                'highest_exclusive_badge' => $highestExclusiveBadge['name'] ?? null,
                 'readings_count' => $readingsCount,
                 'challenges_count' => $challengesCount,
                 'avg_challenge_score' => $avgChallengeScore,
