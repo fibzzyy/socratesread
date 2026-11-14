@@ -44,7 +44,7 @@
                     <a href="{{ route('dashboard') }}" class="hover:text-blue-600 transition-colors">Ruang belajar</a><span>/</span><strong>Beranda</strong>
                 </div>
                 <div class="topbar-actions">
-                    <span class="today-label">{{ now()->locale('id')->translatedFormat('l, d F Y') }}</span>
+                    <span class="today-label"><x-icon name="calendar-days" />{{ now()->locale('id')->translatedFormat('l, d F Y') }}</span>
                     <x-notification-center />
                     <x-profile-dropdown />
                 </div>
