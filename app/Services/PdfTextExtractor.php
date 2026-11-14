@@ -79,7 +79,12 @@ class PdfTextExtractor
                     || preg_match('/^(?:Bab|Eksponen\s*\d*|\d+\s*Bab|Barisan\s+dan\s+Deret)$/iu', $t)
                     || preg_match('/^[-–—\s]*\d+\s*$/u', $t)
                     || preg_match('/^(?:ISBN|Kementerian|Republik\s+Indonesia|Hak\s+Cipta|Diterbitkan\s+oleh)\b/iu', $t)
-                    || preg_match('/^(?:Peta\s+Materi|Ayo,?\s+Bereksplorasi|Ayo,?\s+Berpikir|Ayo,?\s+Berdiskusi|Jawablah\s+pertanyaan\s+berikut\s+dengan\s+berdiskusi)\b/iu', $t)) {
+                    || preg_match('/^(?:Peta\s+Materi|Ayo,?\s+Bereksplorasi|Ayo,?\s+Berpikir|Ayo,?\s+Berdiskusi|Jawablah\s+pertanyaan\s+berikut\s+dengan\s+berdiskusi)\b/iu', $t)
+                    || preg_match('/^[•·\x{2022}\x{2756}❖\s\t\-\*]+$/u', $t)
+                    || preg_match('/^Sumber\s*(?:Gambar|Foto|Video|Buku|Rujukan|Link)?\s*:/iu', $t)
+                    || preg_match('/^https?:\/\/(?:www\.)?(?:youtube\.com|youtu\.be)\/\S+$/iu', $t)
+                    || preg_match('/^ma[\'’]\s*moer[,\)]*$/iu', $t)
+                    || preg_match('/^Sumber\s*:\s*[a-zA-Z0-9.\-_]+\.[a-zA-Z]{2,}.*$/iu', $t)) {
                     continue;
                 }
                 $cleanedLines[] = $line;

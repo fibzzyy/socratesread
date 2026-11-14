@@ -124,6 +124,7 @@ class ReadingMaterialFormatter
     {
         $normalized = str_replace(["\r\n", "\r"], "\n", $rawText);
         $normalized = preg_replace('/(?m)^([a-zA-Z\d]+[\.\)])([A-Za-z])/u', '$1 $2', $normalized) ?? $normalized;
+        $normalized = preg_replace('/(?<!^|\n)\s*([•·\x{2022}\x{25CB}\x{25CF}\x{25AA}\x{25AB}\x{25BA}\x{2713}\x{2714}\x{2756}❖⚬○■□▪▫◆◇✦✧])/u', "\n$1 ", $normalized) ?? $normalized;
         $rawLines = explode("\n", $normalized);
 
         $blocks = [];
@@ -154,7 +155,7 @@ class ReadingMaterialFormatter
             $codeBuffer = [];
         };
 
-        $listMarkers = '/^([•·\x{2022}\x{25CB}\x{25CF}\x{25AA}\x{25AB}\x{25BA}\x{2713}\x{2714}⚬○■□▪▫◆◇])\s*(.*)$/u';
+        $listMarkers = '/^([•·\x{2022}\x{25CB}\x{25CF}\x{25AA}\x{25AB}\x{25BA}\x{2713}\x{2714}\x{2756}❖⚬○■□▪▫◆◇✦✧])\s*(.*)$/u';
         $orderedMarker = '/^(\d+[\.\)])\s+(.+)$/u';
         $pageNumberLine = '/^(?:halaman|hal\.?|page)?\s*\d+(?:\s*(?:of|\/)\s*\d+)?$/iu';
 
@@ -186,6 +187,21 @@ class ReadingMaterialFormatter
 
             // Buang hanya baris penomoran halaman murni (Halaman 1, Page 7 of 7)
             if (preg_match($pageNumberLine, $trimmed)) {
+                continue;
+            }
+
+            // Buang baris bullet kosong / berulang (misal • • • • • •)
+            if (preg_match('/^[•·\x{2022}\x{2756}❖\s\t\-\*]+$/u', $trimmed)) {
+                continue;
+            }
+
+            // Buang baris kredit gambar, tautan video, atau sumber atribusi slide
+            if (
+                preg_match('/^Sumber\s*(?:Gambar|Foto|Video|Buku|Rujukan|Link)?\s*:/iu', $trimmed)
+                || preg_match('/^https?:\/\/(?:www\.)?(?:youtube\.com|youtu\.be)\/\S+$/iu', $trimmed)
+                || preg_match('/^ma[\'’]\s*moer[,\)]*$/iu', $trimmed)
+                || preg_match('/^Sumber\s*:\s*[a-zA-Z0-9.\-_]+\.[a-zA-Z]{2,}.*$/iu', $trimmed)
+            ) {
                 continue;
             }
 
@@ -967,7 +983,7 @@ HTML;
     public function restoreMissingSpaces(string $text): string
     {
         // Pisahkan marker bullet di awal baris jika menempel dengan kata pertama
-        $text = preg_replace('/^([•·\x{2022}\x{25CB}\x{25CF}\x{25AA}\x{25AB}\x{25BA}\x{2713}\x{2714}⚬○■□▪▫◆◇])(?=\S)/u', '$1 ', $text) ?? $text;
+        $text = preg_replace('/^([•·\x{2022}\x{25CB}\x{25CF}\x{25AA}\x{25AB}\x{25BA}\x{2713}\x{2714}\x{2756}❖⚬○■□▪▫◆◇✦✧])(?=\S)/u', '$1 ', $text) ?? $text;
         $text = preg_replace('/^(→)(?=\S)/u', '$1 ', $text) ?? $text;
         $text = preg_replace('/(\S)(→)(\S)/u', '$1 $2 $3', $text) ?? $text;
         $text = preg_replace('/(→)(?=\S)/u', '$1 ', $text) ?? $text;
