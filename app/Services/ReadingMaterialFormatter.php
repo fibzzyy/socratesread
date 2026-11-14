@@ -243,6 +243,8 @@ class ReadingMaterialFormatter
 
             // Bersihkan sisa margin footer / header yang menempel di ujung baris kalimat
             $line = preg_replace('/\s*(?:Kelas\s+[X\d]+(?:\s*[A-Z\/]+)*\s*\d*|\d{1,3}\s*(?:Bahasa\s+Indonesia|Matematika))\s*$/iu', '', $line);
+            $line = preg_replace('/\s*Sumber\s+(?:Gambar|Foto|Video|Buku|Rujukan|Link)?\s*:.*$/iu', '', $line);
+            $line = preg_replace('/\s*https?:\/\/(?:www\.)?(?:youtube\.com|youtu\.be)\/\S+/iu', '', $line);
             $line = preg_replace('/\s*Sumber\s+foto:\s*https?:\/\/\S+/iu', '', $line);
             $line = preg_replace('/(?:\s*[_\.]{3,}\s*){2,}/u', ' … ', $line);
 

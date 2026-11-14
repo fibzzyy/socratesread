@@ -215,4 +215,33 @@ class CuratedReadingAndClassroomCleanTest extends TestCase
         $this->assertStringContainsString('¶1', $html);
         $this->assertStringContainsString('¶2', $html);
     }
+
+    public function test_diamond_bullets_and_slide_media_credits_cleaner(): void
+    {
+        $formatter = app(ReadingMaterialFormatter::class);
+
+        $slideRawText = "❖Kapan bahasa Indonesia lahir, bagaimana proses kelahirannya, dan peristiwa apa saja yang melatarbelakanginya? "
+            . "❖Lahirnya bahasa Indonesia tentu bukanlah hal yang mudah, pasti penuh tantangan dan perjuangan keras. "
+            . "❖Bahasa Indonesia diresmikan penggunaannya satu hari setelah Proklamasi Kemerdekaan Indonesia pada 18 Agustus 1945. "
+            . "Sumber Gambar: Ilustrasi Kongres Bahasa Indonesia I. tirto.id/Deadnauval Sumber Video: https://www.youtube.com/watch?v=hnLP9sUba-4\n\n"
+            . "Naskah Melayu kuno dengan pengaruh Arab\n\n"
+            . "Sumber: aperofublic.com Sumber: bersamawisata.com\n\n"
+            . "ma’moer,)\n\n"
+            . "•\n•\n•\n•\n•\n";
+
+        $formatted = $formatter->format($slideRawText, 'PKN');
+
+        // Harus terpisah menjadi butir-butir daftar Markdown yang rapi
+        $this->assertStringContainsString('- Kapan bahasa Indonesia lahir', $formatted);
+        $this->assertStringContainsString('- Lahirnya bahasa Indonesia tentu bukanlah hal yang mudah', $formatted);
+        $this->assertStringContainsString('- Bahasa Indonesia diresmikan penggunaannya satu hari setelah Proklamasi', $formatted);
+
+        // Kredit gambar, tautan YouTube, dan watermark slide wajib hilang
+        $this->assertStringNotContainsString('Sumber Gambar:', $formatted);
+        $this->assertStringNotContainsString('youtube.com', $formatted);
+        $this->assertStringNotContainsString('tirto.id', $formatted);
+        $this->assertStringNotContainsString('aperofublic.com', $formatted);
+        $this->assertStringNotContainsString('ma’moer', $formatted);
+        $this->assertStringNotContainsString('ma\'moer', $formatted);
+    }
 }
