@@ -79,22 +79,27 @@
                     <!-- Versi 2: Mode Buka Halaman Kertas (Paginasi Buku + Swipe Mobile) -->
                     <div class="book-page-stage hidden" data-page-reader>
                         <div class="book-page-sheet passage-markdown" data-book-sheet></div>
-                        <div class="book-page-nav">
-                            <button type="button" class="outline-button" data-book-prev disabled>
-                                <x-icon name="arrow-left" /> <span>Halaman Sebelumnya</span>
-                            </button>
-                            <span class="text-xs font-bold text-slate-600" data-book-indicator>Halaman 1 / {{ max(1, count($bookPagesHtml)) }}</span>
-                            <button type="button" class="outline-button" data-book-next>
-                                <span>Halaman Berikutnya</span> <x-icon name="arrow-right" />
-                            </button>
-                        </div>
                     </div>
 
-                    <div class="passage-note">
+                    <div class="passage-note" data-scroll-note>
                         <x-icon name="lightbulb" />
                         <span>Saat membaca, cari kalimat yang menjadi <strong>bukti</strong> untuk setiap gagasan penting.</span>
                     </div>
                 </div>
+
+            <!-- Dedicated Menu Pindah Halaman (Di Luar Teks Bacaan) -->
+            <div class="book-page-nav-bar hidden" data-book-nav-bar>
+                <button type="button" class="book-nav-action-btn" data-book-prev disabled>
+                    <x-icon name="arrow-left" class="w-4 h-4" /> <span>Halaman Sebelumnya</span>
+                </button>
+                <div class="book-nav-center-badge">
+                    <x-icon name="book-open-text" class="w-3.5 h-3.5 text-blue-600" />
+                    <span class="text-xs font-bold text-slate-800" data-book-indicator>Halaman 1 / {{ max(1, count($bookPagesHtml)) }}</span>
+                </div>
+                <button type="button" class="book-nav-action-btn" data-book-next>
+                    <span>Halaman Berikutnya</span> <x-icon name="arrow-right" class="w-4 h-4" />
+                </button>
+            </div>
 
             <!-- Space Khusus di Ujung Kotak Bagian Bacaan -->
             <div class="reading-passage-footer">
@@ -400,10 +405,7 @@
             bookSheet.classList.add('is-turning');
             setTimeout(() => bookSheet.classList.remove('is-turning'), 160);
         }
-        bookSheet.innerHTML = `
-            ${bookPages[currentBookPage]}
-            <div class="book-page-footer-num">— Halaman ${currentBookPage + 1} dari ${bookPages.length} —</div>
-        `;
+        bookSheet.innerHTML = `${bookPages[currentBookPage]}`;
         bookIndicator.textContent = `Halaman ${currentBookPage + 1} / ${bookPages.length}`;
         bookPrevBtn.disabled = currentBookPage === 0;
         bookNextBtn.disabled = currentBookPage >= bookPages.length - 1;
@@ -425,17 +427,23 @@
             btn.classList.toggle('is-active', active);
             btn.setAttribute('aria-pressed', String(active));
         });
+        const bookNavBar = document.querySelector('[data-book-nav-bar]');
+        const scrollNote = document.querySelector('[data-scroll-note]');
         if (readingMode === 'book') {
             scrollReader.classList.add('hidden');
             pageReader.classList.remove('hidden');
             scrollContainer?.classList.remove('is-mode-scroll');
             scrollContainer?.classList.add('is-mode-book');
+            bookNavBar?.classList.remove('hidden');
+            scrollNote?.classList.add('hidden');
             renderBookPage(currentBookPage, false);
         } else {
             pageReader.classList.add('hidden');
             scrollReader.classList.remove('hidden');
             scrollContainer?.classList.remove('is-mode-book');
             scrollContainer?.classList.add('is-mode-scroll');
+            bookNavBar?.classList.add('hidden');
+            scrollNote?.classList.remove('hidden');
         }
     };
 

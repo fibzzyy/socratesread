@@ -1136,7 +1136,7 @@ HTML;
      *
      * @return array<int, string> Array HTML per halaman
      */
-    public function splitIntoPages(string $formattedMarkdown, int $idealPageChars = 2100): array
+    public function splitIntoPages(string $formattedMarkdown, int $idealPageChars = 1200): array
     {
         $chunks = preg_split('/\R{2,}/u', trim($formattedMarkdown), -1, PREG_SPLIT_NO_EMPTY) ?: [];
         if (empty($chunks)) {
