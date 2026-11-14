@@ -153,7 +153,6 @@
 
                 <section class="hero-card" aria-label="Tantangan membaca hari ini">
                     <div class="hero-copy">
-                        <span class="hero-kicker"><span class="sparkle" aria-hidden="true"><x-icon name="target" /></span> MISI HARI INI</span>
                         <h2>Baca dengan rasa ingin tahu.<br><span>Pikirkan lebih jauh.</span></h2>
                         <p>Satu bacaan, satu pertanyaan hebat, satu langkah lebih dekat pada pemahaman.</p>
                         @if ($activeSession && $activeSession->document)

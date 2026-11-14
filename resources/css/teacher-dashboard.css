@@ -52,6 +52,307 @@
     margin-top: 0;
 }
 
+/* Align the teacher topbar controls on one clean baseline. */
+.teacher-app-shell > .main-content > .topbar { padding-inline: clamp(24px, 3vw, 40px); }
+.teacher-app-shell .topbar-actions { gap: 10px; }
+.teacher-app-shell .topbar-actions .today-label {
+    display: inline-flex;
+    flex: 0 0 auto;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+.teacher-app-shell .topbar-actions .today-label .lucide-icon { width: 16px; height: 16px; flex: 0 0 16px; }
+.teacher-app-shell .notification-center { display: inline-flex; flex: 0 0 40px; }
+.teacher-app-shell .notification-trigger { width: 40px; height: 40px; flex: 0 0 40px; border-radius: 10px; }
+.teacher-app-shell .profile-dropdown-trigger {
+    min-height: 40px;
+    height: 40px;
+    gap: 9px;
+    padding: 4px 10px 4px 5px;
+    border-radius: 10px;
+    box-shadow: none;
+}
+.teacher-app-shell .profile-dropdown-trigger .shrink-0 > div {
+    width: 30px;
+    height: 30px;
+}
+.teacher-app-shell .profile-dropdown-trigger [data-dropdown-chevron] { width: 14px; height: 14px; }
+
+/* Keep the overview shell consistent with the other teacher pages. */
+.teacher-dashboard-page > .sidebar {
+    isolation: isolate;
+    border-right-color: #193d79;
+    background: linear-gradient(165deg, #102b55 0%, #102b55 54%, #0b2350 100%);
+}
+.teacher-dashboard-page > .sidebar::before {
+    right: -142px;
+    bottom: -162px;
+    width: 340px;
+    height: 390px;
+    border: 1px solid #70a4ff35;
+    border-radius: 48% 52% 0 0;
+    background: linear-gradient(145deg, #245fe833, #4388f51a 60%, transparent);
+    box-shadow: 0 0 0 30px #4388f510, 0 0 0 68px #4388f508;
+    transform: rotate(23deg);
+}
+.teacher-dashboard-page > .sidebar::after {
+    bottom: 24px;
+    left: 22px;
+    width: 76px;
+    height: 68px;
+    opacity: .42;
+    background-image: radial-gradient(#4388f5 2.5px, transparent 2.5px);
+    background-size: 19px 19px;
+}
+.teacher-dashboard-page .brand { gap: 10px; padding: 0 7px 26px; }
+.teacher-dashboard-page .brand-logo-wrap { width: 34px; height: 34px; }
+.teacher-dashboard-page .brand-logo { width: 36px; height: 36px; flex: 0 0 36px; padding: 5px; }
+.teacher-dashboard-page .brand-name { font-size: 16px; }
+.teacher-dashboard-page .nav-list { gap: 3px; }
+.teacher-dashboard-page .nav-link {
+    min-height: 42px;
+    padding-inline: 10px;
+    border-radius: 7px;
+    font-size: 13px;
+}
+.teacher-app-shell .brand-name small {
+    display: block;
+    margin-top: 6px;
+    color: #8fa3c1;
+    font-size: 9px;
+    letter-spacing: 1.1px;
+    line-height: 1.2;
+}
+.teacher-dashboard-page .nav-link:hover { transform: none; }
+.teacher-dashboard-page .nav-link.is-active {
+    border-color: transparent;
+    background: #1b365b;
+    box-shadow: none;
+}
+.teacher-dashboard-page > .main-content {
+    position: relative;
+    isolation: isolate;
+    background:
+        radial-gradient(ellipse at 88% 0%, #dce9ffb5 0, transparent 31rem),
+        linear-gradient(180deg, #f1f6ff 0, #f4f7fc 340px);
+}
+.teacher-dashboard-page > .main-content::before {
+    display: block;
+    content: '';
+}
+.teacher-dashboard-page > .main-content::after {
+    position: absolute;
+    z-index: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    display: block;
+    height: 125px;
+    opacity: .56;
+    background:
+        radial-gradient(ellipse at 50% 125%, #d7e6ff 0 48%, transparent 48.5%),
+        linear-gradient(174deg, transparent 0 25%, #d8e7ff 25.3% 55%, #c8ddff 55.3% 100%);
+    clip-path: polygon(0 33%, 16% 56%, 33% 48%, 48% 72%, 67% 38%, 84% 54%, 100% 28%, 100% 100%, 0 100%);
+    content: '';
+}
+
+@media (min-width: 1025px) {
+    .teacher-dashboard-page > .sidebar { width: 244px; padding: 22px 14px 16px; }
+    .teacher-dashboard-page > .main-content { width: auto; margin-left: 244px; }
+}
+
 @media (max-width: 767px) {
     .teacher-dashboard-page > .main-content > .page-content { padding-top: 22px; }
+}
+
+/* Keep the same subtle decorative sidebar on every teacher page. */
+.teacher-app-shell > .sidebar {
+    isolation: isolate;
+    overflow: hidden;
+    border-right-color: #193d79;
+    background: linear-gradient(165deg, #102b55 0%, #102b55 54%, #0b2350 100%);
+}
+.teacher-app-shell > .sidebar::before,
+.teacher-app-shell > .sidebar::after {
+    position: absolute;
+    z-index: -1;
+    display: block;
+    pointer-events: none;
+    content: '';
+}
+.teacher-app-shell > .sidebar::before {
+    right: -142px;
+    bottom: -162px;
+    width: 340px;
+    height: 390px;
+    border: 1px solid #70a4ff35;
+    border-radius: 48% 52% 0 0;
+    background: linear-gradient(145deg, #245fe833, #4388f51a 60%, transparent);
+    box-shadow: 0 0 0 30px #4388f510, 0 0 0 68px #4388f508;
+    transform: rotate(23deg);
+}
+.teacher-app-shell > .sidebar::after {
+    bottom: 24px;
+    left: 22px;
+    width: 76px;
+    height: 68px;
+    opacity: .42;
+    background-image: radial-gradient(#4388f5 2.5px, transparent 2.5px);
+    background-size: 19px 19px;
+}
+.teacher-app-shell > .sidebar > * { position: relative; z-index: 1; }
+.teacher-app-shell > .sidebar > .sidebar-spacer::before {
+    position: absolute;
+    bottom: 183px;
+    left: 50%;
+    color: #4388f5;
+    content: '✦';
+    font-size: 28px;
+    line-height: 1;
+    text-shadow: 0 0 20px #4388f577;
+}
+
+/* Keep teacher statistics simple: retain the glyph, remove the colored icon tile. */
+.teacher-app-shell .teacher-summary .stat-icon {
+    display: inline-flex;
+    width: 24px;
+    min-width: 24px;
+    height: 24px;
+    flex: 0 0 24px;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+}
+.teacher-app-shell .teacher-summary .stat-icon svg { width: 22px; height: 22px; }
+
+/* Keep every teacher primary action readable and consistently blue. */
+.teacher-app-shell .challenge-button {
+    border: 0;
+    color: #fff;
+    background-color: #2563eb;
+    background-image: linear-gradient(105deg, #1762f2, #347cf7);
+}
+.teacher-app-shell .challenge-button:hover {
+    color: #fff;
+    background-color: #1d4ed8;
+    background-image: linear-gradient(110deg, #1c50cf, #3479e8);
+}
+
+/* Make the teacher reading collection easier to scan and operate. */
+.teacher-app-shell .teacher-documents-panel .section-overline { display: none; }
+.teacher-app-shell .teacher-document-row {
+    display: grid;
+    grid-template-columns: 20px minmax(200px, 1fr) auto;
+    align-items: center;
+    gap: 10px 16px;
+    padding: 16px 0;
+}
+.teacher-app-shell .teacher-document-icon {
+    width: 20px;
+    height: 20px;
+    color: #66768b;
+    background: transparent;
+}
+.teacher-app-shell .teacher-document-icon .lucide-icon { width: 18px; height: 18px; }
+.teacher-app-shell .teacher-document-copy { gap: 5px; }
+.teacher-app-shell .teacher-document-heading { min-width: 0; }
+.teacher-app-shell .teacher-document-copy strong {
+    display: block;
+    color: #24364b;
+    font-size: 14px;
+    font-weight: 650;
+    line-height: 1.4;
+    white-space: normal;
+}
+.teacher-app-shell .teacher-document-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2px 0;
+    color: #68778b;
+    font-size: 12px;
+    line-height: 1.5;
+}
+.teacher-app-shell .teacher-document-meta > span + span::before {
+    margin: 0 7px;
+    color: #aab4c1;
+    content: '·';
+}
+.teacher-app-shell .teacher-document-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 7px;
+    flex-wrap: nowrap;
+}
+.teacher-app-shell .teacher-document-action {
+    min-height: 34px;
+    gap: 6px;
+    padding: 0 10px;
+    border-color: #d8e0e9;
+    border-radius: 7px;
+    color: #405168;
+    background: #fff;
+    font-size: 12px;
+    font-weight: 550;
+}
+.teacher-app-shell .teacher-document-action:hover {
+    border-color: #b9c8d8;
+    color: #244a7a;
+    background: #f7f9fc;
+}
+.teacher-app-shell .teacher-document-action .lucide-icon { width: 15px; height: 15px; color: currentColor; }
+.teacher-app-shell .teacher-document-quiz-settings {
+    display: flex;
+    min-height: 34px;
+    align-items: center;
+    gap: 6px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+}
+.teacher-app-shell .teacher-document-quiz-select {
+    box-sizing: border-box;
+    width: 76px;
+    min-width: 76px;
+    flex: 0 0 auto;
+    height: 34px;
+    padding: 0 24px 0 9px;
+    border: 1px solid #d8e0e9;
+    border-radius: 7px;
+    color: #405168;
+    background-color: #fff;
+    font: 500 12px/1.2 var(--font-body);
+}
+.teacher-app-shell .teacher-document-quiz-select[name="quiz_question_count"] { width: 160px; min-width: 160px; }
+.teacher-app-shell .teacher-document-delete {
+    display: inline-flex;
+    min-height: 34px;
+    align-items: center;
+    gap: 5px;
+    padding: 0 7px;
+    border: 0;
+    border-radius: 7px;
+    color: #9a4c4c;
+    background: transparent;
+    font: 500 12px/1 var(--font-body);
+    white-space: nowrap;
+    cursor: pointer;
+}
+.teacher-app-shell .teacher-document-delete:hover { color: #862f2f; background: #fff5f5; }
+.teacher-app-shell .teacher-document-delete .lucide-icon { width: 14px; height: 14px; }
+@media (max-width: 1100px) {
+    .teacher-app-shell .teacher-document-row { grid-template-columns: 20px minmax(0, 1fr); }
+    .teacher-app-shell .teacher-document-actions { grid-column: 2; justify-content: flex-start; }
+}
+@media (max-width: 640px) {
+    .teacher-app-shell .teacher-document-actions { grid-column: 1 / -1; }
+    .teacher-app-shell .teacher-document-quiz-settings { flex-wrap: wrap; }
 }

@@ -49,7 +49,7 @@
 .teacher-classrooms-page .classroom-create-card {
     position: relative;
     display: grid;
-    grid-template-columns: 88px minmax(175px, 230px) minmax(330px, 1fr) 150px;
+    grid-template-columns: 64px minmax(175px, 230px) minmax(330px, 1fr) 150px;
     align-items: center;
     gap: 14px;
     width: 100%;
@@ -92,35 +92,13 @@
 .teacher-classrooms-page .classroom-create-card > * { position: relative; z-index: 1; }
 .teacher-classrooms-page .classroom-create-icon {
     display: flex;
-    position: relative;
-    width: 84px;
-    height: 84px;
+    width: 60px;
+    height: 60px;
     align-items: center;
     justify-content: center;
-    border: 1px solid rgb(191 219 254 / 78%);
-    border-radius: 22px;
-    color: #2563eb;
-    background: linear-gradient(145deg, #eff6ff, #dbeafe);
-    box-shadow: inset 0 1px 0 #fff, 0 9px 22px rgb(37 99 235 / 10%);
+    color: #7186a3;
 }
-.teacher-classrooms-page .classroom-create-users-icon { width: 38px; height: 38px; stroke-width: 1.9; }
-.teacher-classrooms-page .classroom-create-icon-plus {
-    position: absolute;
-    right: -7px;
-    bottom: -7px;
-    display: grid;
-    width: 24px;
-    height: 24px;
-    place-items: center;
-    border: 2px solid #fff;
-    border-radius: 50%;
-    color: #fff;
-    background: linear-gradient(145deg, #2563eb, #4385f5);
-    box-shadow: 0 4px 10px rgb(37 99 235 / 22%);
-    font-size: 17px;
-    font-weight: 500;
-    line-height: 1;
-}
+.teacher-classrooms-page .classroom-create-users-icon { width: 30px; height: 30px; stroke-width: 1.8; }
 .teacher-classrooms-page .classroom-create-copy { min-width: 0; max-width: 230px; }
 .teacher-classrooms-page .classroom-create-copy .section-overline {
     margin: 0 0 4px;
@@ -166,6 +144,7 @@
 .teacher-classrooms-page .classroom-field-error { color: #b42318; font-size: 12px; line-height: 1.4; }
 .teacher-classrooms-page .classroom-submit {
     display: inline-flex;
+    translate: 0 12px;
     width: 150px;
     min-width: 0;
     height: 44px;
@@ -201,6 +180,60 @@
     border-bottom: 1px solid #e3eaf4;
 }
 .teacher-classrooms-page .classroom-tab-list { display: flex; min-width: 0; align-items: center; gap: 10px; }
+.teacher-classrooms-page .classroom-search-form {
+    display: flex;
+    width: min(500px, 42vw);
+    min-width: 320px;
+    flex: 0 1 auto;
+    align-items: center;
+    gap: 10px;
+    margin-left: auto;
+}
+.teacher-classrooms-page .classroom-search-field {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    height: 46px;
+    align-items: center;
+    gap: 8px;
+    padding: 0 8px 0 14px;
+    border: 1px solid #dfe7f1;
+    border-radius: 9px;
+    background: #fff;
+}
+.teacher-classrooms-page .classroom-search-field:focus-within { border-color: #8fb3ef; box-shadow: 0 0 0 3px rgb(59 130 246 / 10%); }
+.teacher-classrooms-page .classroom-search-form input[type="search"] {
+    width: 100%;
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    color: #243b5a;
+    background: transparent;
+    font: 400 14px/1.3 var(--font-body);
+}
+.teacher-classrooms-page .classroom-search-form input::placeholder { color: #8a98aa; }
+.teacher-classrooms-page .classroom-search-form button {
+    display: inline-flex;
+    min-width: 58px;
+    height: 34px;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    padding: 0 10px;
+    border: 0;
+    border-radius: 6px;
+    color: #fff;
+    background: #285fc7;
+    font: 600 13px/1 var(--font-body);
+    cursor: pointer;
+}
+.teacher-classrooms-page .classroom-search-form button:hover { color: #fff; background: #1e4fae; }
+.teacher-classrooms-page .classroom-search-clear { color: #61738a; font-size: 12px; text-decoration: none; white-space: nowrap; }
+.teacher-classrooms-page .classroom-search-clear:hover { color: #1d4ed8; }
+@media (max-width: 1100px) {
+    .teacher-classrooms-page .classroom-tabs { flex-wrap: wrap; }
+    .teacher-classrooms-page .classroom-search-form { order: 3; width: 100%; max-width: 100%; min-width: 0; margin: 0; }
+}
 .teacher-classrooms-page .classroom-tab {
     display: inline-flex;
     min-width: 0;
@@ -223,20 +256,36 @@
 .teacher-classrooms-page .classroom-count-badge { display: inline-grid; width: 22px; height: 22px; flex: 0 0 22px; place-items: center; border-radius: 999px; color: #526985; background: #eaf0f8; font-size: 11px; font-weight: 700; }
 .teacher-classrooms-page .classroom-tab.is-active .classroom-count-badge { color: #fff; background: rgb(255 255 255 / 22%); }
 .teacher-classrooms-page .classroom-count { margin-left: auto; color: #7287a3; font-size: 13px; }
-.teacher-classrooms-page .classroom-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; min-width: 0; margin-top: 20px; }
+.teacher-classrooms-page .classroom-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; min-width: 0; margin-top: 20px; }
 .teacher-classrooms-page .classroom-card {
     display: grid;
     min-width: 0;
     align-content: start;
-    gap: 18px;
-    padding: 20px;
+    grid-template-columns: minmax(180px, .7fr) minmax(320px, 1.3fr);
+    grid-template-areas: "heading heading" "readers code" " . qr" "archive members";
+    align-items: center;
+    gap: 10px 18px;
+    padding: 18px;
     border: 1px solid #dfe8f5;
-    border-radius: 16px;
+    border-radius: 12px;
     background: #fff;
-    box-shadow: 0 4px 14px rgb(30 64 120 / 4%);
-    transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+    box-shadow: 0 3px 10px rgb(30 64 120 / 4%);
+    transition: border-color .2s ease, box-shadow .2s ease;
 }
-.teacher-classrooms-page .classroom-card:hover { border-color: #c9d9ee; box-shadow: 0 7px 18px rgb(30 64 120 / 7%); transform: translateY(-1px); }
+.teacher-classrooms-page .classroom-card:hover { border-color: #b9cde5; box-shadow: 0 5px 14px rgb(30 64 120 / 7%); transform: none; }
+.teacher-classrooms-page .classroom-card-heading { grid-area: heading; }
+.teacher-classrooms-page .classroom-card-labels { display: flex; min-height: 24px; align-items: center; gap: 12px; font-size: 12px; font-weight: 600; line-height: 1.2; }
+.teacher-classrooms-page .classroom-grade-label { color: #53667e; }
+.teacher-classrooms-page .classroom-status-label { color: #77869a; }
+.teacher-classrooms-page .classroom-status-label.is-active { color: #27815c; }
+.teacher-classrooms-page .classroom-reader-count { grid-area: readers; align-self: stretch; }
+.teacher-classrooms-page .classroom-join-code { grid-area: code; min-width: 0; }
+.teacher-classrooms-page .classroom-qr-details { grid-area: qr; }
+.teacher-classrooms-page .classroom-members-action { grid-area: members; }
+.teacher-classrooms-page .classroom-archive-action { grid-area: archive; }
+@media (max-width: 1100px) {
+    .teacher-classrooms-page .classroom-grid { grid-template-columns: minmax(0, 1fr); gap: 0; }
+}
 .teacher-classrooms-page .classroom-empty-panel {
     display: flex;
     grid-column: 1 / -1;
@@ -275,35 +324,40 @@
 @media (prefers-reduced-motion: reduce) { .teacher-classrooms-page .classroom-empty-card { animation: none; } }
 @media (min-width: 1200px) and (max-width: 1439px) {
     .page-content:has(.teacher-classrooms-page) { padding-inline: 36px; }
-    .teacher-classrooms-page .classroom-create-card { grid-template-columns: 80px minmax(145px, .85fr) minmax(340px, 1.5fr) 140px; gap: 12px; padding: 18px; }
-    .teacher-classrooms-page .classroom-create-icon { width: 76px; height: 76px; border-radius: 20px; }
+    .teacher-classrooms-page .classroom-create-card { grid-template-columns: 64px minmax(145px, .85fr) minmax(340px, 1.5fr) 140px; gap: 12px; padding: 18px; }
 }
 @media (max-width: 1199px) {
     .page-content:has(.teacher-classrooms-page) { padding: 26px 28px 36px; }
-    .teacher-classrooms-page .classroom-create-card { grid-template-columns: 80px minmax(0, 1fr); gap: 12px; min-height: 0; padding: 18px; }
-    .teacher-classrooms-page .classroom-create-icon { grid-column: 1; grid-row: 1; width: 76px; height: 76px; border-radius: 20px; }
+    .teacher-classrooms-page .classroom-create-card { grid-template-columns: 64px minmax(0, 1fr); gap: 12px; min-height: 0; padding: 18px; }
+    .teacher-classrooms-page .classroom-create-icon { grid-column: 1; grid-row: 1; width: 60px; height: 60px; }
     .teacher-classrooms-page .classroom-create-copy { grid-column: 2; grid-row: 1; max-width: 420px; }
     .teacher-classrooms-page .classroom-form-fields { grid-column: 1 / -1; grid-row: 2; }
-    .teacher-classrooms-page .classroom-submit { grid-column: 1 / -1; grid-row: 3; justify-self: end; width: 150px; }
+    .teacher-classrooms-page .classroom-submit { grid-column: 1 / -1; grid-row: 3; justify-self: end; width: 150px; translate: none; }
 }
 @media (max-width: 767px) {
     .page-content:has(.teacher-classrooms-page) { padding: 24px 18px 32px; }
     .teacher-classrooms-page .classrooms-page-heading { margin-bottom: 20px; }
     .teacher-classrooms-page .classrooms-page-heading h1 { font-size: 26px; }
     .teacher-classrooms-page .classrooms-page-heading .welcome-subtitle { font-size: 14px; }
-    .teacher-classrooms-page .classroom-create-card { grid-template-columns: 60px minmax(0, 1fr); gap: 12px; min-height: 0; padding: 16px; }
-    .teacher-classrooms-page .classroom-create-icon { grid-column: 1; grid-row: 1; width: 60px; height: 60px; border-radius: 17px; }
-    .teacher-classrooms-page .classroom-create-users-icon { width: 30px; height: 30px; }
-    .teacher-classrooms-page .classroom-create-icon-plus { right: -5px; bottom: -5px; width: 20px; height: 20px; font-size: 14px; }
+    .teacher-classrooms-page .classroom-create-card { grid-template-columns: 52px minmax(0, 1fr); gap: 12px; min-height: 0; padding: 16px; }
+    .teacher-classrooms-page .classroom-create-icon { grid-column: 1; grid-row: 1; width: 48px; height: 48px; border-radius: 15px; }
+    .teacher-classrooms-page .classroom-create-users-icon { width: 25px; height: 25px; }
     .teacher-classrooms-page .classroom-create-copy { grid-column: 2; grid-row: 1; }
     .teacher-classrooms-page .classroom-create-copy h2 { font-size: 18px; }
     .teacher-classrooms-page .classroom-create-description { font-size: 12px; }
     .teacher-classrooms-page .classroom-form-fields { grid-column: 1 / -1; grid-row: 2; grid-template-columns: minmax(0, 1fr); gap: 12px; }
     .teacher-classrooms-page .classroom-submit { grid-column: 1 / -1; grid-row: 3; width: 100%; }
-    .teacher-classrooms-page .classroom-tabs { align-items: flex-start; }
+    .teacher-classrooms-page .classroom-card {
+        grid-template-columns: minmax(115px, .8fr) minmax(0, 1.2fr);
+        grid-template-areas: "heading heading" "readers code" " . qr" "archive members";
+        gap: 8px 12px;
+        padding: 16px 0 18px;
+    }
+    .teacher-classrooms-page .classroom-tabs { align-items: stretch; flex-wrap: wrap; }
     .teacher-classrooms-page .classroom-tab-list { flex-wrap: wrap; }
-    .teacher-classrooms-page .classroom-count { align-self: center; }
-    .teacher-classrooms-page .classroom-grid { grid-template-columns: minmax(0, 1fr); }
+    .teacher-classrooms-page .classroom-search-form { order: 3; width: 100%; max-width: 100%; min-width: 0; margin: 0; }
+    .teacher-classrooms-page .classroom-count { align-self: center; margin-left: auto; }
+    .teacher-classrooms-page .classroom-grid { grid-template-columns: minmax(0, 1fr); gap: 0; }
     .teacher-classrooms-page .classroom-empty-panel { min-height: 250px; padding: 24px 18px; }
     .teacher-classrooms-page .classroom-empty-illustration { width: 140px; height: 105px; }
     .teacher-classrooms-page .classroom-empty strong { font-size: 20px; }

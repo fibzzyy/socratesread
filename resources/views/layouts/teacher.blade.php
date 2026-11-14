@@ -24,7 +24,7 @@
                 <span class="brand-logo-wrap">
                     <img src="{{ asset('images/logo.png') }}" alt="Logo SocratesRead" class="brand-logo">
                 </span>
-                <span class="brand-name">socrates<span>read</span><small>AREA GURU</small></span>
+                <span class="brand-name">Socrates<span>Read</span><small>AREA GURU</small></span>
             </a>
             <div class="nav-label">PEMANTAUAN BELAJAR</div>
             <nav class="nav-list" aria-label="Menu guru">

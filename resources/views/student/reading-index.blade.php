@@ -7,11 +7,29 @@
 @endphp
 
 @section('content')
+    <header class="topbar reading-topbar student-topbar-pill quiz-topbar">
+        <button class="icon-button menu-toggle reading-menu-toggle" type="button" aria-label="Buka navigasi" aria-controls="primary-navigation" aria-expanded="false" data-menu-toggle><x-icon name="menu" /></button>
+        <div class="breadcrumb">
+            <a href="{{ route('dashboard') }}" class="quiz-home-link topbar-home-link" aria-label="Beranda"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7M5 9v12h14V9M9 21v-7h6v7" /></svg></a>
+            <a href="{{ route('dashboard') }}" class="hover:text-blue-600 transition-colors">Ruang belajar</a><span>/</span><strong>{{ $selectedGroup ? 'Reading Room / '.$selectedGroup['category'] : 'Reading Room' }}</strong>
+        </div>
+        <span class="reading-topbar-date">{{ now()->locale('id')->translatedFormat('l, j F Y') }}</span>
+        <div class="reading-topbar-actions">
+            <span class="reading-stat-chip"><x-icon name="star" /> 0 XP</span>
+            <span class="reading-stat-chip"><x-icon name="flame" /> Rutinitas 0 hari</span>
+            <x-notification-center />
+            <a href="{{ route('profile') }}" class="reading-user" aria-label="Profil {{ $readingUserName }}" title="{{ $readingUserName }}">
+                <span class="reading-user-avatar {{ auth()->user()->avatarUrl() ? '' : 'is-empty' }}">@if (auth()->user()->avatarUrl())<img src="{{ auth()->user()->avatarUrl() }}" alt="">@else<x-icon name="user" class="avatar-placeholder-icon" />@endif</span>
+                <x-icon name="chevron-down" />
+            </a>
+        </div>
+    </header>
     @if ($selectedGroup)
         @php
             $detailGrade = $selectedDocuments->first()?->target_grade ?? $grade;
             $detailMaterialCount = $selectedDocuments->count();
-            $detailProgress = (int) $selectedGroup['progress'];
+            $completedCount = $selectedDocuments->where('is_completed', true)->count();
+            $detailProgress = $detailMaterialCount > 0 ? (int) round($selectedDocuments->avg('learning_progress')) : 0;
         @endphp
     @endif
     <div class="reading-layout-container {{ $selectedGroup ? 'reading-detail-layout' : '' }}">
@@ -179,7 +197,7 @@
         <section class="reading-detail-progress" aria-label="Ringkasan progres kelas">
             <div class="reading-detail-progress-heading">
                 <div>
-                    <p>PROGRES MEMBACA</p>
+                    <p>PROGRES BELAJAR</p>
                     <h2>{{ $completedCount }} dari {{ $detailMaterialCount }} materi selesai</h2>
                 </div>
                 <strong>{{ $detailProgress }}%</strong>
@@ -204,15 +222,15 @@
             <div class="reading-detail-list">
                 @forelse ($selectedDocuments as $document)
                     @php($session = $document->student_session)
-                    @php($progress = $document->is_completed ? 100 : ($session?->progress_percent ?? 0))
-                    @php($readingStatus = $document->is_completed ? 'Selesai' : ($progress > 0 ? 'Sedang dibaca' : 'Belum dibaca'))
+                    @php($progress = (int) $document->learning_progress)
+                    @php($readingProgress = (int) $document->reading_step_progress)
+                    @php($readingStatus = $document->is_completed ? 'Selesai' : ($progress > 0 ? 'Sedang dipelajari' : 'Belum dimulai'))
                     <article class="reading-item reading-detail-item" data-search-item>
                         <span class="reading-detail-order">{{ $loop->iteration }}</span>
                         <span class="reading-detail-file-icon" aria-hidden="true"><x-icon name="book-open-text" /></span>
                         <div class="reading-detail-copy">
                             <div class="reading-detail-title-row">
                                 <span class="reading-detail-order-label">Materi {{ $loop->iteration }}</span>
-                                <span class="reading-detail-status {{ $document->is_completed ? 'is-complete' : ($progress > 0 ? 'is-reading' : 'is-unread') }}">@if ($document->is_completed)<x-icon name="check" />@endif{{ $readingStatus }}</span>
                             </div>
                             <h3>{{ $document->title }}</h3>
                             <div class="reading-detail-meta">
@@ -226,12 +244,22 @@
                                 <div class="reading-detail-progress-track"><span style="width:{{ $progress }}%"></span></div>
                                 <span>{{ $document->is_completed ? 'Tuntas' : ($progress ? $progress.'%' : 'Belum dimulai') }}</span>
                             </div>
+                            <div class="reading-detail-steps" aria-label="Tahapan progres materi">
+                                <span class="{{ $readingProgress >= 100 ? 'is-complete' : '' }}">Baca {{ $readingProgress }}%</span>
+                                <span class="{{ $document->quiz_step_completed ? 'is-complete' : '' }}">Tantangan Socrates {{ $document->quiz_step_completed ? '✓' : '·' }}</span>
+                                @if ($document->teacher_challenge_required)
+                                    <span class="{{ $document->teacher_challenge_completed ? 'is-complete' : '' }}">Tugas Guru {{ $document->teacher_challenge_completed ? '✓' : '·' }}</span>
+                                @endif
+                            </div>
                         </div>
-                        @if ($document->is_completed)
-                            <a class="reading-detail-action is-secondary" href="{{ route('reading', ['document' => $document->id]) }}" aria-label="Buka ulang {{ $document->title }}"><span>Buka Materi</span><x-icon name="arrow-right" /></a>
-                        @else
-                            <a class="reading-detail-action" href="{{ route('reading', ['document' => $document->id]) }}" aria-label="{{ $session ? 'Lanjutkan membaca ' : 'Mulai membaca ' }}{{ $document->title }}"><span>{{ $session ? 'Lanjutkan' : 'Mulai Membaca' }}</span><x-icon name="arrow-right" /></a>
-                        @endif
+                        <div class="reading-detail-actions">
+                            <span class="reading-detail-status {{ $document->is_completed ? 'is-complete' : ($progress > 0 ? 'is-reading' : 'is-unread') }}">@if ($document->is_completed)<x-icon name="check" />@endif{{ $readingStatus }}</span>
+                            @if ($document->is_completed)
+                                <a class="reading-detail-action is-secondary" href="{{ route('reading', ['document' => $document->id]) }}" aria-label="Buka ulang {{ $document->title }}"><span>Buka Materi</span><x-icon name="arrow-right" /></a>
+                            @else
+                                <a class="reading-detail-action" href="{{ route('reading', ['document' => $document->id]) }}" aria-label="{{ $readingProgress > 0 ? 'Lanjutkan membaca ' : 'Mulai membaca ' }}{{ $document->title }}"><span>{{ $readingProgress > 0 ? 'Lanjutkan' : 'Mulai Membaca' }}</span><x-icon name="arrow-right" /></a>
+                            @endif
+                        </div>
                     </article>
                 @empty
                     <div class="reading-detail-empty">

@@ -7,7 +7,7 @@
 @endsection
 
 @section('content')
-    <section class="stage-heading" aria-labelledby="challenge-heading">
+    <section class="stage-heading teacher-challenge-heading" aria-labelledby="challenge-heading">
         <div>
             <p class="eyebrow">TANTANGAN DARI GURU PENGAMPU</p>
             <h1 id="challenge-heading">Tantangan: {{ $document->title }}</h1>
@@ -17,7 +17,7 @@
                 <p class="welcome-subtitle">Informasi tantangan khusus dari guru pengampu untuk materi ini.</p>
             @endif
         </div>
-        <div class="inline-flex items-center gap-2 rounded-2xl bg-white border border-slate-200/80 px-4 py-2 text-xs font-semibold text-slate-700 shadow-2xs">
+        <div class="teacher-challenge-category inline-flex items-center gap-2 rounded-2xl bg-white border border-slate-200/80 px-4 py-2 text-xs font-semibold text-slate-700 shadow-2xs">
             <x-icon name="book-open-text" class="w-4 h-4 text-blue-600" />
             <span>Kategori: {{ $document->category }}</span>
         </div>
@@ -338,8 +338,8 @@
                         <strong id="checkedCounterText" class="text-slate-900">{{ $checkedCount ?? 0 }}</strong> dari {{ $totalQuestions }} soal telah diperiksa
                     </span>
                 </div>
-                <button type="button" id="btnToggleChallengeMode" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-[11px] font-bold text-slate-700 transition">
-                    <x-icon name="layers" class="w-3.5 h-3.5 text-blue-600" />
+                <button type="button" id="btnToggleChallengeMode" class="teacher-challenge-toggle inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-[11px] font-bold text-slate-700 transition">
+                    <x-icon name="eye" class="w-3.5 h-3.5 text-blue-600" />
                     <span id="toggleModeLabel">Tampilkan Semua Soal</span>
                 </button>
             </div>
@@ -361,7 +361,7 @@
 
         <form action="{{ route('student.teacher-challenges.submit', ['document' => $document->id]) }}" method="POST" id="teacherChallengeForm">
             @csrf
-            <div class="space-y-5 mb-8" id="challengeCardsContainer">
+            <div class="space-y-5 mb-4" id="challengeCardsContainer">
                 @foreach ($challenges as $idx => $q)
                     @php($qMaxPoints = $pointsMap[$q->id] ?? $pointsPerQuestion)
                     @php($qDiff = strtolower((string) ($q->difficulty ?? 'medium')))
@@ -491,20 +491,20 @@
                 @endforeach
             </div>
 
-            <div class="flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
-                <div class="flex items-center gap-2">
-                    <a href="{{ route('quiz.index') }}" class="outline-button">
+            <div class="teacher-challenge-navigation flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
+                <div class="teacher-challenge-navigation-group">
+                    <a href="{{ route('quiz.index') }}" class="outline-button teacher-challenge-navigation-button">
                         <x-icon name="arrow-left" class="w-4 h-4" />
                         <span>Keluar</span>
                     </a>
-                    <button type="button" id="btnPrevQuestion" class="outline-button">
-                        <x-icon name="chevron-left" class="w-4 h-4" />
+                    <button type="button" id="btnPrevQuestion" class="outline-button teacher-challenge-navigation-button">
+                        <x-icon name="arrow-left" class="w-4 h-4" />
                         <span>Sebelumnya</span>
                     </button>
                 </div>
 
-                <div class="flex items-center gap-2">
-                    <button type="button" id="btnNextQuestion" class="outline-button !border-blue-200 !text-blue-700 bg-blue-50/70 hover:bg-blue-100">
+                <div class="teacher-challenge-navigation-group teacher-challenge-navigation-actions">
+                    <button type="button" id="btnNextQuestion" class="outline-button teacher-challenge-navigation-button !border-blue-200 !text-blue-700 bg-blue-50/70 hover:bg-blue-100">
                         <span>Berikutnya</span>
                         <x-icon name="chevron-right" class="w-4 h-4" />
                     </button>

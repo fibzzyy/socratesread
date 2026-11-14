@@ -7,6 +7,7 @@ use App\Models\Document;
 use App\Models\ReadingCoachMessage;
 use App\Models\ReadingSession;
 use App\Models\StudentQuizAttempt;
+use App\Models\StudentTeacherChallengeSubmission;
 use App\Services\GamificationService;
 use App\Services\ReadingMaterialFormatter;
 use App\Services\AI\Contracts\LanguageModel;
@@ -67,33 +68,53 @@ class ReadingController extends Controller
         $grade = $this->selectedGrade($request);
         $documents = Document::query()
             ->with('uploader:id,name')
+            ->withCount('teacherChallenges')
             ->where('is_published', true)
             ->when($grade !== 'all', fn ($query) => $query->where(fn ($sub) => $sub->where('target_grade', 'all')->orWhere('target_grade', $grade)))
             ->latest('created_at')
             ->get();
 
         $documentIds = $documents->modelKeys();
-        $completedChallengeIds = ReadingSession::query()
-            ->where('user_id', $student->id)
-            ->whereIn('document_id', $documentIds)
-            ->where('status', 'completed')
-            ->pluck('document_id');
         $completedQuizIds = StudentQuizAttempt::query()
             ->where('user_id', $student->id)
             ->whereIn('document_id', $documentIds)
+            ->where('mode', 'timed_quiz')
             ->where('status', 'completed')
             ->pluck('document_id');
-        $completedIds = $completedChallengeIds->merge($completedQuizIds)->unique()->flip();
+        $completedTeacherChallengeIds = StudentTeacherChallengeSubmission::query()
+            ->where('user_id', $student->id)
+            ->whereIn('document_id', $documentIds)
+            ->where('status', 'completed')
+            ->pluck('document_id')
+            ->flip();
         $sessions = ReadingSession::query()
             ->where('user_id', $student->id)
             ->whereIn('document_id', $documentIds)
-            ->orderBy('started_at')
+            ->orderByDesc('started_at')
             ->get()
             ->keyBy('document_id');
 
         foreach ($documents as $document) {
-            $document->setAttribute('student_session', $sessions->get($document->id));
-            $document->setAttribute('is_completed', $completedIds->has($document->id));
+            $session = $sessions->get($document->id);
+            $readingProgress = min(100, max(0, (int) ($session?->progress_percent ?? 0)));
+            $quizCompleted = $completedQuizIds->contains($document->id);
+            $teacherChallengeRequired = (int) $document->teacher_challenges_count > 0;
+            $teacherChallengeCompleted = $completedTeacherChallengeIds->has($document->id);
+            $stepCount = 2 + (int) $teacherChallengeRequired;
+            $completedStepProgress = $readingProgress + ($quizCompleted ? 100 : 0)
+                + ($teacherChallengeRequired && $teacherChallengeCompleted ? 100 : 0);
+            $learningProgress = (int) round($completedStepProgress / $stepCount);
+            $isLearningPathCompleted = $readingProgress >= 100
+                && $quizCompleted
+                && (! $teacherChallengeRequired || $teacherChallengeCompleted);
+
+            $document->setAttribute('student_session', $session);
+            $document->setAttribute('reading_step_progress', $readingProgress);
+            $document->setAttribute('quiz_step_completed', $quizCompleted);
+            $document->setAttribute('teacher_challenge_required', $teacherChallengeRequired);
+            $document->setAttribute('teacher_challenge_completed', $teacherChallengeCompleted);
+            $document->setAttribute('learning_progress', $learningProgress);
+            $document->setAttribute('is_completed', $isLearningPathCompleted);
         }
 
         $groups = $documents
@@ -109,7 +130,7 @@ class ReadingController extends Controller
                     'documents' => $items,
                     'materials_count' => $items->count(),
                     'completed_count' => $completedCount,
-                    'progress' => $items->isNotEmpty() ? (int) round($completedCount / $items->count() * 100) : 0,
+                    'progress' => $items->isNotEmpty() ? (int) round($items->avg('learning_progress')) : 0,
                 ];
             })
             ->values();
@@ -135,18 +156,25 @@ class ReadingController extends Controller
         $grade = $this->selectedGrade($request);
         abort_unless($grade === 'all' || $document->target_grade === 'all' || (string) $document->target_grade === $grade, 404);
 
-        $completedChallenge = ReadingSession::query()
+        $readingProgress = (int) (ReadingSession::query()
             ->where('user_id', $student->id)
             ->where('document_id', $document->id)
+            ->orderByDesc('started_at')
+            ->value('progress_percent') ?? 0);
+        $completedQuiz = StudentQuizAttempt::query()
+            ->where('user_id', $student->id)
+            ->where('document_id', $document->id)
+            ->where('mode', 'timed_quiz')
             ->where('status', 'completed')
             ->exists();
-        $completedQuiz = StudentQuizAttempt::query()
+        $teacherChallengeRequired = $document->teacherChallenges()->exists();
+        $completedTeacherChallenge = ! $teacherChallengeRequired || StudentTeacherChallengeSubmission::query()
             ->where('user_id', $student->id)
             ->where('document_id', $document->id)
             ->where('status', 'completed')
             ->exists();
 
-        if ($completedChallenge || $completedQuiz) {
+        if ($readingProgress >= 100 && $completedQuiz && $completedTeacherChallenge) {
             return redirect()->route('reading', ['teacher' => $document->uploaded_by, 'category' => $document->category])->with('notice', 'Materi ini sudah selesai. Pilih Buka untuk membaca ulang.');
         }
 

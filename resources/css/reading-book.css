@@ -14,6 +14,9 @@
     color: var(--reader-midnight);
 }
 
+/* Keep the focused reading view close to the shared top bar. */
+.page-content:has(.reading-book-page) { padding-top: 8px; }
+
 .reading-book-page::before {
     position: absolute;
     z-index: -1;
@@ -53,7 +56,7 @@
 .reading-book-page .reading-book-header .back-link:hover svg { transform: translateX(-3px); }
 
 /* Two distinct surfaces: a compact control rail and a quiet editorial page. */
-.reading-book-page .reading-workspace-grid { grid-template-columns: minmax(0, 2.25fr) minmax(270px, 1fr); align-items: start; gap: 18px; }
+.reading-book-page .reading-workspace-grid { display: grid; grid-template-columns: minmax(0, 1fr) 350px; align-items: stretch; gap: 18px; }
 .reading-book-page .reading-document-workspace { display: flex; min-width: 0; flex-direction: column; gap: 12px; padding: 0; overflow: visible; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
 .reading-book-page .passage-toolbar { display: flex; min-height: 54px; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; padding: 9px 14px; border: 1px solid var(--reader-border); border-radius: 13px; background: #fff; box-shadow: 0 4px 14px rgb(16 38 74 / 4%); }
 .reading-book-page .passage-tags { display: flex; min-width: 0; flex-wrap: wrap; align-items: center; gap: 7px 12px; }
@@ -73,7 +76,7 @@
 .reading-book-page .outline-button:focus-visible { outline: 2px solid #82A8E8; outline-offset: 2px; }
 
 /* Reading canvas */
-.reading-book-page .reading-canvas { box-sizing: border-box; width: 100%; max-width: none; margin: 0; padding: 38px clamp(32px, 5vw, 56px) 30px; border: 1px solid #E2EAF5; border-radius: 16px; color: var(--reader-slate); background: var(--reader-white); box-shadow: 0 10px 30px rgb(16 38 74 / 6%); font-size: var(--passage-font-size, 16px); line-height: 1.85; }
+.reading-book-page .reading-canvas { box-sizing: border-box; width: 100%; max-width: none; max-height: min(66vh, 720px); margin: 0; padding: 30px clamp(24px, 3vw, 42px) 24px; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; border: 1px solid #E2EAF5; border-radius: 16px; color: var(--reader-slate); background: var(--reader-white); box-shadow: 0 10px 30px rgb(16 38 74 / 6%); font-size: var(--passage-font-size, 16px); line-height: 1.85; }
 .reading-book-page .reading-canvas > .section-overline { margin: 0 0 9px; color: #7186A3; font-size: 10px; font-weight: 700; letter-spacing: .9px; }
 .reading-book-page .reading-canvas h2 { margin: 0 0 12px; color: var(--reader-midnight); font-size: 32px; font-weight: 700; line-height: 1.2; letter-spacing: -.8px; }
 .reading-book-page .reading-canvas .passage-lede { margin: 0 0 24px; padding-bottom: 19px; border-bottom: 1px solid #E7EDF6; color: #607590; font-size: 18px; line-height: 1.6; }
@@ -95,7 +98,7 @@
 .reading-book-page .passage-note strong { color: var(--reader-deep); }
 
 /* Progress dock stays part of the reading flow and does not constrain page height. */
-.reading-book-page .passage-bottom { display: grid; grid-template-columns: auto minmax(70px, 1fr) auto; align-items: center; gap: 12px; padding: 11px 14px; border: 1px solid var(--reader-border); border-radius: 12px; background: #fff; }
+.reading-book-page .passage-bottom { display: grid; grid-template-columns: minmax(0, 1fr); align-items: stretch; gap: 10px; margin-top: 12px; padding: 0; border: 0; border-radius: 0; background: transparent; }
 .reading-book-page .read-progress-label { display: flex; align-items: center; gap: 7px; color: #6B7D95; font-size: 10px; white-space: nowrap; }
 .reading-book-page .read-progress-label strong { color: var(--reader-midnight); }
 .reading-book-page .read-progress-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--reader-blue); }
@@ -108,7 +111,13 @@
 .reading-book-page .outline-button.is-complete { color: #39755B; border-color: #CEE4D6; background: #F0F7F2; }
 
 /* Reading companion */
-.reading-book-page .reading-companion-panel { display: grid; min-width: 0; gap: 12px; }
+.reading-book-page .reading-companion-panel { display: grid; min-width: 0; max-height: min(66vh, 720px); align-content: start; gap: 12px; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
+.reading-book-page .reading-canvas,
+.reading-book-page .reading-companion-panel { scrollbar-width: thin; scrollbar-color: #B9CBE4 transparent; }
+.reading-book-page .reading-canvas::-webkit-scrollbar,
+.reading-book-page .reading-companion-panel::-webkit-scrollbar { width: 8px; }
+.reading-book-page .reading-canvas::-webkit-scrollbar-thumb,
+.reading-book-page .reading-companion-panel::-webkit-scrollbar-thumb { border: 2px solid transparent; border-radius: 999px; background: #B9CBE4; background-clip: padding-box; }
 .reading-book-page .session-card,
 .reading-book-page .focus-card,
 .reading-book-page .coach-panel { min-width: 0; padding: 18px; border: 1px solid var(--reader-border); border-radius: 16px; background: #fff; box-shadow: 0 8px 22px rgb(16 38 74 / 5%); }
@@ -152,13 +161,14 @@
 .reading-book-page .privacy-note svg { color: #6F91C8; }
 .reading-book-page .toast-message { border-color: #CFE0F7; color: var(--reader-deep); background: #F4F8FE; }
 
-@media (max-width: 1120px) {
+@media (max-width: 959px) {
     .reading-book-page .reading-workspace-grid { grid-template-columns: minmax(0, 1fr); gap: 16px; }
-    .reading-book-page .reading-companion-panel { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
-    .reading-book-page .reading-companion-panel .session-card { grid-column: 1 / -1; }
+    .reading-book-page .reading-canvas { max-height: none; overflow: visible; scrollbar-gutter: auto; }
+    .reading-book-page .reading-companion-panel { max-height: none; overflow: visible; scrollbar-gutter: auto; }
 }
 
 @media (max-width: 768px) {
+    .page-content:has(.reading-book-page) { padding-top: 0; }
     .reading-book-page .reading-book-header { min-height: 0; align-items: flex-start; flex-direction: column; gap: 10px; margin-bottom: 16px; padding: 18px 20px; }
     .reading-book-page .reading-book-header::before { top: -190px; right: -155px; width: 330px; height: 330px; }
     .reading-book-page .reading-book-header::after { right: 12%; }
@@ -169,10 +179,8 @@
     .reading-book-page .reading-canvas { padding: 28px 26px 22px; }
     .reading-book-page .reading-canvas h2 { font-size: 27px; }
     .reading-book-page .reading-canvas .passage-lede { font-size: 16px; }
-    .reading-book-page .passage-bottom { grid-template-columns: 1fr; gap: 9px; }
+    .reading-book-page .passage-bottom { gap: 9px; }
     .reading-book-page .passage-bottom .outline-button { justify-content: center; }
-    .reading-book-page .reading-companion-panel { grid-template-columns: minmax(0, 1fr); }
-    .reading-book-page .reading-companion-panel .session-card { grid-column: auto; }
 }
 
 @media (max-width: 420px) {

@@ -15,7 +15,6 @@
         @csrf
         <div class="classroom-create-icon" aria-hidden="true">
             <x-icon name="users-round" class="classroom-create-users-icon" />
-            <span class="classroom-create-icon-plus">+</span>
         </div>
         <div class="classroom-create-copy">
             <p class="section-overline">MULAI BERSAMA</p>
@@ -45,37 +44,48 @@
     <!-- Tab Filter Status Kelas -->
     <div class="classroom-tabs">
         <div class="classroom-tab-list">
-            <a href="{{ route('teacher.classrooms', ['status' => 'active']) }}" class="classroom-tab {{ $status === 'active' ? 'is-active' : '' }}">
+            <a href="{{ route('teacher.classrooms', ['status' => 'active', 'q' => $search]) }}" class="classroom-tab {{ $status === 'active' ? 'is-active' : '' }}">
                 <span>Kelas Aktif</span>
                 <span class="classroom-count-badge">{{ $activeCount }}</span>
             </a>
-            <a href="{{ route('teacher.classrooms', ['status' => 'archived']) }}" class="classroom-tab {{ $status === 'archived' ? 'is-active' : '' }}">
+            <a href="{{ route('teacher.classrooms', ['status' => 'archived', 'q' => $search]) }}" class="classroom-tab {{ $status === 'archived' ? 'is-active' : '' }}">
                 <span>Diarsipkan</span>
                 <span class="classroom-count-badge">{{ $archivedCount }}</span>
             </a>
         </div>
+        <form method="GET" action="{{ route('teacher.classrooms') }}" class="classroom-search-form" role="search">
+            <input type="hidden" name="status" value="{{ $status }}">
+            <div class="classroom-search-field">
+                <label class="sr-only" for="classroom-search">Cari nama kelas atau kode gabung</label>
+                <input id="classroom-search" name="q" type="search" value="{{ $search }}" placeholder="Cari kelas atau kode…" autocomplete="off">
+                <button type="submit">Cari</button>
+            </div>
+            @if ($search !== '')
+                <a class="classroom-search-clear" href="{{ route('teacher.classrooms', ['status' => $status]) }}">Hapus</a>
+            @endif
+        </form>
         <span class="classroom-count">{{ $classrooms->count() }} kelas ditampilkan</span>
     </div>
 
     <section class="classroom-grid" aria-label="Daftar kelas">
         @forelse ($classrooms as $classroom)
             <article class="panel classroom-card">
-                <div class="flex items-start justify-between gap-4">
+                <div class="classroom-card-heading flex items-start justify-between gap-4">
                     <div>
-                        <div class="flex min-h-6 items-center gap-2">
-                            <span class="inline-flex min-h-6 items-center rounded-md bg-blue-50 px-2 text-xs font-semibold leading-none text-blue-700">{{ $classroom->targetGradeLabel() }}</span>
+                        <div class="classroom-card-labels">
+                            <span class="classroom-grade-label">{{ $classroom->targetGradeLabel() }}</span>
                             @if ($classroom->is_active)
-                                <span class="inline-flex min-h-6 items-center rounded-md border border-emerald-200/60 bg-emerald-50 px-2 text-xs font-semibold leading-none text-emerald-700">Aktif</span>
+                                <span class="classroom-status-label is-active">Aktif</span>
                             @else
-                                <span class="inline-flex min-h-6 items-center rounded-md bg-slate-100 px-2 text-xs font-semibold leading-none text-slate-600">Diarsipkan</span>
+                                <span class="classroom-status-label">Diarsipkan</span>
                             @endif
                         </div>
                         <h2 class="mt-1 text-lg font-bold text-slate-900">{{ $classroom->name }}</h2>
                     </div>
                     <span class="text-sm font-semibold text-slate-500">{{ $classroom->students_count }} siswa</span>
                 </div>
-                <div class="flex items-center justify-between border-y border-slate-100 py-3 text-sm"><span class="text-slate-600">Pembaca materi Anda</span><strong class="text-slate-900">{{ $classroom->active_readers_count }}</strong></div>
-                <div>
+                <div class="classroom-reader-count flex items-center justify-between border-y border-slate-100 py-3 text-sm"><span class="text-slate-600">Pembaca materi Anda</span><strong class="text-slate-900">{{ $classroom->active_readers_count }}</strong></div>
+                <div class="classroom-join-code">
                     <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Kode gabung</p>
                     <div class="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2.5 rounded-xl border border-blue-100 bg-blue-50/40 px-3.5 py-3">
                         <strong class="min-w-0 truncate font-mono text-lg font-bold tracking-[.18em] {{ $classroom->is_active ? 'text-slate-900' : 'text-slate-400 line-through' }}">{{ $classroom->join_code }}</strong>
@@ -90,7 +100,7 @@
                     </div>
                 </div>
                 @if ($classroom->is_active)
-                    <details class="border-t border-slate-100 pt-3">
+                    <details class="classroom-qr-details border-t border-slate-100 pt-3">
                         <summary class="w-fit cursor-pointer text-sm text-slate-600 hover:text-slate-900">Tampilkan QR untuk bergabung</summary>
                         <div class="mt-3 flex flex-wrap items-center gap-3">
                             <canvas width="224" height="224" class="size-48 rounded border border-slate-200 bg-white p-1" data-class-qr-code data-join-url="{{ route('classrooms.index', ['join_code' => $classroom->join_code, 'scan' => 1], false) }}" aria-label="QR untuk bergabung ke kelas {{ $classroom->name }}"></canvas>
@@ -114,13 +124,13 @@
                         </div>
                     </dialog>
                 @endif
-                <div class="border-t border-slate-100 pt-4">
+                <div class="classroom-members-action border-t border-slate-100 pt-4">
                     <a href="{{ route('teacher.classrooms.members', $classroom) }}" class="challenge-button flex min-h-12 w-full min-w-0 justify-center px-4 text-sm" aria-label="Lihat {{ $classroom->students_count }} anggota kelas {{ $classroom->name }}">
                         <x-icon name="users" class="size-4" />
                         <span>Anggota kelas</span>
                     </a>
                 </div>
-                <div class="border-t border-slate-100 pt-3 flex items-center justify-between">
+                <div class="classroom-archive-action border-t border-slate-100 pt-3 flex items-center justify-between">
                     @if ($classroom->is_active)
                         <form method="POST" action="{{ route('teacher.classrooms.toggle-status', $classroom) }}"
                               data-confirm-title="Arsipkan Kelas?"
@@ -173,7 +183,11 @@
                         <path d="M190 105v16M182 113h16" stroke="white" stroke-width="3" stroke-linecap="round"/>
                     </svg>
                     <span class="session-icon"><x-icon name="users" /></span>
-                    @if ($status === 'archived')
+                    @if ($search !== '')
+                        <strong>Tidak ada kelas yang cocok</strong>
+                        <p>Tidak ditemukan kelas atau kode gabung yang cocok dengan “{{ $search }}”.</p>
+                        <a class="classroom-empty-hint" href="{{ route('teacher.classrooms', ['status' => $status]) }}">Hapus pencarian</a>
+                    @elseif ($status === 'archived')
                         <strong>Belum ada kelas yang diarsipkan</strong>
                         <p>Kelas yang telah selesai semester dapat diarsipkan dari tab Kelas Aktif.</p>
                     @else

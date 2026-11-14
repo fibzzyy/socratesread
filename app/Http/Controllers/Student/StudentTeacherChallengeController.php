@@ -10,7 +10,6 @@ use App\Models\StudentTeacherChallengeSubmission;
 use App\Models\TeacherChallenge;
 use App\Services\Evaluation\AnswerEvaluationPipeline;
 use App\Services\Evaluation\AnswerHighlightService;
-use App\Services\GamificationService;
 use App\Services\TeacherChallengeScoringService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -150,7 +149,6 @@ class StudentTeacherChallengeController extends Controller
         Document $document,
         AnswerEvaluationPipeline $pipeline,
         AnswerHighlightService $highlightService,
-        GamificationService $gamification,
         TeacherChallengeScoringService $scoring
     ): JsonResponse|RedirectResponse {
         $challenges = $document->teacherChallenges()->orderBy('sequence')->get();
@@ -236,16 +234,8 @@ class StudentTeacherChallengeController extends Controller
         // Pastikan ReadingSession ada untuk mencatat aktivitas
         $session = ReadingSession::firstOrCreate(
             ['user_id' => $user->id, 'document_id' => $document->id],
-            ['status' => 'completed', 'progress_percent' => 100, 'started_at' => now()]
+            ['status' => 'in_progress', 'progress_percent' => 0, 'started_at' => now()]
         );
-        $session->update([
-            'status' => 'completed',
-            'progress_percent' => 100,
-            'completed_at' => $session->completed_at ?? now(),
-        ]);
-
-        // Pastikan capaian membaca tercatat jika belum ada
-        $gamification->awardOnce($session, 'reading_completed', 10, 'Menyelesaikan bacaan');
 
         // Catat ke learning_activities
         DB::table('learning_activities')->updateOrInsert(
