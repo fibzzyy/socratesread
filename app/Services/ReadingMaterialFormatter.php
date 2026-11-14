@@ -12,19 +12,20 @@ class ReadingMaterialFormatter
      * @var array<string, int>
      */
     private const ID_WORDS = [
-        'adalah' => 1, 'merupakan' => 1, 'yaitu' => 1, 'yakni' => 1, 'bahwa' => 1,
+        'adalah' => 1, 'merupakan' => 1, 'yaitu' => 1, 'yakni' => 1, 'ialah' => 1, 'bahwa' => 1,
         'yang' => 1, 'dan' => 1, 'atau' => 1, 'serta' => 1, 'dengan' => 1,
         'untuk' => 1, 'guna' => 1, 'demi' => 1, 'agar' => 1, 'supaya' => 1,
         'dari' => 1, 'pada' => 1, 'dalam' => 1, 'oleh' => 1, 'sebagai' => 1,
-        'sehingga' => 1, 'karena' => 1, 'sebab' => 1, 'jika' => 1, 'bila' => 1,
+        'sehingga' => 1, 'karena' => 1, 'sebab' => 1, 'jika' => 1, 'bila' => 1, 'apabila' => 1,
         'maka' => 1, 'akan' => 1, 'telah' => 1, 'sudah' => 1, 'sedang' => 1,
         'dapat' => 1, 'bisa' => 1, 'harus' => 1, 'wajib' => 1, 'perlu' => 1,
         'tidak' => 1, 'bukan' => 1, 'jangan' => 1, 'sampai' => 1, 'hingga' => 1,
         'antara' => 1, 'melalui' => 1, 'tentang' => 1, 'mengenai' => 1, 'terhadap' => 1,
-        'seperti' => 1, 'antara' => 1, 'selain' => 1, 'kemudian' => 1, 'selanjutnya' => 1,
+        'seperti' => 1, 'selain' => 1, 'kemudian' => 1, 'selanjutnya' => 1,
         'selanjutnta' => 1, 'berikut' => 1, 'ini' => 1, 'itu' => 1, 'tersebut' => 1,
-        'kita' => 1, 'kami' => 1, 'anda' => 1, 'mereka' => 1, 'ia' => 1,
+        'kita' => 1, 'kami' => 1, 'anda' => 1, 'mereka' => 1, 'ia' => 1, 'dia' => 1, 'beliau' => 1,
         'di' => 1, 'ke' => 1, 'satu' => 1, 'dua' => 1, 'tiga' => 1, 'empat' => 1, 'lima' => 1,
+        'enam' => 1, 'tujuh' => 1, 'delapan' => 1, 'sembilan' => 1, 'sepuluh' => 1,
         'pun' => 1, 'saat' => 1, 'era' => 1, 'zaman' => 1, 'dimakan' => 1,
         'konsep' => 1, 'strategi' => 1, 'prinsip' => 1, 'makna' => 1, 'artinya' => 1,
         'fungsi' => 1, 'peran' => 1, 'tujuan' => 1, 'aspek' => 1, 'utama' => 1,
@@ -44,22 +45,65 @@ class ReadingMaterialFormatter
         'diutamakan' => 1, 'dilestarikan' => 1, 'dikuasai' => 1, 'dipelajari' => 1,
         'digunakan' => 1, 'diterapkan' => 1, 'dijelaskan' => 1, 'disusun' => 1,
         'sehari-hari' => 1,
-        'karya' => 1, 'tulis' => 1, 'ilmiah' => 1, 'makalah' => 1, 'artikel' => 1,
-        'jurnal' => 1, 'skripsi' => 1, 'tesis' => 1, 'disertasi' => 1, 'laporan' => 1,
-        'penelitian' => 1, 'pengamatan' => 1, 'kajian' => 1, 'metode' => 1, 'metodologi' => 1,
-        'objektif' => 1, 'subjektif' => 1, 'logis' => 1, 'sistematis' => 1, 'kritis' => 1,
-        'analitis' => 1, 'baku' => 1, 'ejaan' => 1, 'diksi' => 1, 'tata' => 1,
-        'abstrak' => 1, 'kata' => 1, 'kunci' => 1, 'pengantar' => 1, 'daftar' => 1,
-        'isi' => 1, 'tabel' => 1, 'gambar' => 1, 'lampiran' => 1, 'pendahuluan' => 1,
-        'latar' => 1, 'belakang' => 1, 'rumusan' => 1, 'masalah' => 1, 'manfaat' => 1,
-        'teoritis' => 1, 'teoretis' => 1, 'praktis' => 1, 'tinjauan' => 1, 'pustaka' => 1,
-        'landasan' => 1, 'teori' => 1, 'populasi' => 1, 'sampel' => 1, 'teknik' => 1,
-        'pengumpulan' => 1, 'data' => 1, 'instrumen' => 1, 'analisis' => 1, 'hasil' => 1,
-        'pembahasan' => 1, 'kesimpulan' => 1, 'saran' => 1, 'penutup' => 1, 'sitasi' => 1,
-        'rujukan' => 1, 'primer' => 1, 'sekunder' => 1, 'plagiarisme' => 1, 'orisinalitas' => 1,
-        'semata' => 1, 'fakta' => 1, 'nalar' => 1, 'penalaran' => 1, 'diterima' => 1,
-        'aturan' => 1, 'penulisan' => 1, 'mendalam' => 1, 'valid' => 1, 'verifikasi' => 1,
-        'masyarakat' => 1, 'pembaca' => 1, 'penulis' => 1, 'peneliti' => 1,
+        // Proposal, Penelitian, dan Laporan Ilmiah
+        'proposal' => 1, 'kegiatan' => 1, 'penelitian' => 1, 'rancangan' => 1, 'rencana' => 1,
+        'dituangkan' => 1, 'bentuk' => 1, 'tulisan' => 1, 'menjelaskan' => 1, 'latar' => 1,
+        'belakang' => 1, 'metode' => 1, 'pelaksanaan' => 1, 'suatu' => 1, 'pedoman' => 1,
+        'alat' => 1, 'pelaksana' => 1, 'pihak' => 1, 'pemberi' => 1, 'dana' => 1,
+        'pemberidana' => 1, 'terkait' => 1, 'dasar' => 1, 'evaluasi' => 1, 'pertanggungjawaban' => 1,
+        'jenis-jenis' => 1, 'jenis' => 1, 'skripsi' => 1, 'tesis' => 1, 'disertasi' => 1,
+        'pkm' => 1, 'non-penelitian' => 1, 'pelatihan' => 1, 'lomba' => 1, 'seminar' => 1,
+        'pengabdian' => 1, 'bagian' => 1, 'pokok' => 1, 'judul' => 1, 'spesifik' => 1,
+        'menguraikan' => 1, 'alasan' => 1, 'pentingnya' => 1, 'urgensi' => 1, 'rumusan' => 1,
+        'masalah' => 1, 'pertanyaan' => 1, 'dijawab' => 1, 'hasil' => 1, 'dicapai' => 1,
+        'tinjauan' => 1, 'pustaka' => 1, 'landasan' => 1, 'teori' => 1, 'terdahulu' => 1,
+        'relevan' => 1, 'pendekatan' => 1, 'subjek' => 1, 'teknik' => 1, 'pengumpulan' => 1,
+        'data' => 1, 'jadwal' => 1, 'anggaran' => 1, 'biaya' => 1, 'kebutuhan' => 1,
+        'realistis' => 1, 'daftar' => 1, 'acuan' => 1, 'kaidah' => 1, 'baku' => 1,
+        'formal' => 1, 'menghindari' => 1, 'penggunaan' => 1, 'bermakna' => 1, 'ganda' => 1,
+        'kalimat' => 1, 'efektif' => 1, 'logis' => 1, 'mengandung' => 1, 'unsur' => 1,
+        'argumentatif' => 1, 'meyakinkan' => 1, 'mematuhi' => 1, 'struktur' => 1, 'penulisan' => 1,
+        'sistematis' => 1, 'kohesif' => 1, 'koheren' => 1, 'menentukan' => 1, 'topik' => 1,
+        'studi' => 1, 'menemukan' => 1, 'celah' => 1, 'merumuskan' => 1, 'menyusun' => 1,
+        'kerangka' => 1, 'draf' => 1, 'lengkap' => 1, 'merevisi' => 1, 'memeriksa' => 1,
+        'kesesuaian' => 1, 'format' => 1, 'kemdikbudristek' => 1, 'mengusulkan' => 1, 'merencanakan' => 1,
+        'membuktikan' => 1, 'memecahkan' => 1, 'tertentu' => 1, 'praktis' => 1, 'aplikatif' => 1,
+        'nyata' => 1, 'lapangan' => 1, 'halaman' => 1, 'manfaat' => 1, 'panitia' => 1,
+        'penutup' => 1, 'opsional' => 1, 'mengutip' => 1, 'sumber' => 1, 'laporan' => 1,
+        'temuan' => 1, 'kesimpulan' => 1, 'saran' => 1, 'dokumentasi' => 1, 'menyampaikan' => 1,
+        'pembaca' => 1, 'memberikan' => 1, 'bukti' => 1, 'referensi' => 1, 'lanjutan' => 1,
+        'peneliti' => 1, 'pengamatan' => 1, 'objektif' => 1, 'subjektif' => 1, 'pengantar' => 1,
+        'ucapan' => 1, 'terima' => 1, 'kasih' => 1, 'maksud' => 1, 'penyusunan' => 1,
+        'tabel' => 1, 'gambar' => 1, 'pendahuluan' => 1, 'inti' => 1, 'deskriptif' => 1,
+        'analitis' => 1, 'dilengkapi' => 1, 'interpretasi' => 1, 'rekomendasi' => 1, 'perbaikan' => 1,
+        'tindak' => 1, 'lanjut' => 1, 'akhir' => 1, 'selingkung' => 1, 'lampiran' => 1,
+        'mentah' => 1, 'instrumen' => 1, 'empiris' => 1, 'spekulatif' => 1, 'emotif' => 1,
+        'mengumpulkan' => 1, 'mengorganisasi' => 1, 'dosen' => 1, 'pembimbing' => 1, 'pengaruh' => 1,
+        'intensitas' => 1, 'media' => 1, 'sosial' => 1, 'produktivitas' => 1, 'belajar' => 1,
+        'fenomena' => 1, 'menurunnya' => 1, 'kuantitatif' => 1, 'kualitatif' => 1, 'kuesioner' => 1,
+        'responden' => 1, 'durasi' => 1, 'non-akademik' => 1, 'rendah' => 1, 'tinggi' => 1,
+        'diarahkan' => 1, 'konten' => 1, 'akademik' => 1, 'karya' => 1, 'tulis' => 1,
+        'ilmiah' => 1, 'makalah' => 1, 'artikel' => 1, 'jurnal' => 1, 'kajian' => 1,
+        'metodologi' => 1, 'kritis' => 1, 'ejaan' => 1, 'diksi' => 1, 'tata' => 1,
+        'abstrak' => 1, 'kata' => 1, 'kunci' => 1, 'isi' => 1, 'teoritis' => 1,
+        'teoretis' => 1, 'populasi' => 1, 'sampel' => 1, 'analisis' => 1, 'pembahasan' => 1,
+        'sitasi' => 1, 'rujukan' => 1, 'primer' => 1, 'sekunder' => 1, 'plagiarisme' => 1,
+        'orisinalitas' => 1, 'semata' => 1, 'fakta' => 1, 'nalar' => 1, 'penalaran' => 1,
+        'diterima' => 1, 'aturan' => 1, 'mendalam' => 1, 'valid' => 1, 'verifikasi' => 1,
+        'masyarakat' => 1, 'penulis' => 1,
+        // Bahasa & Matematika tambahan
+        'observasi' => 1, 'wayang' => 1, 'kulit' => 1, 'wong' => 1, 'golek' => 1,
+        'suket' => 1, 'motekar' => 1, 'purwa' => 1, 'topeng' => 1, 'museum' => 1,
+        'benda' => 1, 'kuno' => 1, 'antik' => 1, 'seni' => 1, 'tradisional' => 1,
+        'pendidikan' => 1, 'informasi' => 1, 'hiburan' => 1, 'ringkasan' => 1, 'rangkuman' => 1,
+        'ikhtisar' => 1, 'perbedaan' => 1, 'langkah' => 1, 'menulis' => 1, 'gagasan' => 1,
+        'paragraf' => 1, 'verba' => 1, 'nomina' => 1, 'afiksasi' => 1, 'imbuhan' => 1,
+        'prefiks' => 1, 'sufiks' => 1, 'konfiks' => 1, 'frasa' => 1, 'klausa' => 1,
+        'reduplikasi' => 1, 'pemajemukan' => 1, 'eksponen' => 1, 'barisan' => 1, 'deret' => 1,
+        'geometri' => 1, 'aritmetika' => 1, 'rasio' => 1, 'suku' => 1, 'pola' => 1,
+        'perkalian' => 1, 'berulang' => 1, 'faktor' => 1, 'pembelahan' => 1, 'bakteri' => 1,
+        'lipatan' => 1, 'kertas' => 1, 'tali' => 1, 'potongan' => 1, 'panjang' => 1,
+        'pendek' => 1, 'hoaks' => 1, 'fase' => 1,
     ];
 
     /**
@@ -79,6 +123,7 @@ class ReadingMaterialFormatter
     public function format(string $rawText, string $title = ''): string
     {
         $normalized = str_replace(["\r\n", "\r"], "\n", $rawText);
+        $normalized = preg_replace('/(?m)^([a-zA-Z\d]+[\.\)])([A-Za-z])/u', '$1 $2', $normalized) ?? $normalized;
         $rawLines = explode("\n", $normalized);
 
         $blocks = [];
@@ -185,6 +230,13 @@ class ReadingMaterialFormatter
             $line = preg_replace('/\s*Sumber\s+foto:\s*https?:\/\/\S+/iu', '', $line);
             $line = preg_replace('/(?:\s*[_\.]{3,}\s*){2,}/u', ' … ', $line);
 
+            // Deteksi subjudul berlabel alfabet: "a. Pengertian Proposal", "b. Fungsi Proposal", dll.
+            if (preg_match('/^[a-z][\.\)]\s+[A-Z\p{L}][^.?!]{2,60}$/u', $line)) {
+                $flushParagraph();
+                $blocks[] = '### ' . $this->enhanceInlineTypography($line);
+                continue;
+            }
+
             // Deteksi daftar bernomor (1. ..., 2. ...)
             if (preg_match($orderedMarker, $line, $m)) {
                 $flushParagraph();
@@ -193,12 +245,14 @@ class ReadingMaterialFormatter
                 // Kumpulkan baris lanjutan (soft wrap) untuk item nomor ini
                 while ($i + 1 < $totalLines) {
                     $nextRaw = trim($rawLines[$i + 1]);
+                    $nextRestored = preg_replace('/^([a-zA-Z\d]+[\.\)])([A-Za-z])/u', '$1 $2', $nextRaw);
                     if (
                         $nextRaw === ''
                         || preg_match($pageNumberLine, $nextRaw)
-                        || preg_match($listMarkers, $nextRaw)
-                        || preg_match($orderedMarker, $nextRaw)
-                        || $this->isLikelyHeading($nextRaw)
+                        || preg_match($listMarkers, $nextRestored)
+                        || preg_match($orderedMarker, $nextRestored)
+                        || preg_match('/^[a-z][\.\)]\s+[A-Z\p{L}]/u', $nextRestored)
+                        || $this->isLikelyHeading($nextRestored)
                         || preg_match('/^<VirtualHost\b|^#[a-z0-9_\/\.\-]/i', $nextRaw)
                     ) {
                         break;
@@ -221,12 +275,14 @@ class ReadingMaterialFormatter
 
                 while ($i + 1 < $totalLines) {
                     $nextRaw = trim($rawLines[$i + 1]);
+                    $nextRestored = preg_replace('/^([a-zA-Z\d]+[\.\)])([A-Za-z])/u', '$1 $2', $nextRaw);
                     if (
                         $nextRaw === ''
                         || preg_match($pageNumberLine, $nextRaw)
-                        || preg_match($listMarkers, $nextRaw)
-                        || preg_match($orderedMarker, $nextRaw)
-                        || $this->isLikelyHeading($nextRaw)
+                        || preg_match($listMarkers, $nextRestored)
+                        || preg_match($orderedMarker, $nextRestored)
+                        || preg_match('/^[a-z][\.\)]\s+[A-Z\p{L}]/u', $nextRestored)
+                        || $this->isLikelyHeading($nextRestored)
                         || preg_match('/^<VirtualHost\b|^#[a-z0-9_\/\.\-]/i', $nextRaw)
                     ) {
                         break;
@@ -921,7 +977,7 @@ HTML;
         };
 
         $text = preg_replace_callback(
-            '/(?:https?:\/\/\S+|[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}|\/[A-Za-z0-9._\-\/]+|\b(?:' . implode('|', self::PROTECTED_CAMEL_TERMS) . ')\b)/u',
+            '/(?:https?:\/\/\S+|\b[a-zA-Z0-9.-]+\.(?:net|com|org|edu|gov|id|co\.id|ac\.id|go\.id|sch\.id|io|ai|me)\b|[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}|\/[A-Za-z0-9._\-\/]+|\b(?:' . implode('|', self::PROTECTED_CAMEL_TERMS) . ')\b)/u',
             fn (array $m) => $protect($m[0]),
             $text
         ) ?? $text;
@@ -935,11 +991,32 @@ HTML;
         // 3. Pecah angka/tanda kurung tutup yang menempel dengan huruf
         $text = preg_replace('/\)(?=\p{L})/u', ') ', $text) ?? $text;
         $text = preg_replace('/(?<=\p{L})\(/u', ' (', $text) ?? $text;
-        // Pecah penomoran dan rentang angka yang menempel (misal 1.Objektif -> 1. Objektif, ±150-250kata -> 150-250 kata)
-        $text = preg_replace('/(\d+)\.([A-Z\p{L}])/u', '$1. $2', $text) ?? $text;
+        // Pecah penomoran dan rentang angka yang menempel (misal 1.Objektif -> 1. Objektif, a.Pengertian -> a. Pengertian)
+        $text = preg_replace('/(?<=\s|^)(\d{1,3})\.([A-Z\p{L}])/u', '$1. $2', $text) ?? $text;
+        $text = preg_replace('/(?<=\s|^)([a-zA-Z\d]{1,3}[\.\)])([A-Za-z])/u', '$1 $2', $text) ?? $text;
         $text = preg_replace('/(\d+)\s*[–—\-]\s*(\d+)\s*kata\b/iu', '$1–$2 kata', $text) ?? $text;
         $text = preg_replace('/[±~]/u', '', $text) ?? $text;
         $text = preg_replace('/(?<=\p{L})[–—](?=\p{L})/u', ' – ', $text) ?? $text;
+
+        // Perbaikan kata-kata terpotong atau terpisah spasi secara keliru (split artifacts)
+        $text = preg_replace('/\bke\s+giatan\b/iu', 'kegiatan', $text) ?? $text;
+        $text = preg_replace('/\bstu\s+di\b/iu', 'studi', $text) ?? $text;
+        $text = preg_replace('/\bk\s+era\s+ngka\b|\bkerang\s+ka\b/iu', 'kerangka', $text) ?? $text;
+        $text = preg_replace('/\bkanka\s+lima\s+tefektif\b|\bka\s+lima\s+tefektif\b|\bkali\s+mat\s+efektif\b/iu', 'kalimat efektif', $text) ?? $text;
+        $text = preg_replace('/\bme\s+ngusulkan\b/iu', 'mengusulkan', $text) ?? $text;
+        $text = preg_replace('/\bmerencan\s+akan\b|\bmerencana\s+kan\b/iu', 'merencanakan', $text) ?? $text;
+        $text = preg_replace('/\bmenggun\s+akan\b|\bmeng\s+guna\s+kan\b/iu', 'menggunakan', $text) ?? $text;
+        $text = preg_replace('/\bdari\s+sumberlain\b/iu', 'dari sumber lain', $text) ?? $text;
+        $text = preg_replace('/\bdi\s+tuang\s*kan\b|\bdituang\s+kan\b/iu', 'dituangkan', $text) ?? $text;
+        $text = preg_replace('/\bpihak\s*pemberidana\b/iu', 'pihak pemberi dana', $text) ?? $text;
+        $text = preg_replace('/\bpedomanpelaksanaan\b/iu', 'pedoman pelaksanaan', $text) ?? $text;
+        $text = preg_replace('/\buntukkegiatannon-penelitian\b/iu', 'untuk kegiatan non-penelitian', $text) ?? $text;
+        $text = preg_replace('/\buntukkegiatanilmiah\b/iu', 'untuk kegiatan ilmiah', $text) ?? $text;
+        $text = preg_replace('/\bmenemukancelah\b/iu', 'menemukan celah', $text) ?? $text;
+        $text = preg_replace('/\bdankohesif\b/iu', 'dan kohesif', $text) ?? $text;
+        $text = preg_replace('/\bdankoheren\b/iu', 'dan koheren', $text) ?? $text;
+        $text = preg_replace('/\bmembuktikanteori\b/iu', 'membuktikan teori', $text) ?? $text;
+        $text = preg_replace('/\bSebagaidasarevaluasidanpertanggungjawabankegiatan\b/iu', 'Sebagai dasar evaluasi dan pertanggungjawaban kegiatan', $text) ?? $text;
 
         // 4. Segmentasi token panjang tanpa spasi (>= 9 huruf) menggunakan kamus kata umum Indonesia
         $text = preg_replace_callback('/\b\p{L}{9,}\b/u', function (array $m) {
@@ -950,6 +1027,12 @@ HTML;
         if (! empty($placeholders)) {
             $text = strtr($text, $placeholders);
         }
+
+        // Koreksi pasca-segmentasi untuk menjamin tidak ada residu pemisahan kata
+        $text = preg_replace('/\bke\s+giatan\b/iu', 'kegiatan', $text) ?? $text;
+        $text = preg_replace('/\bstu\s+di\b/iu', 'studi', $text) ?? $text;
+        $text = preg_replace('/\bk\s+era\s+ngka\b|\bkerang\s+ka\b/iu', 'kerangka', $text) ?? $text;
+        $text = preg_replace('/\bpihak\s*pemberidana\b/iu', 'pihak pemberi dana', $text) ?? $text;
 
         return trim(preg_replace('/[ \t]+/u', ' ', $text) ?? $text);
     }
@@ -979,17 +1062,23 @@ HTML;
             if ($dp[$i][0] <= -900000) {
                 continue;
             }
-            $maxLen = min(20, $n - $i);
+            $maxLen = min(25, $n - $i);
             for ($len = 1; $len <= $maxLen; $len++) {
                 $sub = implode('', array_slice($lowerChars, $i, $len));
+
+                // Hindari token 1-2 huruf yang memecah batang kata di tengah (seperti 'di' atau 'ke')
+                if ($len <= 2 && in_array($sub, ['di', 'ke', 'ia'], true)) {
+                    continue;
+                }
+
                 if (isset(self::ID_WORDS[$sub])) {
-                    $score = $dp[$i][0] + ($len * $len) + 5;
+                    $score = $dp[$i][0] + ($len * $len) + 15;
                     if ($score > $dp[$i + $len][0]) {
                         $dp[$i + $len] = [$score, $i];
                     }
                 } elseif ($n >= 18 && $len >= 4) {
                     // Hanya izinkan segmen non-kamus jika token sangat panjang (>=18 huruf)
-                    $score = $dp[$i][0] - ($len * 2) - 10;
+                    $score = $dp[$i][0] - ($len * 3) - 20;
                     if ($score > $dp[$i + $len][0]) {
                         $dp[$i + $len] = [$score, $i];
                     }
@@ -1043,11 +1132,15 @@ HTML;
         if (preg_match('/\b(?:antara|dan|atau|dari|pada|yang|untuk|dengan|serta|dalam|tentang|secara|sebagai|ke)\s*$/iu', $clean)) {
             return false;
         }
-        // Dilarang diawali huruf kecil jika bukan simbol
-        if (preg_match('/^\p{Ll}/u', $clean)) {
+        // Dilarang diawali huruf kecil jika bukan subjudul alfabet (misal a. Pengertian Proposal)
+        if (preg_match('/^\p{Ll}/u', $clean) && ! preg_match('/^[a-z][\.\)]\s+[A-Z\p{L}]/u', $clean)) {
             return false;
         }
         if (preg_match('/^BAB\s+[IVXLCDM\d]+\b/iu', $clean)) {
+            return true;
+        }
+        // Subjudul berlabel alfabet (a. Pengertian Proposal, b. Fungsi Proposal)
+        if (preg_match('/^[a-z][\.\)]\s+[A-Z\p{L}][^.?!]{2,60}$/u', $clean)) {
             return true;
         }
         // Semua huruf kapital (minimal 2 huruf, tanpa titik di akhir kalimat biasa)
@@ -1055,7 +1148,7 @@ HTML;
             return true;
         }
         // Judul bagian umum (Title Case pendek tanpa titik akhir)
-        if (preg_match('/^(?:Ringkasan|Rangkuman|Ikhtisar|Capaian\s+Pembelajaran|Tujuan\s+Pembelajaran|Perbedaan\s+Ringkasan,\s*Rangkuman,\s*dan\s*Ikhtisar|Langkah[- ]langkah\s+Menulis|Contoh\s+Praktik|Referensi|Ringkasan Eksekutif|Latar Belakang|Rumusan Masalah|Makna Prinsip|Sumber Rujukan|Daftar Pustaka|Kesimpulan|Penutup)$/iu', $clean)) {
+        if (preg_match('/^(?:Ringkasan|Rangkuman|Ikhtisar|Capaian\s+Pembelajaran|Tujuan\s+Pembelajaran|Perbedaan\s+Ringkasan,\s*Rangkuman,\s*dan\s*Ikhtisar|Langkah[- ]langkah\s+Menulis|Contoh\s+Praktik|Referensi|Ringkasan Eksekutif|Latar Belakang|Rumusan Masalah|Makna Prinsip|Sumber Rujukan|Daftar Pustaka|Kesimpulan|Penutup|Pengertian\s+Proposal|Fungsi\s+Proposal|Jenis-jenis\s+Proposal|Proposal\s+Penelitian|Proposal\s+Kegiatan|Bagian\s+Isi\s+Pokok|Laporan\s+Ilmiah)$/iu', $clean)) {
             return true;
         }
 

@@ -1104,6 +1104,62 @@ INSTRUCTIONS;
             ], $ktiChallenges);
         }
 
+        // Domain: Proposal Kegiatan, Proposal Penelitian, & Laporan Ilmiah (misal PL)
+        if (
+            str_contains($bodyLower, 'proposal')
+            || str_contains($titleLower, 'proposal')
+            || str_contains($titleLower, 'pl')
+            || (str_contains($bodyLower, 'laporan ilmiah') && str_contains($bodyLower, 'rancangan'))
+        ) {
+            $proposalChallenges = [
+                [
+                    'bloom' => 'C3',
+                    'difficulty' => 'easy',
+                    'question' => 'Analisis pengertian serta fungsi fundamental proposal sebagai rancangan kerja tertulis: mengapa proposal menjadi instrumen krusial dalam menjalin komunikasi formal antara pihak pelaksana dengan pihak pemberi dana atau pembimbing?',
+                    'rubric' => 'Proposal berfungsi sebagai rancangan kerja tertulis yang sistematis dan terperinci mengenai tujuan, latar belakang, metode, serta rencana pelaksanaan kegiatan atau penelitian. Proposal menjadi instrumen komunikasi krusial karena meyakinkan pihak pemberi dana atau pembimbing mengenai urgensi, kelayakan (feasibility), kesiapan manajerial, serta rencana anggaran biaya yang realistis dan akuntabel sebelum kegiatan atau penelitian diizinkan berjalan.',
+                    'reference_excerpt' => 'Proposal adalah rancangan kegiatan yang dituangkan dalam bentuk tulisan yang menjelaskan tujuan, latar belakang, metode, dan rencana pelaksanaan suatu kegiatan atau penelitian. Fungsi proposal: sebagai pedoman pelaksanaan, alat komunikasi antara pelaksana dan pihak pemberi dana, serta dasar evaluasi.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'difficulty' => 'medium',
+                    'question' => 'Bandingkan perbedaan esensial antara Proposal Penelitian dengan Proposal Kegiatan ditinjau dari aspek tujuan, fokus utama, pendekatan, dan bagian-bagian penyusunnya!',
+                    'rubric' => 'Proposal penelitian berfokus pada kegiatan ilmiah akademik (seperti skripsi, tesis, PKM) dengan tujuan memecahkan masalah teoretis/empiris, menemukan pengetahuan baru, atau membuktikan teori melalui metode ilmiah yang sistematis, tinjauan pustaka, dan analisis data. Sebaliknya, proposal kegiatan bersifat praktis dan aplikatif (seperti seminar, pelatihan, lomba, atau proyek mahasiswa) dengan fokus pada penyelenggaraan acara nyata, sasaran peserta, susunan kepanitiaan, rencana kerja lapangan, dan rincian alokasi anggaran.',
+                    'reference_excerpt' => 'Proposal Penelitian bertujuan mengusulkan penelitian ilmiah untuk menemukan pengetahuan baru atau membuktikan teori, bersifat akademik dan berlandaskan teori. Proposal Kegiatan bertujuan merencanakan kegiatan praktis, berfokus pada sasaran peserta, susunan panitia, dan pelaksanaan lapangan.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'difficulty' => 'medium',
+                    'question' => 'Mengapa kajian pustaka (tinjauan literatur) sangat esensial dalam penyusunan proposal penelitian, dan risiko ilmiah apa yang muncul apabila seorang peneliti langsung merumuskan metode tanpa melakukan studi pustaka terlebih dahulu?',
+                    'rubric' => 'Kajian pustaka esensial untuk memetakan teori yang relevan, menelaah temuan penelitian terdahulu, dan menemukan celah penelitian (research gap) yang orisinal. Jika peneliti langsung merancang metode tanpa studi pustaka, risikonya adalah penelitian kehilangan landasan teoretis yang kuat, berpotensi mengulang penelitian yang sudah tuntas (duplikasi/plagiarisme tidak disengaja), serta memilih metode pengumpulan data yang tidak valid.',
+                    'reference_excerpt' => 'Tinjauan pustaka / landasan teori berisi teori, hasil penelitian terdahulu, dan konsep relevan. Melakukan studi pustaka bertujuan untuk menemukan celah penelitian dan menyusun kerangka teori yang kokoh.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'difficulty' => 'hard',
+                    'question' => 'Analisis perbedaan mendasar antara Proposal dengan Laporan Ilmiah ditinjau dari dimensi waktu penulisan, fungsi manajerial, dan struktur isi pokoknya!',
+                    'rubric' => 'Dari segi waktu penulisan, proposal disusun sebelum kegiatan/penelitian dilakukan sebagai rancangan kerja dan pedoman pelaksanaan yang memuat latar belakang, rumusan masalah, metodologi, jadwal, serta estimasi anggaran. Sebaliknya, laporan ilmiah disusun setelah kegiatan/penelitian selesai sebagai bentuk pertanggungjawaban ilmiah dan dokumentasi hasil yang memuat data empiris, analisis, pembahasan temuan, kesimpulan yang menjawab rumusan masalah, serta rekomendasi.',
+                    'reference_excerpt' => 'Aspek Proposal vs Laporan Ilmiah: Proposal disusun sebelum kegiatan berfungsi sebagai rencana kerja. Laporan ilmiah disusun setelah kegiatan berfungsi sebagai pertanggungjawaban dan dokumentasi hasil.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'difficulty' => 'hard',
+                    'question' => 'Evaluasi syarat-syarat kebahasaan dalam penulisan proposal dan laporan ilmiah (seperti bahasa baku, kalimat efektif, denotatif, kohesif, dan logis): bagaimana penerapan kaidah kebahasaan tersebut menentukan diterimanya sebuah usulan kegiatan atau hasil penelitian?',
+                    'rubric' => 'Kaidah kebahasaan baku, efektif, denotatif (tidak bermakna ganda), serta kohesif-koheren menjamin alur berpikir logis dan tidak menimbulkan bias atau kerancuan interpretasi bagi penilai (reviewer) maupun penyandang dana. Bahasa yang jelas dan objektif mencerminkan profesionalitas, ketelitian akademik, serta keandalan metodologi pengusul, sehingga usulan dinilai layak dan meyakinkan untuk didanai atau disetujui.',
+                    'reference_excerpt' => 'Kaidah kebahasaan: Menggunakan bahasa baku dan formal, menghindari kata bermakna ganda, menggunakan kalimat efektif dan logis, mengandung unsur argumentatif meyakinkan, serta mematuhi struktur penulisan ilmiah yang kohesif.',
+                ],
+            ];
+
+            return array_map(fn ($item) => [
+                'type' => 'essay',
+                'question' => $item['question'],
+                'context' => null,
+                'rubric' => $item['rubric'],
+                'reference_excerpt' => $item['reference_excerpt'],
+                'difficulty' => $item['difficulty'],
+                'difficulty_weight' => TeacherChallenge::weightForDifficulty($item['difficulty']),
+            ], $proposalChallenges);
+        }
+
         // Domain 4b: Menganalisis Kebahasaan Teks Laporan Hasil Observasi (BS2 / Afiksasi / Verba & Nomina / Kalimat Definisi & Deskripsi)
         if (
             (
@@ -1419,6 +1475,58 @@ INSTRUCTIONS;
     }
 
     /**
+     * Mengekstrak nama topik substantif dari materi jika judul dokumen hanya berupa singkatan pendek (misal PL, BS, MTK, RRI).
+     */
+    public function resolveDocumentTopic(string $body, string $title, string $fallbackSubject = ''): string
+    {
+        $cleanTitle = trim($title);
+        if (mb_strlen($cleanTitle) > 6 && mb_strtoupper($cleanTitle) !== $cleanTitle && ! preg_match('/^(?:Bab|Pertemuan|Modul|Dokumen)\s*[\dIVXLCDM.\-:\s]*$/iu', $cleanTitle)) {
+            return $cleanTitle;
+        }
+
+        // 1. Cari heading bab atau subtopik substantif (### Proposal, ### a. Pengertian Proposal, dll.)
+        if (preg_match('/(?:^|\R)\s*#{1,4}\s*(?:[a-zA-Z\d\.\-]+\s+)?(?:Pengertian|Definisi|Hakikat|Konsep|Materi)?\s*([A-Z\p{L}][\p{L}\s\-]{3,40})(?:\R|$)/u', $body, $hm)) {
+            $candidate = trim($hm[1]);
+            if (! in_array(mb_strtolower($candidate), ['tujuan pembelajaran', 'capaian pembelajaran', 'pendahuluan', 'latar belakang', 'daftar isi', 'pl', 'bs', 'bs2', 'mtk', 'p014'], true)) {
+                return $candidate;
+            }
+        }
+
+        // 2. Cari pola "Pengertian [Topik]" atau "Definisi [Topik]"
+        if (preg_match('/\b(?:Pengertian|Definisi|Konsep Dasar)\s+([A-Z\p{L}][\p{L}\s\-]{3,35})\b/u', $body, $dm)) {
+            return trim($dm[1]);
+        }
+
+        // 3. Cek subjek pokok kalimat pembuka
+        if ($fallbackSubject !== '' && mb_strlen($fallbackSubject) >= 4 && ! in_array(mb_strtolower($fallbackSubject), ['bacaan ini', 'materi ini', 'pl', 'bs', 'mtk'], true)) {
+            return $fallbackSubject;
+        }
+
+        // 4. Deteksi kata kunci utama di awal materi
+        $head = mb_substr($body, 0, 1000);
+        if (preg_match('/\b(Proposal(?:\s+Penelitian|\s+Kegiatan)?)\b/iu', $head, $m)) {
+            return 'Proposal';
+        }
+        if (preg_match('/\b(Teks\s+Laporan\s+Hasil\s+Observasi|Laporan\s+Observasi|Wayang)\b/iu', $head, $m)) {
+            return 'Teks Laporan Hasil Observasi';
+        }
+        if (preg_match('/\b(Barisan\s+dan\s+Deret|Barisan\s+Geometri|Barisan\s+Aritmetika)\b/iu', $head, $m)) {
+            return 'Barisan dan Deret';
+        }
+        if (preg_match('/\b(Eksponen|Fungsi\s+Eksponen)\b/iu', $head, $m)) {
+            return 'Eksponen';
+        }
+        if (preg_match('/\b(Ringkasan,\s*Rangkuman(?:\s*dan\s*Ikhtisar)?|Ikhtisar)\b/iu', $head, $m)) {
+            return 'Ringkasan, Rangkuman, dan Ikhtisar';
+        }
+        if (preg_match('/\b(Sinkronisasi\s+Sistem\s+Operasi|Sinkronisasi|Deadlock)\b/iu', $head, $m)) {
+            return 'Sinkronisasi Sistem Operasi';
+        }
+
+        return $cleanTitle !== '' ? "topik {$cleanTitle}" : 'topik materi yang dipelajari';
+    }
+
+    /**
      * @return array<int, array{sequence: int, skill: string, prompt: string, context: string, hint: string, reference_excerpt: string, difficulty: string}>
      */
     public function generateHeuristicSocraticQuestions(string $body, string $title, ?string $category = null): array
@@ -1557,12 +1665,12 @@ INSTRUCTIONS;
                         "Analisis mengapa pembahasan tentang \"{$subj}\" krusial dipahami sebelum melangkah ke bagian materi berikutnya!",
                     ]);
             } else {
-                $cleanTopic = (mb_strlen($cleanTitle) <= 4 || strtoupper($cleanTitle) === $cleanTitle) ? 'materi bacaan ini' : "materi \"{$cleanTitle}\"";
+                $cleanTopic = $this->resolveDocumentTopic($body, $title, $q1Subject);
                 $q1Prompt = $isSocratic
-                    ? "Menurut penalaran Anda, mengapa gagasan pokok pada pembukaan {$cleanTopic} krusial untuk dipahami?"
+                    ? "Menurut penalaran Anda, mengapa gagasan pokok pada pembukaan materi {$cleanTopic} krusial untuk dipahami?"
                     : $pickVariation($title . '|q1g', [
-                        "Analisis prinsip mendasar yang diuraikan pada pembahasan awal {$cleanTopic}, dan mengapa pemahaman konsep tersebut krusial sebelum menerapkannya!",
-                        "Mengapa kaidah pokok yang dipaparkan dalam {$cleanTopic} harus dipahami secara menyeluruh dan tidak boleh diterapkan secara parsial?",
+                        "Analisis prinsip mendasar yang diuraikan pada pembahasan awal materi {$cleanTopic}, dan mengapa pemahaman konsep tersebut krusial sebelum menerapkannya!",
+                        "Mengapa kaidah pokok yang dipaparkan dalam materi {$cleanTopic} harus dipahami secara menyeluruh dan tidak boleh diterapkan secara parsial?",
                     ]);
             }
             $q1Answer = $this->paraphraseAnswerFromSource($q1Ref, $q1Role, $title, $q1Prompt, $q1Subject);
@@ -1570,27 +1678,18 @@ INSTRUCTIONS;
                 ? "Uji pemahamanmu dengan menjelaskan alasan logis serta bukti konsep dari paragraf pembuka."
                 : "Fokuskan jawaban pada definisi, fungsi dasar, atau ide pokok yang langsung menjelaskan konsep awal materi.";
         } else {
+            $resolvedDocTopic = $this->resolveDocumentTopic($body, $title);
             $q1Prompt = $isSocratic
-                ? "Mengapa topik inti dalam materi \"{$title}\" relevan untuk dipahami secara menyeluruh?"
-                : "Jelaskan konsep utama yang dibahas dalam materi \"{$title}\"!";
-            $q1Answer = "Materi {$title} membahas konsep pokok dan penerapannya secara terstruktur.";
+                ? "Mengapa topik inti dalam materi {$resolvedDocTopic} relevan untuk dipahami secara menyeluruh?"
+                : "Jelaskan konsep utama yang dibahas dalam materi {$resolvedDocTopic}!";
+            $q1Answer = "Materi {$resolvedDocTopic} membahas konsep pokok dan penerapannya secara terstruktur.";
             $q1Ref = $q1Answer;
             $q1Context = "Uraikan gagasan inti dari materi.";
         }
 
-        // Patokan nama topik yang jelas dari isi materi (pakai subjek konsep jika judul hanya singkatan yang cocok, mis. TBB -> Trigatra Bangun Bahasa)
+        // Patokan nama topik yang jelas dari isi materi (bebas dari templat 'bacaan ini')
         $cleanTitle = trim($title);
-        $topicLabel = $cleanTitle;
-        if (mb_strlen($cleanTitle) <= 6) {
-            if ($q1Subject !== '' && preg_match_all('/\b(\p{L})/u', $q1Subject, $initials)) {
-                $acronym = mb_strtoupper(implode('', $initials[1]));
-                $topicLabel = str_starts_with($acronym, mb_strtoupper($cleanTitle))
-                    ? $q1Subject
-                    : 'bacaan ini';
-            } else {
-                $topicLabel = 'bacaan ini';
-            }
-        }
+        $topicLabel = $this->resolveDocumentTopic($body, $title, $q1Subject);
 
         // 2. Fungsi & Peranan Utama (Medium)
         $s2 = $pickSentence(
@@ -1748,10 +1847,10 @@ INSTRUCTIONS;
                         : "Mengapa pengaturan atau ketentuan terkait \"{$tm3[1]}\" krusial dijalankan dengan tepat, dan apa akibatnya bagi keseluruhan sistem jika keliru?";
                 } else {
                     $q3Prompt = $isSocratic
-                        ? "Simpulan apa yang dapat ditarik mengenai keterkaitan antarunsur atau aturan utama dalam materi \"{$title}\"?"
+                        ? "Simpulan apa yang dapat ditarik mengenai keterkaitan antarunsur atau aturan utama dalam materi {$topicLabel}?"
                         : $pickVariation($title . '|q3g', [
-                            "Ciri dan batasan kritis apa yang membedakan pembahasan utama dalam materi \"{$topicLabel}\", serta bagaimana implikasinya saat diterapkan?",
-                            "Analisis mengapa unsur-unsur kunci pada \"{$topicLabel}\" saling bergantung, bukan berdiri sendiri!",
+                            "Ciri dan batasan kritis apa yang membedakan pembahasan utama dalam materi {$topicLabel}, serta bagaimana implikasinya saat diterapkan?",
+                            "Analisis mengapa unsur-unsur kunci pada {$topicLabel} saling bergantung, bukan berdiri sendiri!",
                         ]);
                 }
                 $q3Ref = rtrim($s3, '.') . '.';
@@ -1815,7 +1914,7 @@ INSTRUCTIONS;
                         ]));
             } else {
                 $q4Prompt = $isSocratic
-                    ? "Analisis hubungan sebab-akibat yang terjadi pada mekanisme inti dalam materi \"{$topicLabel}\" beserta implikasi kritisnya!"
+                    ? "Analisis hubungan sebab-akibat yang terjadi pada mekanisme inti dalam materi {$topicLabel} beserta implikasi kritisnya!"
                     : $pickVariation($topicLabel . '|q4g', [
                         "Analisis hubungan sebab-akibat pada mekanisme utama {$topicLabel}, serta konsekuensi nyata yang muncul apabila satu tahap terganggu!",
                         "Mengapa keterkaitan faktor pada {$topicLabel} menghasilkan dampak tersebut dalam situasi nyata?",
@@ -1828,8 +1927,8 @@ INSTRUCTIONS;
                 : "Jelaskan urutan proses, aturan operasional, atau hubungan sebab-akibat secara runtut.";
         } else {
             $q4Prompt = $isSocratic
-                ? "Mengapa ketelitian prosedural pada materi \"{$title}\" menentukan keberhasilan hasilnya?"
-                : "Mengapa alur penerapan konsep dalam materi \"{$topicLabel}\" harus dijalankan secara runtut agar hasilnya akurat?";
+                ? "Mengapa ketelitian prosedural pada materi {$topicLabel} menentukan keberhasilan hasilnya?"
+                : "Mengapa alur penerapan konsep dalam materi {$topicLabel} harus dijalankan secara runtut agar hasilnya akurat?";
             $q4Answer = $q2Answer;
             $q4Ref = $q2Ref;
             $q4Context = "Uraikan alur mekanisme atau sebab-akibatnya.";
@@ -1865,10 +1964,10 @@ INSTRUCTIONS;
                 $q5Role = 'application';
             } else {
                 $q5Prompt = $isSocratic
-                    ? "Evaluasi simpulan dan penerapan praktis paling relevan dari akhir materi \"{$title}\" untuk konteks nyata!"
+                    ? "Evaluasi simpulan dan penerapan praktis paling relevan dari akhir materi {$topicLabel} untuk konteks nyata!"
                     : $pickVariation($title . '|q5c', [
                         "Evaluasi dampak jangka panjang yang muncul apabila simpulan utama dari {$topicLabel} diterapkan atau justru diabaikan di lingkungan nyata!",
-                        "Evaluasi implikasi kritis dari bagian akhir {$topicLabel} terhadap pengambilan keputusan pengguna di keseharian!",
+                        "Evaluasi implikasi kritis dari bagian akhir {$topicLabel} terhadap pengambilan keputusan dan pemecahan masalah di keseharian!",
                     ]);
                 $q5Role = 'conclusion';
             }
@@ -1879,12 +1978,28 @@ INSTRUCTIONS;
                 : "Berikan penjelasan solusi konkret atau contoh penerapan yang selaras dengan fakta pada akhir materi.";
         } else {
             $q5Prompt = $isSocratic
-                ? "Evaluasi manfaat utama materi \"{$title}\" apabila diterapkan pada situasi nyata!"
-                : "Evaluasi penerapan nyata serta manfaat utama materi \"{$topicLabel}\" dalam praktik!";
+                ? "Evaluasi manfaat utama materi {$topicLabel} apabila diterapkan pada situasi nyata!"
+                : "Evaluasi penerapan nyata serta manfaat utama materi {$topicLabel} dalam praktik!";
             $q5Answer = $q2Answer;
             $q5Ref = $q2Ref;
             $q5Context = "Rancang penerapan konkret berdasarkan isi bacaan.";
         }
+
+        $sanitizeText = function (string $str): string {
+            $t = $this->formatter->restoreMissingSpaces($str);
+            $t = preg_replace('/\s+[a-z\d][\.\)]\s*$/iu', '', $t) ?? $t;
+            return trim($t);
+        };
+        $q1Answer = $sanitizeText($q1Answer);
+        $q1Ref = $sanitizeText($q1Ref);
+        $q2Answer = $sanitizeText($q2Answer);
+        $q2Ref = $sanitizeText($q2Ref);
+        $q3Answer = $sanitizeText($q3Answer);
+        $q3Ref = $sanitizeText($q3Ref);
+        $q4Answer = $sanitizeText($q4Answer);
+        $q4Ref = $sanitizeText($q4Ref);
+        $q5Answer = $sanitizeText($q5Answer);
+        $q5Ref = $sanitizeText($q5Ref);
 
         return [
             [
@@ -3681,6 +3796,125 @@ INSTRUCTIONS;
                 ],
             ];
             $items = $osPool;
+        } elseif (
+            str_contains($bodyLower, 'proposal')
+            || str_contains($titleLower, 'proposal')
+            || str_contains($titleLower, 'pl')
+            || (str_contains($bodyLower, 'laporan ilmiah') && str_contains($bodyLower, 'rancangan'))
+        ) {
+            $proposalPool = [
+                [
+                    'bloom' => 'C1',
+                    'question' => 'Berdasarkan materi, apakah definisi yang paling tepat mengenai proposal?',
+                    'correct' => 'Rancangan kegiatan atau penelitian yang dituangkan dalam bentuk tulisan yang menjelaskan tujuan, latar belakang, metode, dan rencana pelaksanaan secara sistematis',
+                    'distractors' => [
+                        'Laporan pertanggungjawaban akhir yang memuat analisis hasil pengamatan setelah kegiatan selesai',
+                        'Kumpulan kutipan teori dari berbagai jurnal yang disusun tanpa rumusan masalah nyata',
+                        'Surat permohonan izin kegiatan tanpa memuat rincian anggaran dan jadwal kerja',
+                    ],
+                    'explanation' => 'Proposal didefinisikan sebagai rancangan kegiatan atau penelitian yang dituangkan dalam bentuk tulisan yang menjelaskan tujuan, latar belakang, metode, dan rencana pelaksanaan secara terstruktur.',
+                ],
+                [
+                    'bloom' => 'C2',
+                    'question' => 'Manakah di antara pilihan berikut yang merupakan tiga fungsi utama dari sebuah proposal?',
+                    'correct' => 'Sebagai pedoman pelaksanaan kegiatan, alat komunikasi resmi kepada penyandang dana/pihak terkait, dan dasar evaluasi pertanggungjawaban',
+                    'distractors' => [
+                        'Sebagai pengganti laporan keuangan akhir, media publikasi hasil riset, dan bukti hukum kepemilikan',
+                        'Sebagai ringkasan buku teks, instrumen evaluasi guru, dan kumpulan formulir pendaftaran peserta',
+                        'Sebagai dokumen rahasia panitia, bukti penarikan dana tunai, dan arsip data mentah penelitian',
+                    ],
+                    'explanation' => 'Fungsi utama proposal adalah sebagai pedoman operasional pelaksanaan, media komunikasi resmi dengan pihak pemberi izin atau dana, serta tolok ukur evaluasi dan pertanggungjawaban.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Perbedaan mendasar antara Proposal Penelitian dengan Proposal Kegiatan ditinjau dari tujuan dan fokus pembahasannya adalah...',
+                    'correct' => 'Proposal penelitian bertujuan menemukan pengetahuan baru atau membuktikan teori melalui metode ilmiah, sedangkan proposal kegiatan bertujuan menyelenggarakan kegiatan praktis di lapangan',
+                    'distractors' => [
+                        'Proposal penelitian tidak memerlukan anggaran biaya, sedangkan proposal kegiatan wajib melampirkan kajian teori',
+                        'Proposal kegiatan hanya disusun oleh dosen, sedangkan proposal penelitian khusus untuk organisasi kemahasiswaan',
+                        'Proposal penelitian bebas dari jadwal pelaksanaan, sedangkan proposal kegiatan harus memakai analisis statistik',
+                    ],
+                    'explanation' => 'Proposal penelitian berfokus pada pemecahan masalah ilmiah akademik secara teoretis dan metodologis, sedangkan proposal kegiatan berorientasi pada pelaksanaan acara praktis kemahasiswaan atau kemasyarakatan.',
+                ],
+                [
+                    'bloom' => 'C2',
+                    'question' => 'Dalam sistematika penulisan proposal, bagian Latar Belakang memiliki fungsi utama untuk...',
+                    'correct' => 'Menguraikan alasan pentingnya penelitian atau kegiatan dilakukan dengan memaparkan masalah nyata dan urgensi pemecahannya',
+                    'distractors' => [
+                        'Menyajikan rincian pembagian tugas seluruh seksi panitia dan honorarium pengurus',
+                        'Menjelaskan kesimpulan akhir dan rekomendasi hasil evaluasi kegiatan',
+                        'Mencantumkan seluruh biodata lengkap narasumber beserta lampiran foto dokumentasi',
+                    ],
+                    'explanation' => 'Latar belakang berfungsi memaparkan kondisi empiris, permasalahan yang dihadapi, serta argumen rasional mengapa usulan penelitian atau kegiatan tersebut sangat penting untuk dilaksanakan.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Mengapa tahap studi pustaka (tinjauan literatur) sangat krusial dilakukan sebelum merumuskan draf proposal penelitian?',
+                    'correct' => 'Untuk menemukan celah penelitian (research gap) dari hasil kajian terdahulu dan menyusun kerangka teori yang relevan',
+                    'distractors' => [
+                        'Agar peneliti dapat menyalin seluruh bab metodologi dari skripsi peneliti sebelumnya tanpa modifikasi',
+                        'Untuk menghabiskan alokasi waktu persiapan sebelum jadwal pengajuan proposal ditutup',
+                        'Guna memastikan tidak ada peneliti lain yang berminat pada topik kajian yang sama',
+                    ],
+                    'explanation' => 'Studi pustaka membantu peneliti memahami perkembangan penelitian terdahulu, membangun landasan konsep yang kokoh, dan memastikan penelitian yang diajukan memiliki nilai kebaruan (novelty) serta orisinalitas.',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Pada proposal, penyusunan jadwal kerja dan Rencana Anggaran Biaya (RAB) harus memenuhi prinsip utama yaitu...',
+                    'correct' => 'Realistis, transparan, dan menggambarkan alokasi waktu serta estimasi kebutuhan dana yang dapat dipertanggungjawabkan',
+                    'distractors' => [
+                        'Menaikkan estimasi biaya setinggi mungkin tanpa rincian satuan harga demi mengantisipasi inflasi',
+                        'Membuat jadwal sesingkat mungkin meskipun tahapan pengumpulan data memerlukan waktu lama di lapangan',
+                        'Menyembunyikan sumber pendanaan lain agar proposal disetujui secara sepihak oleh penyandang dana',
+                    ],
+                    'explanation' => 'Jadwal dan anggaran wajib dirancang secara realistis dan transparan sesuai tahapan riil kegiatan agar pihak reviewer atau penyandang dana yakin atas kelayakan manajerial usulan tersebut.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Manakah di antara karakteristik berikut yang menjadi syarat kebahasaan wajib dalam penulisan proposal dan laporan ilmiah?',
+                    'correct' => 'Menggunakan bahasa baku dan formal, kalimat efektif dan logis, makna denotatif (menghindari multitafsir), serta kohesif dan koheren',
+                    'distractors' => [
+                        'Menggunakan ungkapan metaforis, kalimat puitis, dan sudut pandang subjektif orang pertama secara dominan',
+                        'Mengutamakan istilah bahasa asing populer tanpa padanan baku agar proposal terkesan modern',
+                        'Menyusun kalimat panjang berbunga-bunga dengan pilihan kata emosional untuk menarik simpati pembaca',
+                    ],
+                    'explanation' => 'Bahasa proposal dan laporan ilmiah harus lugas, denotatif, objektif, dan logis untuk mencegah salah tafsir dalam komunikasi gagasan formal.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'question' => 'Ditinjau dari dimensi waktu penulisan dan fungsinya, perbedaan pokok antara Proposal dan Laporan Ilmiah adalah...',
+                    'correct' => 'Proposal disusun sebelum kegiatan sebagai rencana kerja dan pedoman, sedangkan laporan ilmiah disusun setelah kegiatan sebagai dokumentasi dan pertanggungjawaban hasil',
+                    'distractors' => [
+                        'Proposal disusun setelah kegiatan selesai, sedangkan laporan ilmiah disusun saat kegiatan sedang berlangsung di lapangan',
+                        'Proposal berisi analisis temuan data empiris, sedangkan laporan ilmiah hanya memuat estimasi anggaran biaya',
+                        'Proposal bersifat mengikat secara hukum, sedangkan laporan ilmiah hanya bersifat opsional bagi panitia',
+                    ],
+                    'explanation' => 'Proposal berorientasi prospektif (rencana ke depan sebelum kegiatan dimulai), sedangkan laporan ilmiah berorientasi retrospektif (pertanggungjawaban fakta dan temuan setelah kegiatan tuntas).',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Sebuah laporan ilmiah dituntut bersifat objektif. Hal ini bermakna bahwa penyajian laporan harus...',
+                    'correct' => 'Berpijak pada fakta empiris dan data valid, serta tidak menggunakan sudut pandang subjektif emotif seperti "saya" atau "kami"',
+                    'distractors' => [
+                        'Memuat opini pribadi penulis secara bebas tanpa perlu diverifikasi dengan hasil penelitian di lapangan',
+                        'Mengikuti keinginan penyandang dana dengan merekayasa data temuan agar sesuai hipotesis awal',
+                        'Menghapus seluruh tabel dan grafik agar pembaca fokus pada kesimpulan yang diinginkan penulis',
+                    ],
+                    'explanation' => 'Objektivitas menuntut penulis menyajikan fakta apa adanya berdasarkan data empiris yang dapat diverifikasi, bukan berdasarkan perasaan atau kepentingan pribadi.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Dalam sistematika laporan ilmiah, bagian yang berisi uraian fakta pelaksanaan secara deskriptif-analitis yang dilengkapi data, tabel, dan interpretasi temuan adalah...',
+                    'correct' => 'Hasil dan Pembahasan',
+                    'distractors' => [
+                        'Kata Pengantar',
+                        'Daftar Pustaka',
+                        'Lampiran Mentah',
+                    ],
+                    'explanation' => 'Bab Hasil dan Pembahasan memaparkan data temuan riil di lapangan serta menganalisisnya secara kritis dengan mengaitkannya pada teori dan rumusan masalah.',
+                ],
+            ];
+            $items = $proposalPool;
         }
 
         if (empty($items)) {
@@ -3824,9 +4058,40 @@ INSTRUCTIONS;
         }
 
         // Pengaman bila teks sangat mini namun target $count besar:
-        // gunakan templat kata kerja Bloom C1–C5 tanpa menyalin paragraf utuh ke soal/opsi.
+        // gunakan templat variatif berjenjang Taksonomi Bloom C1–C5 tanpa menyalin paragraf utuh ke soal/opsi.
+        $stemVariants = [
+            0 => fn (string $dt, string $tp) => "Berdasarkan materi {$dt}, manakah pernyataan yang paling tepat mengenai \"{$tp}\"?",
+            1 => fn (string $dt, string $tp) => "Pernyataan di bawah ini yang paling akurat menjelaskan prinsip \"{$tp}\" dalam materi adalah...",
+            2 => fn (string $dt, string $tp) => "Dalam penerapan materi {$dt}, bagaimanakah pemahaman yang tepat terkait gagasan \"{$tp}\"?",
+            3 => fn (string $dt, string $tp) => "Analisis hubungan konsep inti yang mendasari \"{$tp}\" dalam pembahasan materi!",
+            4 => fn (string $dt, string $tp) => "Evaluasi simpulan manakah yang paling selaras dengan penjelasan mengenai \"{$tp}\"?",
+            5 => fn (string $dt, string $tp) => "Bagaimanakah kedudukan atau peranan konsep \"{$tp}\" ditinjau dari keseluruhan materi {$dt}?",
+            6 => fn (string $dt, string $tp) => "Karakteristik atau ciri utama apakah yang paling melekat pada pembahasan \"{$tp}\"?",
+            7 => fn (string $dt, string $tp) => "Manakah penerapan praktis yang mencerminkan pemahaman mendalam tentang \"{$tp}\"?",
+            8 => fn (string $dt, string $tp) => "Apa implikasi konseptual yang ditegaskan materi saat menguraikan pokok bahasan \"{$tp}\"?",
+            9 => fn (string $dt, string $tp) => "Berdasarkan uraian materi {$dt}, mengapa pemahaman mengenai \"{$tp}\" menjadi sangat mendasar?",
+            10 => fn (string $dt, string $tp) => "Simpulan logis apa yang dapat ditarik terkait relevansi pokok bahasan \"{$tp}\"?",
+            11 => fn (string $dt, string $tp) => "Bagaimanakah materi menguraikan keterkaitan konsep \"{$tp}\" dengan konteks pembahasannya?",
+            12 => fn (string $dt, string $tp) => "Kaidah atau prinsip kunci apakah yang harus diperhatikan mengenai \"{$tp}\"?",
+            13 => fn (string $dt, string $tp) => "Dalam konteks pembahasan {$dt}, manakah inferensi yang paling sahih mengenai \"{$tp}\"?",
+            14 => fn (string $dt, string $tp) => "Fakta penting apakah yang diuraikan dalam materi sehubungan dengan gagasan \"{$tp}\"?",
+            15 => fn (string $dt, string $tp) => "Tinjauan analitis manakah yang paling tepat menggambarkan esensi dari \"{$tp}\"?",
+            16 => fn (string $dt, string $tp) => "Di antara pernyataan berikut, manakah yang paling sesuai dengan kaidah materi mengenai \"{$tp}\"?",
+            17 => fn (string $dt, string $tp) => "Bagaimanakah penerapan prinsip \"{$tp}\" agar selaras dengan maksud pembahasan materi {$dt}?",
+            18 => fn (string $dt, string $tp) => "Penjelasan manakah yang paling tepat merangkum hakikat dari konsep \"{$tp}\"?",
+            19 => fn (string $dt, string $tp) => "Evaluasi manakah yang paling objektif dalam menelaah gagasan \"{$tp}\" pada materi?",
+            20 => fn (string $dt, string $tp) => "Identifikasi poin pokok yang menjadi pijakan dalam menguraikan \"{$tp}\"!",
+            21 => fn (string $dt, string $tp) => "Bagaimanakah keterikatan logis antara prinsip \"{$tp}\" dengan tujuan umum materi {$dt}?",
+            22 => fn (string $dt, string $tp) => "Manakah rumusan yang paling tepat dalam mendeskripsikan peran inti dari \"{$tp}\"?",
+            23 => fn (string $dt, string $tp) => "Telaah manakah yang paling akurat dalam menguji keabsahan penjelasan tentang \"{$tp}\"?",
+            24 => fn (string $dt, string $tp) => "Sintesis manakah yang paling utuh merefleksikan makna dari \"{$tp}\" dalam materi?",
+        ];
+
         $fallbackAttempt = 0;
-        while (count($selectedItems) < $count && $fallbackAttempt < $count * 4) {
+        $totalVariants = count($stemVariants);
+        $docTopic = $this->resolveDocumentTopic($body, $title);
+
+        while (count($selectedItems) < $count && $fallbackAttempt < $count * 6) {
             $sIdx = $fallbackAttempt % $totalSentences;
             $sentence = $sentences[$sIdx];
             $conciseOption = $this->condenseClauseToOption($sentence);
@@ -3834,21 +4099,21 @@ INSTRUCTIONS;
                 array_map(fn ($s) => $this->condenseClauseToOption($s), $sentences),
                 fn ($s) => mb_strtolower($s) !== mb_strtolower($conciseOption)
             ));
-            $angleIndex = intdiv($fallbackAttempt, $totalSentences) % 5;
+            $variantIdx = $fallbackAttempt % $totalVariants;
+            $repeatCycle = intdiv($fallbackAttempt, $totalVariants);
             $topicPhrase = $this->condenseSentenceToTopic($sentence, 6);
-            $slotNum = count($selectedItems) + 1;
-            $qPrompt = match ($angleIndex) {
-                0 => "Identifikasi fakta pokok nomor {$slotNum} terkait \"{$topicPhrase}\" berdasarkan materi!",
-                1 => "Jelaskan makna gagasan nomor {$slotNum} tentang \"{$topicPhrase}\" sesuai pembahasan!",
-                2 => "Terapkan konsep \"{$topicPhrase}\" (butir {$slotNum}): tindakan manakah yang paling sesuai?",
-                3 => "Analisis hubungan inti nomor {$slotNum} di balik konsep \"{$topicPhrase}\"!",
-                default => "Evaluasi pernyataan nomor {$slotNum} manakah yang paling tepat mengenai \"{$topicPhrase}\"!",
-            };
+
+            $generator = $stemVariants[$variantIdx];
+            $qPrompt = $generator($docTopic, $topicPhrase);
+            if ($repeatCycle > 0) {
+                $qPrompt .= " (Fokus Telaah " . ($repeatCycle + 1) . ")";
+            }
+
             $qKey = mb_strtolower($qPrompt);
             if (! isset($usedQuestions[$qKey])) {
                 $usedQuestions[$qKey] = true;
                 $selectedItems[] = [
-                    'bloom_level' => $bloomCycle[$angleIndex],
+                    'bloom_level' => $bloomCycle[$variantIdx % count($bloomCycle)],
                     'question' => $qPrompt,
                     'correct' => $conciseOption,
                     'distractors' => $otherPool,
@@ -4409,15 +4674,23 @@ INSTRUCTIONS;
 
         // Angle 3 (C3 Menerapkan): Tujuan & Penerapan Langkah
         if (preg_match('/^(.{15,150}?)\s+(?:dirancang\s+(?:untuk|guna)|bertujuan\s+(?:untuk|guna)|diarahkan\s+untuk|untuk|guna|demi|agar)\s+(.{15,})$/iu', $sentence, $m)) {
-            $subjectAction = $this->condenseSentenceToTopic(rtrim(trim($m[1]), ', '), 5);
+            $rawAction = rtrim(trim($m[1]), ', ');
+            $cleanAction = preg_replace('/^(?:jenis-jenis\s+[a-z0-9_\-]+\s*\d*[\.\:]*\s*|aspek\s+[a-z0-9_\-]+\s*\d*[\.\:]*\s*|\d+[\.\)]\s*|[a-z][\.\)]\s*)/iu', '', $rawAction) ?? $rawAction;
+            $cleanAction = $this->formatter->restoreMissingSpaces($cleanAction);
+            $subjectAction = $this->condenseSentenceToTopic($cleanAction, 5);
             $goal = $this->condenseClauseToOption(ucfirst(rtrim(trim($m[2]), '.')));
             if (! $isJunkOptionOrSubject($subjectAction) && ! $isJunkOptionOrSubject($goal)) {
+                $isVerb = (bool) preg_match('/^(?:melakukan|menggunakan|menyusun|merumuskan|mengembangkan|menerapkan|menentukan)\b/iu', $subjectAction);
+                $qStem = $isVerb
+                    ? "Berdasarkan materi, apakah sasaran atau tujuan utama dari {$subjectAction}?"
+                    : "Dalam konteks materi, untuk sasaran utama apakah {$subjectAction} dirancang atau dilaksanakan?";
+
                 $candidates[] = [
                     'bloom_level' => 'C3',
-                    'question' => "Terapkan pemahaman materi: untuk sasaran apa \"{$subjectAction}\" dijalankan?",
+                    'question' => $qStem,
                     'correct' => $goal,
                     'distractors' => array_map(fn ($g) => $this->condenseClauseToOption($g), $this->buildGoalDistractors($goal, $allSentences, $predicatePool)),
-                    'explanation' => "Pembahasan: Tindakan \"{$subjectAction}\" ditujukan untuk " . lcfirst($goal) . '.',
+                    'explanation' => "Pembahasan: Tindakan {$subjectAction} ditujukan untuk " . lcfirst($goal) . '.',
                 ];
             }
         }
@@ -4719,9 +4992,11 @@ INSTRUCTIONS;
         $options = [];
         $dIdx = 0;
         foreach ($keys as $key) {
+            $rawText = $key === $correctKey ? $correctClean : ($distractors[$dIdx++] ?? 'Pernyataan tidak sesuai dengan prinsip materi');
+            $cleanText = $this->formatter->restoreMissingSpaces($rawText);
             $options[] = [
                 'key' => $key,
-                'text' => $key === $correctKey ? $correctClean : ($distractors[$dIdx++] ?? 'Pernyataan tidak sesuai dengan prinsip bacaan'),
+                'text' => $cleanText,
             ];
         }
 
@@ -4817,7 +5092,9 @@ INSTRUCTIONS;
      */
     private function condenseClauseToOption(string $text, int $maxChars = 115): string
     {
+        $text = $this->formatter->restoreMissingSpaces($text);
         $clean = trim(preg_replace('/\s+/u', ' ', str_replace(['→', '->'], ', ', strip_tags($text))) ?? '');
+        $clean = $this->formatter->restoreMissingSpaces($clean);
         $clean = trim(preg_replace('/^(?:Kedudukan|Fungsi(?:\s+utama)?|Prinsip|Landasan|Ciri(?:\s+utama)?|Contoh(?:\s+penggunaan)?|Catatan|Aspek|Butir)\s*:\s*/iu', '', $clean) ?? $clean);
         $clean = trim(preg_replace('/^(?:Bab\s+[IVXLCDM\d]+[:.]?\s*|[\d]+[.)]\s*|Bagian\s+(?:Awal|Isi|Akhir)[:.]?\s*)+/iu', '', $clean) ?? $clean);
         $clean = preg_replace('/^[&+\-*\/,;:|~_–—\s\)]+|[&+\-*\/,;:|~_–—\s\(]+$/u', '', $clean) ?? $clean;
