@@ -1,7 +1,7 @@
 @extends('layouts.student')
 
-@section('title', 'Reading Room')
-@section('breadcrumb', 'Reading Room')
+@section('title', 'Ruang Baca')
+@section('breadcrumb', 'Ruang Baca')
 
 @php
     $formatter = app(\App\Services\ReadingMaterialFormatter::class);
@@ -23,7 +23,7 @@
     <section class="stage-heading reading-book-header" aria-labelledby="reading-title">
         <div>
             <p class="eyebrow">RUANG FOKUSMU</p>
-            <h1 id="reading-title">Reading Room</h1>
+            <h1 id="reading-title">Ruang Baca</h1>
             <p class="welcome-subtitle">Baca dengan tenang. Temukan makna di balik setiap paragraf.</p>
         </div>
         <a class="back-link" href="{{ route('dashboard') }}">

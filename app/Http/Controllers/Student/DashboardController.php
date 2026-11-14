@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
 use App\Models\Document;
+use App\Models\TeacherClass;
 use App\Services\GamificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,23 +20,37 @@ class DashboardController extends Controller
         }
 
         // Simpan pilihan tingkat agar Dashboard dan Reading Room selalu memakai jenjang yang sama.
-        $defaultGrade = (string) ($user->currentGrade() ?? ($user->entry_grade ?? 10));
+        $currentGrade = (int) ($user->currentGrade() ?? ($user->entry_grade ?? 10));
+        $defaultGrade = (string) $currentGrade;
         $selectedGrade = $request->query('grade', $request->session()->get('learning_grade', $defaultGrade));
         if (! in_array($selectedGrade, ['10', '11', '12', 'all'], true)) {
+            $selectedGrade = $defaultGrade;
+        }
+        if ($request->query('grade') === null
+            && $selectedGrade !== 'all'
+            && (int) $selectedGrade > $currentGrade) {
             $selectedGrade = $defaultGrade;
         }
         $request->session()->put('learning_grade', $selectedGrade);
 
         $selectedGradeNumeric = $selectedGrade !== 'all' ? (int) $selectedGrade : null;
         $isPriorGrade = $user->isPriorGrade($selectedGradeNumeric);
-        $classrooms = $user->classrooms()
+        $isFutureGrade = $selectedGradeNumeric !== null && $selectedGradeNumeric > $currentGrade;
+        $classrooms = TeacherClass::query()
+            ->join('classroom_memberships', 'classroom_memberships.classroom_id', '=', 'teacher_classes.id')
+            ->where('classroom_memberships.student_id', $user->id)
+            ->select('teacher_classes.*', 'classroom_memberships.joined_at as membership_joined_at')
             ->with('teacher:id,name')
             ->orderBy('teacher_classes.name')
             ->get();
         $selectedClassrooms = $classrooms
-            ->filter(fn ($classroom) => $selectedGrade === 'all' || (string) $classroom->target_grade === $selectedGrade)
+            ->filter(fn ($classroom) => $selectedGrade === 'all'
+                || ! $classroom->target_grade
+                || (string) $classroom->target_grade === 'all'
+                || (string) $classroom->target_grade === $selectedGrade)
             ->values();
-        $hasEnrolledClass = $selectedClassrooms->isNotEmpty();
+        $hasEnrolledClass = $classrooms->isNotEmpty();
+        $hasClassForSelectedGrade = $selectedClassrooms->isNotEmpty();
 
         // Keep historical records so rejoining with the same account restores class progress.
         $classDocumentIds = $selectedClassrooms->isEmpty()
@@ -133,6 +148,7 @@ class DashboardController extends Controller
             'activeSession', 'challengeQuestion',
             'classrooms', 'greeting',
             'user', 'selectedGrade', 'isPriorGrade', 'hasEnrolledClass',
+            'hasClassForSelectedGrade', 'currentGrade', 'isFutureGrade',
         ));
     }
 }

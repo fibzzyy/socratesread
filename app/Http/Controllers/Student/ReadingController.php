@@ -8,6 +8,7 @@ use App\Models\ReadingCoachMessage;
 use App\Models\ReadingSession;
 use App\Models\StudentQuizAttempt;
 use App\Models\StudentTeacherChallengeSubmission;
+use App\Models\TeacherClass;
 use App\Services\GamificationService;
 use App\Services\ReadingMaterialFormatter;
 use App\Services\AI\Contracts\LanguageModel;
@@ -66,10 +67,32 @@ class ReadingController extends Controller
     {
         $student = $request->user();
         $grade = $this->selectedGrade($request);
+        $classrooms = TeacherClass::query()
+            ->join('classroom_memberships', 'classroom_memberships.classroom_id', '=', 'teacher_classes.id')
+            ->where('classroom_memberships.student_id', $student->id)
+            ->select('teacher_classes.*')
+            ->distinct()
+            ->get();
+
         $documents = Document::query()
             ->with('uploader:id,name')
             ->withCount('teacherChallenges')
             ->where('is_published', true)
+            ->when($classrooms->isEmpty(), fn ($query) => $query->whereRaw('1 = 0'))
+            ->when($classrooms->isNotEmpty(), function ($query) use ($classrooms) {
+                $query->where(function ($classroomQuery) use ($classrooms) {
+                    foreach ($classrooms as $classroom) {
+                        $classroomQuery->orWhere(function ($documentQuery) use ($classroom) {
+                            $documentQuery
+                                ->where('uploaded_by', $classroom->teacher_id)
+                                ->where('category', $classroom->name)
+                                ->when($classroom->target_grade, fn ($gradeQuery) => $gradeQuery->whereIn('target_grade', [
+                                    'all', (string) $classroom->target_grade,
+                                ]));
+                        });
+                    }
+                });
+            })
             ->when($grade !== 'all', fn ($query) => $query->where(fn ($sub) => $sub->where('target_grade', 'all')->orWhere('target_grade', $grade)))
             ->latest('created_at')
             ->get();
@@ -146,6 +169,7 @@ class ReadingController extends Controller
 
         return view('student.reading-index', compact(
             'groups', 'selectedGroup', 'selectedDocuments', 'grade', 'completedCount',
+            'classrooms',
         ));
     }
     public function startChallenge(Request $request, Document $document): RedirectResponse

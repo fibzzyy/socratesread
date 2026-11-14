@@ -3214,7 +3214,7 @@ html { font-size: 16px; }
 .my-class-heading h1 span { color: #397bd5; background: none; }
 .my-class-subtitle { color: #526b8b; font-size: 15px; }
 .my-class-back { min-height: 40px; border: 1px solid #dce6f5; border-radius: 999px; color: #193a68; background: #ffffffde; box-shadow: 0 3px 12px #193a680b; font-size: 13px; }
-.my-class-join { position: relative; isolation: isolate; display: grid; grid-template-columns: minmax(0, 1fr); min-height: 0; padding: 36px 40px; overflow: hidden; border: 1px solid #cbdcf2; border-radius: 20px; background: radial-gradient(ellipse at 88% 70%, #9fc3f526 0%, transparent 42%), linear-gradient(105deg, #e5efff 0%, #f7faff 56%, #e8f2ff 100%); box-shadow: 0 4px 16px #193a6810; }
+.my-class-join { position: relative; isolation: isolate; display: grid; width: min(100%, 1200px); grid-template-columns: minmax(0, 1fr); align-content: start; min-height: 0; margin-inline: auto; padding: 24px 32px; overflow: hidden; border: 1px solid #cbdcf2; border-radius: 20px; background: radial-gradient(ellipse at 88% 70%, #9fc3f526 0%, transparent 42%), linear-gradient(105deg, #e5efff 0%, #f7faff 56%, #e8f2ff 100%); box-shadow: 0 4px 16px #193a6810; }
 .my-class-join::before { position: absolute; z-index: 0; top: -28px; right: 5%; width: 112px; height: 112px; border: 1px solid #356ae624; border-radius: 50%; box-shadow: 0 0 0 10px #d7e7fb20, 0 0 0 20px #d7e7fb14; content: ''; pointer-events: none; }
 .my-class-join::after { position: absolute; z-index: 0; right: 3%; bottom: -42px; width: 128px; height: 72px; border: 1px solid #356ae620; border-radius: 50%; content: ''; pointer-events: none; transform: rotate(-18deg); }
 .my-class-join-accent { display: none; }
@@ -3223,24 +3223,25 @@ html { font-size: 16px; }
 .my-class-join-copy { position: relative; z-index: 1; display: flex; min-width: 0; max-width: 670px; flex-direction: column; align-items: flex-start; gap: 0; }
 .my-class-join-eyebrow { position: relative; z-index: 1; display: inline-flex; min-height: 32px; align-items: center; gap: 8px; padding: 5px 12px; border: 1px solid #c8dcf5; border-radius: 999px; color: #2563a8; background: #dceaff; font-size: 11px; font-weight: 700; letter-spacing: .04em; line-height: 1; white-space: nowrap; }
 .my-class-join-eyebrow .lucide-icon { width: 18px; height: 18px; }
-.my-class-join h2 { position: relative; z-index: 1; margin: 8px 0 12px; color: #10264a; font: 700 22px/1.25 var(--font-display); letter-spacing: -.02em; }
-.my-class-join-form { position: relative; z-index: 1; display: flex; width: 100%; max-width: 470px; flex-direction: column; gap: 0; margin-top: 0; }
+.my-class-join h2 { position: relative; z-index: 1; top: -10px; margin: 4px 0 10px; color: #10264a; font: 700 20px/1.25 var(--font-display); letter-spacing: -.02em; }
+.my-class-join-form { position: relative; z-index: 1; display: flex; width: 100%; max-width: 420px; flex-direction: column; gap: 0; margin-top: 0; }
 .my-class-join-form label { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; clip-path: inset(50%); }
 .my-class-join-controls { display: flex; align-items: flex-end; flex-wrap: nowrap; gap: 8px; width: 100%; }
 .my-class-code-field { position: relative; display: flex; min-width: 0; flex: 1 1 280px; flex-direction: column; gap: 4px; }
 .my-class-code-label { position: static; z-index: 2; display: inline-flex; min-height: 11px; align-items: center; gap: 4px; padding: 0 2px; color: #356ae6; background: transparent; font-size: 9px; font-weight: 700; letter-spacing: .06em; line-height: 1; }
 .my-class-code-label .lucide-icon { width: 11px; height: 11px; }
-.my-class-code-field input { display: block; box-sizing: border-box; width: 100%; min-width: 0; height: 42px; min-height: 42px; max-height: 42px; flex: 0 0 42px; padding: 0 42px 0 12px; border: 1px solid #dce5f2; border-radius: 10px; color: #193a68; background: #fff; font: 500 13px/1 var(--font-body); }
+.my-class-code-field input { display: block; box-sizing: border-box; width: 100%; min-width: 0; height: 38px; min-height: 38px; max-height: 38px; flex: 0 0 38px; padding: 0 42px 0 12px; border: 1px solid #dce5f2; border-radius: 10px; color: #193a68; background: #fff; font: 500 12px/1 var(--font-body); }
 .my-class-code-field input::placeholder { color: #7890ad; font: 500 12px/1 var(--font-body); }
 .my-class-code-field input:focus { border-color: #80a9e5; outline: 2px solid #b8d2f3; outline-offset: 1px; }
-.my-class-code-count { position: absolute; right: 11px; bottom: 16px; color: #6a7596; font-size: 10px; line-height: 1; pointer-events: none; }
-.my-class-join-button { box-sizing: border-box; display: inline-flex; width: 142px; height: 42px; min-height: 42px; max-height: 42px; flex: 0 0 142px; align-items: center; justify-content: center; gap: 7px; padding: 0 10px; border: 1px solid #102b50; border-radius: 10px; color: #fff; background: linear-gradient(120deg, #102b50, #193a68); box-shadow: 0 4px 10px #102b501c; font: 600 12px/1 var(--font-body); white-space: nowrap; cursor: pointer; transition: background .2s ease, box-shadow .2s ease, transform .2s ease; }
+.my-class-code-count { position: absolute; right: 11px; bottom: 14px; color: #6a7596; font-size: 9px; line-height: 1; pointer-events: none; }
+.my-class-join-button { box-sizing: border-box; display: inline-flex; width: 128px; height: 38px; min-height: 38px; max-height: 38px; flex: 0 0 128px; align-items: center; justify-content: center; gap: 7px; padding: 0 9px; border: 1px solid #102b50; border-radius: 9px; color: #fff; background: linear-gradient(120deg, #102b50, #193a68); box-shadow: 0 4px 10px #102b501c; font: 600 11px/1 var(--font-body); white-space: nowrap; cursor: pointer; transition: background .2s ease, box-shadow .2s ease, transform .2s ease; }
 .my-class-join-button:hover { background: linear-gradient(120deg, #193a68, #356ae6); box-shadow: 0 7px 14px #356ae62e; transform: translateY(-1px); }
 .my-class-join-button .lucide-icon { width: 16px; height: 16px; }
+.my-class-join-form [data-open-qr-scanner] { min-height: 36px; padding-inline: 10px; font-size: 13px; }
 .my-class-error { margin-top: 7px; color: #a33c49; }
 @keyframes my-class-join-drift { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
 @media (prefers-reduced-motion: reduce) { .my-class-join-decoration { animation: none; } }
-@media (max-width: 900px) { .my-class-join { padding: 28px 30px; } .my-class-join-decoration { width: 18%; opacity: .35; } }
+@media (max-width: 900px) { .my-class-join { width: 100%; padding: 22px 24px; } .my-class-join-decoration { width: 18%; opacity: .35; } }
 .my-class-mascot-wrap { display: none; }
 .my-class-mascot-wrap::before { position: absolute; right: 20px; bottom: 58px; width: 150px; height: 60px; border-radius: 50%; background: radial-gradient(ellipse, #b8d2b565, #b8d2b500 70%); content: ''; }
 .my-class-books { position: absolute; right: 6px; bottom: 0; width: 214px; height: 122px; }
@@ -3592,10 +3593,10 @@ html { font-size: 16px; }
     .my-class-heading { align-items: flex-start; flex-direction: column; gap: 10px; margin: 6px 0 16px; }
     .my-class-heading h1 { font-size: 28px; }
     .my-class-back { align-self: flex-start; }
-    .my-class-join { display: block; min-height: 0; padding: 28px 22px; }
+    .my-class-join { display: block; width: 100%; min-height: 0; padding: 20px 18px; }
     .my-class-join::before, .my-class-join::after, .my-class-join-decoration { display: none; }
     .my-class-join-copy { max-width: none; }
-    .my-class-join h2 { font-size: 20px; white-space: normal; }
+    .my-class-join h2 { top: 0; margin-top: 0; font-size: 18px; white-space: normal; }
     .my-class-mascot-wrap { display: none; }
     .my-class-join-controls { flex-direction: column; }
     .my-class-code-field, .my-class-join-button { width: 100%; flex-basis: auto; }
@@ -4126,7 +4127,27 @@ html { font-size: 16px; }
 .student-dashboard .category-tag.border-emerald-200 { border-color: #dce5e1; background: #f4f8f6; color: #477463; }
 
 @media (min-width: 1025px) {
-    .dashboard-page .burhan-owl { right: 5%; bottom: 0; width: min(76%, 240px); height: 100%; }
+    .dashboard-page .hero-art::before {
+        position: absolute;
+        z-index: 0;
+        right: 12%;
+        bottom: 4%;
+        width: 72%;
+        height: 72%;
+        border-radius: 50%;
+        background: radial-gradient(ellipse, rgb(70 132 239 / 34%) 0%, rgb(100 161 255 / 20%) 42%, transparent 72%);
+        filter: blur(18px);
+        content: '';
+        pointer-events: none;
+    }
+    .dashboard-page .burhan-owl {
+        z-index: 1;
+        right: 27%;
+        bottom: -2%;
+        width: min(90%, 290px);
+        height: 112%;
+        filter: drop-shadow(0 14px 16px rgb(35 96 210 / 32%));
+    }
 }
 
 /* Match student sidebar proportions and branding to the teacher area. */

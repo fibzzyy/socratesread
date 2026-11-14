@@ -18,19 +18,6 @@
 
 @section('content')
     <style>
-        /* Focus / Fullscreen Mode saat kuis aktif (menghilangkan sidebar aplikasi) */
-        .app-shell.quiz-fullscreen-mode .sidebar,
-        .app-shell.quiz-fullscreen-mode .scrim,
-        .app-shell.quiz-fullscreen-mode .topbar .menu-toggle {
-            display: none !important;
-        }
-        .app-shell.quiz-fullscreen-mode .main-content {
-            margin-left: 0 !important;
-            width: 100% !important;
-            max-width: 100% !important;
-            padding: 20px 32px !important;
-        }
-
         /* Styling Animasi & Indikator Opsi Jawaban Terpilih */
         .zep-card {
             position: relative;
@@ -96,6 +83,43 @@
         }
         .quiz-card-panel .quiz-card-footer [data-btn-prev] span {
             margin-left: 0;
+        }
+        .quiz-room-grid[data-is-locked="1"] .quiz-card-footer {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            grid-template-areas: "previous progress challenge next";
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px !important;
+        }
+        .quiz-room-grid[data-is-locked="1"] .quiz-card-footer > div { display: contents; }
+        .quiz-room-grid[data-is-locked="1"] .quiz-card-footer [data-btn-prev] {
+            grid-area: previous;
+            width: 100%;
+            min-width: 0;
+            min-height: 38px;
+            padding-inline: 7px;
+        }
+        .quiz-room-grid[data-is-locked="1"] .quiz-card-footer > div > a:first-of-type { grid-area: progress; }
+        .quiz-room-grid[data-is-locked="1"] .quiz-card-footer > div > a:nth-of-type(2) { grid-area: challenge; }
+        .quiz-room-grid[data-is-locked="1"] .quiz-card-footer [data-btn-next] { grid-area: next; }
+        .quiz-room-grid[data-is-locked="1"] .quiz-card-footer > div > a,
+        .quiz-room-grid[data-is-locked="1"] .quiz-card-footer [data-btn-next] {
+            width: 100%;
+            min-width: 0;
+            min-height: 38px;
+            justify-content: center;
+            gap: 4px;
+            padding-inline: 7px;
+            font-size: 9px;
+            text-align: center;
+        }
+        @media (max-width: 767px) {
+            .quiz-room-grid[data-is-locked="1"] .quiz-card-footer {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                grid-template-areas: "previous next" "progress challenge";
+                gap: 8px;
+            }
         }
     </style>
 
@@ -543,16 +567,6 @@
     const btnModalCheckAgain = document.getElementById('btnModalCheckAgain');
     const btnModalConfirmSubmit = document.getElementById('btnModalConfirmSubmit');
 
-    // 1. Focus Mode: Hilangkan sidebar saat quiz berlangsung
-    const updateFocusMode = () => {
-        if (!isLocked && appShell) {
-            appShell.classList.add('quiz-fullscreen-mode');
-        } else if (appShell) {
-            appShell.classList.remove('quiz-fullscreen-mode');
-        }
-    };
-    updateFocusMode();
-
     // 2. Sound Effects
     let soundEnabled = localStorage.getItem('SR_QUIZ_SOUND') !== 'false';
     let audioCtx = null;
@@ -893,7 +907,6 @@
             root.dataset.isLocked = '1';
 
             // Kuis selesai -> kembalikan sidebar aplikasi
-            updateFocusMode();
 
             // Pasang feedback ke questions lokal
             if (result.feedback) {

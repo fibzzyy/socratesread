@@ -1,7 +1,7 @@
 @extends('layouts.student')
 
-@section('title', $selectedGroup['category'] ?? 'Reading Room')
-@section('breadcrumb', $selectedGroup ? 'Reading Room / '.$selectedGroup['category'] : 'Reading Room')
+@section('title', $selectedGroup['category'] ?? 'Ruang Baca')
+@section('breadcrumb', $selectedGroup ? 'Ruang Baca / '.$selectedGroup['category'] : 'Ruang Baca')
 @php
     $readingUserName = auth()->user()->name ?? 'Pengguna';
 @endphp
@@ -11,7 +11,7 @@
         <button class="icon-button menu-toggle reading-menu-toggle" type="button" aria-label="Buka navigasi" aria-controls="primary-navigation" aria-expanded="false" data-menu-toggle><x-icon name="menu" /></button>
         <div class="breadcrumb">
             <a href="{{ route('dashboard') }}" class="quiz-home-link topbar-home-link" aria-label="Beranda"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7M5 9v12h14V9M9 21v-7h6v7" /></svg></a>
-            <a href="{{ route('dashboard') }}" class="hover:text-blue-600 transition-colors">Ruang belajar</a><span>/</span><strong>{{ $selectedGroup ? 'Reading Room / '.$selectedGroup['category'] : 'Reading Room' }}</strong>
+            <a href="{{ route('dashboard') }}" class="hover:text-blue-600 transition-colors">Ruang belajar</a><span>/</span><strong>{{ $selectedGroup ? 'Ruang Baca / '.$selectedGroup['category'] : 'Ruang Baca' }}</strong>
         </div>
         <span class="reading-topbar-date">{{ now()->locale('id')->translatedFormat('l, j F Y') }}</span>
         <div class="reading-topbar-actions">
@@ -37,7 +37,7 @@
         <section class="reading-hero" aria-labelledby="reading-library-title">
             <div class="rh-body">
                 <span class="rh-eyebrow">RUANG LITERASI DIGITAL</span>
-                <h1 id="reading-library-title">Reading Room</h1>
+                <h1 id="reading-library-title">Ruang Baca</h1>
                 <p>Temukan pengetahuan baru dan bangun pemahaman melalui membaca.</p>
                 <form class="rh-search" id="reading-material-search-form" role="search" aria-controls="reading-search-results">
                     <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -187,9 +187,15 @@
                 <p class="reading-filter-empty" id="reading-filter-empty" hidden>Belum ada kelas dengan status ini.</p>
             @else
                 <div class="reading-empty-state">
-                    <strong>Kamu belum bergabung ke kelas mana pun</strong>
-                    <p>Gabung kelas lewat menu Kelas saya untuk mulai membaca.</p>
-                    <a href="{{ route('classrooms.index') }}">Buka Kelas saya</a>
+                    @if ($classrooms->isEmpty())
+                        <strong>Kamu belum bergabung ke kelas mana pun</strong>
+                        <p>Gabung kelas lewat menu Kelas saya untuk mulai membaca.</p>
+                        <a href="{{ route('classrooms.index') }}">Buka Kelas saya</a>
+                    @else
+                        <strong>Belum ada materi untuk kelas yang kamu ikuti</strong>
+                        <p>Kamu sudah bergabung di {{ $classrooms->count() }} kelas. Materi akan muncul setelah guru membagikannya.</p>
+                        <a href="{{ route('classrooms.index') }}">Lihat Kelas saya</a>
+                    @endif
                 </div>
             @endif
         </section>
@@ -295,6 +301,7 @@
                 });
                 const results = document.getElementById('reading-search-results');
                 const defaultContent = document.querySelector('[data-reading-default-content]');
+                const filterToolbar = document.querySelector('.reading-filter-toolbar');
                 const emptyState = document.getElementById('reading-search-empty');
                 const resultCount = document.getElementById('reading-search-count');
                 if (!search || !form || !results || !defaultContent) return;
@@ -303,9 +310,10 @@
                     const query = search.value.trim().toLocaleLowerCase('id');
                     const items = [...results.querySelectorAll('[data-search-item]')];
 
-                    if (!query) {
+                    if (query.length < 2) {
                         results.hidden = true;
                         defaultContent.hidden = false;
+                        if (filterToolbar) filterToolbar.hidden = false;
                         return;
                     }
 
@@ -318,6 +326,7 @@
 
                     results.hidden = false;
                     defaultContent.hidden = true;
+                    if (filterToolbar) filterToolbar.hidden = true;
                     emptyState.hidden = matches > 0;
                     resultCount.textContent = `${matches} bacaan`;
                 };

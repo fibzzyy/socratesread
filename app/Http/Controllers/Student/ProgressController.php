@@ -23,10 +23,13 @@ class ProgressController extends Controller
         $user = auth()->user();
 
         // 1. Ambil daftar kelas yang diikuti siswa
-        $classrooms = $user->classrooms()
+        $classrooms = TeacherClass::query()
+            ->join('classroom_memberships', 'classroom_memberships.classroom_id', '=', 'teacher_classes.id')
+            ->where('classroom_memberships.student_id', $user->id)
+            ->select('teacher_classes.*', 'classroom_memberships.joined_at as membership_joined_at')
             ->with('teacher:id,name')
             ->withCount('students')
-            ->orderBy('name')
+            ->orderBy('teacher_classes.name')
             ->get();
 
         // 2. Cek apakah ada kelas yang dipilih
