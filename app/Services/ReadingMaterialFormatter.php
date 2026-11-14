@@ -304,6 +304,7 @@ class ReadingMaterialFormatter
         }
 
         $markdown = $this->cleanClassroomHomework($markdown);
+        $markdown = $this->restructureAndFormatPedagogy($markdown, $title);
 
         return $this->ensurePedagogicalStructure($markdown, $title);
     }
@@ -326,9 +327,93 @@ class ReadingMaterialFormatter
         $markdown = preg_replace('/(?:\R+|^)Tugas\s*\R+1\.\s+Simpulkanlah\s+fungsi\s+teks.*?(?=\R+\d+\.\s+[A-Z]|\Z)/ius', '', $markdown);
         $markdown = preg_replace('/\R+Tugas\s+1\s+Selanjutnya,?\s+lakukan\s+analisis.*?(?=\R+\d+\.\s+[A-Z]|\Z)/ius', "\n\n", $markdown);
 
+        // 3. Bersihkan spanduk / instruksi tugas PR di sela-sela subbab
+        $markdown = preg_replace('/(?:\s+Tugas|\R+Tugas)\s+\d+[\s\:\.]*Selanjutnya,?\s+lakukan\s+analisis\s+kebahasaan.*?Paragraf\s+ke:\s*/ius', "\n\n", $markdown);
+        $markdown = preg_replace('/(?:\R+|^)\s*Selanjutnya,?\s+lanjutkan\s+dengan\s+mencari\s+\d+\s+kata.*?Paragraf\s+ke:\s*/ius', "\n\n", $markdown);
+        $markdown = preg_replace('/^.*\(tabel\s+ini\s+hanya\s+contoh\).*$\R?/miu', '', $markdown);
+        $markdown = preg_replace('/(?:\R+|^)\s*Tugas\s+\d*[\s\:\.]*Setelah\s+(?:mengikuti|berlatih|membuat)[^\n]+(?:\R+|$)/iu', "\n\n", $markdown);
+        $markdown = preg_replace('/(?:\R+|^)\s*Tugas\s+\d*[\s\:\.]*Selanjutnya,?\s+berlatihlah[^\n]+(?:\R+|$)/iu', "\n\n", $markdown);
+        $markdown = preg_replace('/(?:\R+|^)\s*Tugas\s+Sekarang,?\s+kerjakan\s+tugas-tugas[^\n]+(?:\R+|$)/iu', "\n\n", $markdown);
+        $markdown = preg_replace('/(?:\R+|^)\s*Tugas\s+Selanjutnya,?\s+untuk\s+menguji\s+pemahamanmu[^\n]+(?:\R+|$)/iu', "\n\n", $markdown);
+        $markdown = preg_replace('/(?:\s*Lakukanlah\s+analisis\s+afiksasi\s+terhadap\s+kata-kata.*?\Z)/ius', '.', $markdown);
+        $markdown = preg_replace('/(?:\R+|^)[^\n]*\(tabel\s+ini\s+hanya\s+contoh\)[^\n]*/iu', '', $markdown);
+        $markdown = preg_replace('/(?:\R+|^)\s*Eksplorasi\s+[\d\.]*\s+Melipat\s+kertas.*?(?=(?:\R+[-–•]|\R+###|\R+\d+\.|\Z))/ius', '', $markdown);
+        $markdown = preg_replace('/Ayo,?\s+berkolaborasi\s+dengan\s+temanmu[^\n\.\!]+[\.\!]/iu', '', $markdown);
+        $markdown = preg_replace('/Ayo,?\s+bereksplorasi\s+melipat\s+kertas[^\n\.\!]+[\.\!]/iu', '', $markdown);
+        $markdown = preg_replace('/Jika\s+kertas\s+tersebut\s+dilipat\s+sebanyak\s+\d+\s+kali[^\n]+Tabel\s+2\.2[^\n\.\!]+[\.\!]/iu', '', $markdown);
+        $markdown = preg_replace('/Tabel\s+2\.2[^\n]+Banyaknya\s+bagian\s+sama\s+besar[^\n]+Jelaskan\./ius', '', $markdown);
+        $markdown = preg_replace('/Siapkan\s+kertas\s+berbentuk\s+persegi\s+panjang\.\s*/iu', '', $markdown);
+
         $markdown = preg_replace('/\.{2,}(?=\s*$)/u', '.', $markdown);
 
         return trim($markdown);
+    }
+
+    /**
+     * Menyempurnakan struktur hierarki, heading submateri, tabel teks, dan rumus matematika
+     * agar tersaji secara bersih, elegan, dan terstruktur bagi siswa di Reading Room.
+     */
+    public function restructureAndFormatPedagogy(string $text, string $title = ''): string
+    {
+        // 1. Buang pengulangan kalimat pembuka jika sama persis dengan pertanyaan excerpt
+        $text = preg_replace('/^(?:###\s*[^\n]+\R+)?(Apa\s+perbedaan\s+barisan\s+dan\s+deret[^\n\?]+\?)\R+/iu', '', $text);
+
+        // 2. Bersihkan artefak titik-titik isian lembar kerja U2 - U1 = ... - ... = ...
+        $text = preg_replace('/U2\s*[–\-]\s*U1\s*=\s*\.{3,}\s*[–\-]\s*\.{3,}\s*=\s*\.{3,}(?:\s*U\s*[–\-]\s*U\s*=\s*\.{3,}\s*[–\-]\s*\.{3,}\s*=\s*\.{3,})*/u', '', $text);
+        $text = preg_replace('/-\s*Suku\s+ke-\d+\s+dilambangkan\s+dengan\s+U\s*=\s*\.{3,}\s*/u', '', $text);
+        $text = preg_replace('/(?:Gambar\s+2\.1[^\n]+)?Tabel\s+2\.1\s*Banyak\s+Meja\s+dan\s+Kursi\s*Banyak\s+meja\s*1\s*2\s*3\s*4\s*5\s*6\s*Banyak\s+kursi\s*4\s*6\s*[…\.]*\s*/iu', '', $text);
+        $text = preg_replace('/\b4\s+6\s+8\s+10\s*[…\.]*\s*$/mu', '', $text);
+
+        // 3. Bersihkan tabel kata dan frasa nomina/verba yang melebur
+        $patternNomina = '/a\.\s*Nomina\s+Paragraf\s+Kata\s+Frasa\s+I\s+wayang\s+seni\s+pertunjukan[^\n]+boneka\s+kayu/iu';
+        $replacementNomina = "**a. Contoh Identifikasi Kata dan Frasa Nomina (Kata Benda):**\n\n"
+            . "- **Kata Nomina:** wayang, boneka, warisan, seni, dunia, lembaga, bahan.\n"
+            . "- **Frasa Nomina:** *seni pertunjukan*, *warisan budaya asli Indonesia*, *pertunjukan bayangan boneka tersohor*, *sebuah warisan mahakarya dunia*, *lembaga yang mengurusi kebudayaan*, *wayang kulit*, *wayang golek*.\n\n";
+        $text = preg_replace($patternNomina, $replacementNomina, $text) ?? $text;
+
+        $patternVerba = '/b\.\s*Verba\s+Paragraf\s+Kata\s+Frasa\s+I\s+adalah\s+sudah\s+membagi\s+menetapkan\s+disesuaikan\s+dibuat\s+berarti\s+merupakan\s+mengembangkan/iu';
+        $replacementVerba = "**b. Contoh Identifikasi Kata dan Frasa Verba (Kata Kerja):**\n\n"
+            . "- **Kata Verba:** adalah, menetapkan, disesuaikan, dibuat, berarti, merupakan, mengembangkan.\n"
+            . "- **Frasa Verba:** *sudah membagi*.\n\n";
+        $text = preg_replace($patternVerba, $replacementVerba, $text) ?? $text;
+        $text = preg_replace('/(?<=[a-z\*\.\!])\s+(Berdasarkan\s+analisis\s+kata\s+dan\s+frasa)/iu', "\n\n$1", $text);
+
+        // 4. Pisahkan Heading dan Sub-bab menjadi blok Markdown terpisah
+        $subheadingPatterns = [
+            '/\b(\d+\.\s+Kata\s+serta\s+Frasa\s+Verba\s+dan\s+Nomina)\s+/u' => "\n\n### $1\n\n",
+            '/\b(\d+\.\s+Afiksasi)\s+(?=Dalam\s+kegiatan\s+berbahasa)/u' => "\n\n### $1\n\n",
+            '/\b(\d+\.\s+Barisan\s+Aritmetika)\s+(?=Eksplorasi|\d|\p{L})/u' => "\n\n### $1\n\n",
+            '/\b(\d+\.\s+Barisan\s+Geometri)\s+(?=Lima\s+anak|Eksplorasi|\d|\p{L})/u' => "\n\n### $1\n\n",
+            '/\b(Eksplorasi\s+\d+[\.\d]*\s+[^\n\.\:]{3,40})\s+(?=Ayo|Dalam|Pada|\p{L})/u' => "\n\n**$1**\n\n",
+        ];
+        foreach ($subheadingPatterns as $pat => $rep) {
+            $text = preg_replace($pat, $rep, $text) ?? $text;
+        }
+
+        // 5. Pisahkan Contoh Soal dan Alternatif Penyelesaian menjadi blok terstruktur
+        $text = preg_replace('/(?:\R+|^|(?<=[.!?])\s*)(Contoh\s+\d+)\s+([^\n]+?)\s*(Alternatif\s+[pP]enyelesaian:?)/iu', "\n\n#### $1\n$2\n\n**$3**\n", $text);
+        $text = preg_replace('/(?<!\n\n)(Alternatif\s+[pP]enyelesaian:?)\s*/iu', "\n\n**$1**\n\n", $text);
+
+        // 6. Rapikan baris latihan isian titik-titik berulang pada pembelahan bakteri / gedung seni
+        $text = preg_replace('/U\s*=\s*2\s*×\s*…\s*\(2\s*dikali\s*3\s*sebanyak\s*…\s*kali\)[^\n]+(?=Suku\s+ke-n)/ius', 
+            "Dari pola tersebut diperoleh bahwa untuk suku ke-n:\n\n- Suku ke-1: \$U_1 = a = 2\$\n- Suku ke-2: \$U_2 = 2 \\times 3^1 = 6\$\n- Suku ke-3: \$U_3 = 2 \\times 3^2 = 18\$\n- Suku ke-n: \$U_n = a \\cdot r^{n-1}\$\n\n", $text);
+
+        $text = preg_replace('/-\s*Baris\s+ke-1\s*=\s*20\s*-\s*Baris\s+ke-2\s*=\s*24\s*=\s*20\+\s*4[^\n]+(?=Gambar\s+2\.3|Jadi,\s+rumus)/ius',
+            "Pola penambahan kursi tiap baris:\n\n- Baris ke-1 (\$U_1\$): 20\n- Baris ke-2 (\$U_2\$): \$20 + 4 = 24\$\n- Baris ke-3 (\$U_3\$): \$20 + 2(4) = 28\$\n- Baris ke-n (\$U_n\$): \$20 + (n - 1) \\times 4\$\n\n", $text);
+
+        // 7. Rapikan rumus matematika agar berformat LaTeX rapi
+        $text = preg_replace('/\bU\s*n\s*=\s*a\s*\+\s*\(n\s*-\s*1\)\s*b\b/iu', '$U_n = a + (n - 1)b$', $text);
+        $text = preg_replace('/\bb\s*=\s*U\s*n\s*–\s*U\s*\(n[–\-]1\)\b/iu', '$b = U_n - U_{n-1}$', $text);
+        $text = preg_replace('/\bU\s*n\s*=\s*a\s*\(\s*r\s*\)\s*\(n-1\)\b/iu', '$U_n = a \\cdot r^{n-1}$', $text);
+
+        // 8. Pecah item berurutan yang menempel dalam satu baris (misal pada daftar contoh afiksasi)
+        $text = preg_replace('/(?<=[a-z\)])\s+(\d+\.\s+[a-z\p{L}])/u', "\n$1", $text);
+
+        // 9. Normalisasi spasi & baris baru ganda
+        $text = preg_replace('/[ \t]+/u', ' ', $text);
+        $text = preg_replace('/\R{3,}/u', "\n\n", $text);
+
+        return trim($text);
     }
 
     /**

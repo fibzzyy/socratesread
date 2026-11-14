@@ -129,4 +129,40 @@ class CuratedReadingAndClassroomCleanTest extends TestCase
         $this->assertLessThanOrEqual(205, mb_strlen($trimmed));
         $this->assertStringEndsWith('...', $trimmed);
     }
+
+    public function test_restructure_and_format_pedagogy_creates_headings_and_cleans_in_text_chores(): void
+    {
+        $formatter = new ReadingMaterialFormatter();
+
+        $rawBody = "1. Kata serta Frasa Verba dan Nomina Jenis kata dan frasa penting dalam observasi. "
+            . "a. Nomina Paragraf Kata Frasa I wayang seni pertunjukan yang telah ditetapkan sebagai warisan budaya asli Indonesia sebuah warisan mahakarya dunia yang menggunakan boneka kayu\n\n"
+            . "b. Verba Paragraf Kata Frasa I adalah sudah membagi menetapkan disesuaikan dibuat berarti merupakan mengembangkan\n\n"
+            . "Tugas 1 Selanjutnya, lakukan analisis kebahasaan sebagaimana contoh di atas. Tulislah hasil analisis kamu dalam tabel seperti dalam contoh berikut! Paragraf ke:\n\n"
+            . "Kata Nomina Frasa Nomina (tabel ini hanya contoh)\n\n"
+            . "2. Afiksasi Dalam kegiatan berbahasa kata dasar dapat berubah jenis. "
+            . "Contoh 3 Suku pertama barisan geometri adalah 4 dan suku ke-4 adalah 108. Alternatif penyelesaian:\n\n"
+            . "Substitusi nilai a.\n\n"
+            . "Eksplorasi 2.3 Melipat kertas Siapkan kertas berbentuk persegi panjang. Ayo, bereksplorasi melipat kertas beberapa kali. Tabel 2.2 Jumlah Lipatan Kertas Banyaknya bagian sama besar Jelaskan.\n\n"
+            . "U = 2 × … (2 dikali 3 sebanyak … kali) = 2 × 3 … Suku ke-n";
+
+        $formatted = $formatter->format($rawBody, 'Analisis Struktur');
+
+        // Subheadings cleanly promoted to Markdown H3
+        $this->assertStringContainsString('### 1. Kata serta Frasa Verba dan Nomina', $formatted);
+        $this->assertStringContainsString('### 2. Afiksasi', $formatted);
+
+        // Examples and alternative solutions properly structured
+        $this->assertStringContainsString('#### Contoh 3', $formatted);
+        $this->assertStringContainsString('**Alternatif penyelesaian:**', $formatted);
+
+        // Flattened table transformed into readable bullet categories
+        $this->assertStringContainsString('Contoh Identifikasi Kata dan Frasa Nomina', $formatted);
+        $this->assertStringContainsString('Contoh Identifikasi Kata dan Frasa Verba', $formatted);
+
+        // Middle-of-text classroom chores and paper folding stripped
+        $this->assertStringNotContainsString('Tugas 1 Selanjutnya, lakukan analisis', $formatted);
+        $this->assertStringNotContainsString('(tabel ini hanya contoh)', $formatted);
+        $this->assertStringNotContainsString('Melipat kertas Siapkan kertas', $formatted);
+        $this->assertStringNotContainsString('2 dikali 3 sebanyak … kali', $formatted);
+    }
 }
