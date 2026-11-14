@@ -271,10 +271,12 @@
             <circle cx="185" cy="115" r="1.5" fill="#FFFFFF" opacity="0.7"/>
         </g>
 
-        <!-- Eyelids for Natural Blinking -->
-        <g class="owl-eyelid" fill="#0F172A">
-            <path d="M95 112 A23 23 0 0 1 141 112 Z"/>
-            <path d="M159 112 A23 23 0 0 1 205 112 Z"/>
+        <!-- Eyelids for Natural Blinking (Default: Wide Open Eyes) -->
+        <g class="owl-eyelid" fill="#0F172A" style="transform: scaleY(0); opacity: 0;">
+            <circle cx="118" cy="112" r="23.5"/>
+            <circle cx="182" cy="112" r="23.5"/>
+            <path d="M98 114 Q118 124 138 114" stroke="#F59E0B" stroke-width="2" stroke-linecap="round" fill="none"/>
+            <path d="M162 114 Q182 124 202 114" stroke="#F59E0B" stroke-width="2" stroke-linecap="round" fill="none"/>
         </g>
 
         <!-- Scholarly Spectacles (Kacamata Emas Cendekiawan) -->

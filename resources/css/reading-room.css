@@ -34,7 +34,8 @@
 .reading-room-shell::after { position: absolute; z-index: 0; pointer-events: none; content: ''; }
 .reading-room-shell::before { display: none; }
 .reading-room-shell::after { inset: 0; opacity: .52; background-image: radial-gradient(circle at 72% 15%, #fff 0 2px, transparent 3px), radial-gradient(circle at 92% 38%, #fff 0 2px, transparent 3px), radial-gradient(circle at 66% 68%, rgb(53 111 230 / 55%) 0 2px, transparent 3px), radial-gradient(circle at 86% 84%, #fff 0 3px, transparent 4px); background-repeat: no-repeat; animation: reading-room-twinkle 8s ease-in-out infinite alternate; }
-.reading-room-shell > * { position: relative; z-index: 1; }
+.reading-room-shell > .topbar { position: sticky; z-index: 40 !important; }
+.reading-room-shell > .page-content { position: relative; z-index: 1; }
 
 /* The oversized decorative rings belong to the Reading Room landing page.
    Keep the detail page's background restrained and prevent the rings from
@@ -48,13 +49,20 @@
 .reading-page-content {
     box-sizing: border-box;
     width: 100%;
-    max-width: 1450px;
-    margin: 0 auto;
-    padding: 0 40px;
+    max-width: none;
+    margin: 0;
+    padding: 0 30px 32px !important;
     background: transparent;
 }
 
-.reading-page-content > .page-footer { margin: 40px 0 0; padding: 0 0 24px; color: #7186A6; font-size: 12px; }
+.reading-page-content > .page-footer {
+    box-sizing: border-box;
+    width: 100%;
+    margin: 32px 0 0;
+    padding: 0 0 20px;
+    color: #7186A6;
+    font-size: 12px;
+}
 
 /* Top bar */
 .reading-topbar {
@@ -298,8 +306,8 @@
 }
 
 @media (max-width: 767px) {
-    .reading-page-content { padding-right: 20px; padding-left: 20px; }
-    .reading-topbar { margin: 8px 16px 0; height: 64px; padding-inline: 14px; gap: 8px; border-radius: 999px; }
+    .reading-page-content { padding: 0 12px 24px !important; }
+    .reading-topbar { margin: 8px 12px 14px; height: 60px; padding-inline: 12px; gap: 8px; border-radius: 999px; }
     .reading-topbar-date { font-size: 12px; }
     .reading-topbar-actions { gap: 8px; }
     .reading-stat-chip { display: none; }
@@ -333,7 +341,7 @@
 }
 
 @media (max-width: 420px) {
-    .reading-page-content { padding-right: 16px; padding-left: 16px; }
+    .reading-page-content { padding: 0 12px 24px !important; }
     .reading-topbar-date { font-size: 11px; }
     .reading-user > svg { display: none; }
     .reading-class-title { grid-template-columns: 1fr; grid-template-areas: 'title' 'teacher' 'tags'; }

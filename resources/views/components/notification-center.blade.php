@@ -37,3 +37,26 @@
         @endforelse
     </section>
 </details>
+
+<script>
+    (() => {
+        if (window.__notificationCenterInitialized) return;
+        window.__notificationCenterInitialized = true;
+
+        document.addEventListener('click', (e) => {
+            const openPanels = document.querySelectorAll('.notification-center[open]');
+            openPanels.forEach(panel => {
+                if (!panel.contains(e.target)) {
+                    panel.removeAttribute('open');
+                }
+            });
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const openPanels = document.querySelectorAll('.notification-center[open]');
+                openPanels.forEach(panel => panel.removeAttribute('open'));
+            }
+        });
+    })();
+</script>

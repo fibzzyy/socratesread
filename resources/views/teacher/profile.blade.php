@@ -129,7 +129,7 @@
                             <x-icon name="shield-check" class="w-4 h-4" />
                         </span>
                         <div>
-                            <h3 class="text-base font-bold text-slate-900 m-0">Informasi Pendidik</h3>
+                            <h3 class="text-base font-bold text-slate-900 m-0">Informasi mengajar</h3>
                             <p class="text-xs text-slate-500 m-0">Data resmi pendidik dan instansi mengajar</p>
                         </div>
                     </div>

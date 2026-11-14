@@ -323,34 +323,28 @@ document.addEventListener('DOMContentLoaded', () => {
     updateAudioButtons();
 
     // =========================================================================
-    // 1B. Dynamic Random Twinkling Stars Generator for Intro Celestial Sky
+    // 1B. Dynamic Random Twinkling Stars Generator for Intro Celestial Sky (Optimized)
     // =========================================================================
     function initTwinklingStars() {
         const starsCanvas = document.getElementById('stars-canvas');
         if (!starsCanvas) return;
         starsCanvas.innerHTML = '';
 
-        const starCount = 55;
-        const colors = ['#ffffff', '#fef08a', '#bae6fd', '#fde047', '#e0e7ff', '#7dd3fc'];
+        const isMobile = window.innerWidth < 640;
+        const starCount = isMobile ? 12 : 22;
+        const colors = ['#ffffff', '#fef08a', '#bae6fd', '#fde047', '#e0e7ff'];
+        const fragment = document.createDocumentFragment();
 
         for (let i = 0; i < starCount; i++) {
             const star = document.createElement('div');
             star.className = 'star-particle';
 
-            const isSparkle = Math.random() < 0.22; // 22% 4-pointed sparkle stars
-            if (isSparkle) {
-                star.classList.add('sparkle-4pt');
-            }
-
-            const size = isSparkle
-                ? (Math.random() * 5 + 4).toFixed(1)
-                : (Math.random() * 2.5 + 1.2).toFixed(1);
-
-            const x = (Math.random() * 96 + 2).toFixed(2);
-            const y = (Math.random() * 94 + 3).toFixed(2);
-            const dur = (Math.random() * 2.6 + 1.6).toFixed(2);
-            const del = (Math.random() * 3.5).toFixed(2);
-            const minOp = (Math.random() * 0.15 + 0.1).toFixed(2);
+            const size = (Math.random() * 2 + 1.2).toFixed(1);
+            const x = (Math.random() * 94 + 3).toFixed(1);
+            const y = (Math.random() * 92 + 4).toFixed(1);
+            const dur = (Math.random() * 2.5 + 2).toFixed(1);
+            const del = (Math.random() * 3).toFixed(1);
+            const minOp = (Math.random() * 0.15 + 0.15).toFixed(2);
             const maxOp = (Math.random() * 0.35 + 0.65).toFixed(2);
             const color = colors[Math.floor(Math.random() * colors.length)];
 
@@ -359,14 +353,14 @@ document.addEventListener('DOMContentLoaded', () => {
             star.style.left = `${x}%`;
             star.style.top = `${y}%`;
             star.style.backgroundColor = color;
-            star.style.color = color;
             star.style.setProperty('--twinkle-dur', `${dur}s`);
             star.style.setProperty('--twinkle-del', `${del}s`);
             star.style.setProperty('--min-opacity', minOp);
             star.style.setProperty('--max-opacity', maxOp);
 
-            starsCanvas.appendChild(star);
+            fragment.appendChild(star);
         }
+        starsCanvas.appendChild(fragment);
     }
     initTwinklingStars();
 
@@ -496,6 +490,13 @@ document.addEventListener('DOMContentLoaded', () => {
             try { localStorage.setItem('socratesread_intro_seen', 'true'); } catch (e) {}
             sessionStorage.setItem('socratesread_intro_seen', 'true');
 
+            // Detach overlay from render tree after fade transition to save GPU/CPU cycles
+            setTimeout(() => {
+                if (introOverlay.classList.contains('is-hidden')) {
+                    introOverlay.style.display = 'none';
+                }
+            }, 600);
+
             if (introOwlPopup) {
                 introOwlPopup.classList.remove('is-swooping', 'is-perched-on-book', 'athena-intro-hinggap');
             }
@@ -540,6 +541,12 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.classList.remove('overflow-hidden');
         try { localStorage.setItem('socratesread_intro_seen', 'true'); } catch (e) {}
         sessionStorage.setItem('socratesread_intro_seen', 'true');
+
+        setTimeout(() => {
+            if (introOverlay.classList.contains('is-hidden')) {
+                introOverlay.style.display = 'none';
+            }
+        }, 600);
     }
 
     function reopenBook() {
@@ -562,6 +569,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (openControlsBar) openControlsBar.classList.add('is-hidden');
         if (openBookBtn) openBookBtn.classList.remove('is-hidden');
 
+        // Restore display and trigger smooth fade-in
+        introOverlay.style.display = 'flex';
+        void introOverlay.offsetWidth;
         introOverlay.classList.remove('is-hidden');
         document.body.classList.add('overflow-hidden');
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -626,24 +636,51 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // 3D Card Tilt Parallax (Inspired by ReactBits.dev / 21st.dev)
+    // 3D Card Tilt Parallax (Desktop fine-pointer only, throttled via RAF)
     if (introOverlay && bookStage) {
         const book3d = document.getElementById('book-3d');
-        introOverlay.addEventListener('mousemove', (e) => {
-            if (!isBookOpen || window.innerWidth < 1024 || !book3d) return;
-            const rect = bookStage.getBoundingClientRect();
-            const x = (e.clientX - rect.left) / rect.width - 0.5;
-            const y = (e.clientY - rect.top) / rect.height - 0.5;
-            const tiltY = Math.max(-5, Math.min(5, x * 7));
-            const tiltX = Math.max(-4, Math.min(4, -y * 5));
-            book3d.style.transform = `rotateX(${6 + tiltX}deg) rotateY(${tiltY}deg)`;
-        });
+        const isFinePointer = window.matchMedia && window.matchMedia('(pointer: fine)').matches;
+        let tiltTicking = false;
+        let cachedRect = null;
 
-        introOverlay.addEventListener('mouseleave', () => {
-            if (isBookOpen && book3d) {
-                book3d.style.transform = 'rotateX(6deg) rotateY(0deg)';
+        const updateCachedRect = () => {
+            if (bookStage && !introOverlay.classList.contains('is-hidden')) {
+                cachedRect = bookStage.getBoundingClientRect();
             }
-        });
+        };
+
+        if (isFinePointer) {
+            introOverlay.addEventListener('mouseenter', updateCachedRect, { passive: true });
+            window.addEventListener('resize', updateCachedRect, { passive: true });
+
+            introOverlay.addEventListener('mousemove', (e) => {
+                if (!isBookOpen || window.innerWidth < 1024 || !book3d) return;
+                if (!cachedRect) updateCachedRect();
+                if (!cachedRect) return;
+
+                if (!tiltTicking) {
+                    tiltTicking = true;
+                    const clientX = e.clientX;
+                    const clientY = e.clientY;
+                    window.requestAnimationFrame(() => {
+                        if (cachedRect) {
+                            const x = (clientX - cachedRect.left) / cachedRect.width - 0.5;
+                            const y = (clientY - cachedRect.top) / cachedRect.height - 0.5;
+                            const tiltY = Math.max(-4, Math.min(4, x * 6));
+                            const tiltX = Math.max(-3, Math.min(3, -y * 4));
+                            book3d.style.transform = `rotateX(${6 + tiltX}deg) rotateY(${tiltY}deg)`;
+                        }
+                        tiltTicking = false;
+                    });
+                }
+            }, { passive: true });
+
+            introOverlay.addEventListener('mouseleave', () => {
+                if (isBookOpen && book3d) {
+                    book3d.style.transform = 'rotateX(6deg) rotateY(0deg)';
+                }
+            });
+        }
     }
 
     // Keyboard support for book intro
@@ -666,7 +703,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // =========================================================================
-    // 2B. Draggable Interactive Athena Mascot Controller (Pointer Events)
+    // 2B. Draggable Interactive Athena Mascot Controller (Pointer Events, Zero-Reflow RAF)
     // =========================================================================
     if (introOwlPopup) {
         let isDraggingOwl = false;
@@ -676,6 +713,13 @@ document.addEventListener('DOMContentLoaded', () => {
         let elemInitialY = 0;
         let lastDragX = 0;
         let currentTilt = 0;
+        let cachedOwlWidth = 0;
+        let cachedOwlHeight = 0;
+        let dragRafId = null;
+        let pendingClientX = 0;
+        let pendingClientY = 0;
+        let hasDraggedFar = false;
+        let activePointerId = null;
 
         function getOwlBaseScale() {
             if (window.innerWidth < 640) return 0.58;
@@ -683,46 +727,21 @@ document.addEventListener('DOMContentLoaded', () => {
             return 0.88;
         }
 
-        function startOwlDrag(clientX, clientY) {
-            if (!introOwlPopup) return;
-            isDraggingOwl = true;
+        function applyOwlDragCoordinates(clientX, clientY) {
             const baseScale = getOwlBaseScale();
-            introOwlPopup.style.setProperty('--owl-scale', baseScale);
-
-            // Calculate current visual center relative to overlay/viewport
-            const rect = introOwlPopup.getBoundingClientRect();
-            elemInitialX = rect.left + rect.width / 2;
-            elemInitialY = rect.top + rect.height / 2;
-            dragStartX = clientX;
-            dragStartY = clientY;
-            lastDragX = clientX;
-            currentTilt = 0;
-
-            // Anchor element cleanly before first move to prevent any jumping
-            introOwlPopup.style.right = 'auto';
-            introOwlPopup.style.left = `${elemInitialX}px`;
-            introOwlPopup.style.top = `${elemInitialY}px`;
-            introOwlPopup.style.transform = `translate(-50%, -50%) scale(${baseScale * 1.04}) rotate(0deg)`;
-
-            introOwlPopup.classList.add('is-dragging', 'is-custom-placed');
-
-            updateOwlSpeech('"Wuuush! Aku terbang bersamamu! ✨"');
-            playAthenaChime();
-        }
-
-        function moveOwlDrag(clientX, clientY) {
-            if (!isDraggingOwl || !introOwlPopup) return;
-            const baseScale = getOwlBaseScale();
-
             const deltaX = clientX - dragStartX;
             const deltaY = clientY - dragStartY;
+
+            if (Math.hypot(deltaX, deltaY) > 5) {
+                hasDraggedFar = true;
+            }
 
             let newX = elemInitialX + deltaX;
             let newY = elemInitialY + deltaY;
 
-            // Clamping inside viewport bounds considering scaled size
-            const padX = Math.max(50, (introOwlPopup.offsetWidth * baseScale) / 3);
-            const padY = Math.max(40, (introOwlPopup.offsetHeight * baseScale) / 3);
+            // Clamping inside viewport bounds using cached dimensions (zero reflow!)
+            const padX = Math.max(50, (cachedOwlWidth * baseScale) / 3);
+            const padY = Math.max(40, (cachedOwlHeight * baseScale) / 3);
             newX = Math.max(padX, Math.min(window.innerWidth - padX, newX));
             newY = Math.max(padY, Math.min(window.innerHeight - padY, newY));
 
@@ -736,52 +755,178 @@ document.addEventListener('DOMContentLoaded', () => {
             introOwlPopup.style.transform = `translate(-50%, -50%) scale(${baseScale * 1.04}) rotate(${currentTilt}deg)`;
         }
 
-        function endOwlDrag() {
+        function startOwlDrag(clientX, clientY) {
+            if (!introOwlPopup) return;
+
+            // In case a previous drag or frame was still pending:
+            if (dragRafId) {
+                window.cancelAnimationFrame(dragRafId);
+                dragRafId = null;
+            }
+
+            isDraggingOwl = true;
+            hasDraggedFar = false;
+            const baseScale = getOwlBaseScale();
+            introOwlPopup.style.setProperty('--owl-scale', baseScale);
+
+            // Calculate current visual center and cache dimensions once at drag start
+            const rect = introOwlPopup.getBoundingClientRect();
+            elemInitialX = rect.left + rect.width / 2;
+            elemInitialY = rect.top + rect.height / 2;
+            cachedOwlWidth = rect.width;
+            cachedOwlHeight = rect.height;
+
+            dragStartX = clientX;
+            dragStartY = clientY;
+            lastDragX = clientX;
+            pendingClientX = clientX;
+            pendingClientY = clientY;
+            currentTilt = 0;
+
+            // Anchor element cleanly before first move to prevent any jumping
+            introOwlPopup.style.right = 'auto';
+            introOwlPopup.style.bottom = 'auto';
+            introOwlPopup.style.left = `${elemInitialX}px`;
+            introOwlPopup.style.top = `${elemInitialY}px`;
+            introOwlPopup.style.transform = `translate(-50%, -50%) scale(${baseScale * 1.04}) rotate(0deg)`;
+
+            introOwlPopup.classList.add('is-dragging');
+            introOwlPopup.classList.remove('is-custom-placed');
+
+            updateOwlSpeech('"Wuuush! Aku terbang bersamamu! ✨"');
+            playAthenaChime();
+        }
+
+        function renderOwlDrag() {
+            dragRafId = null;
             if (!isDraggingOwl || !introOwlPopup) return;
+            applyOwlDragCoordinates(pendingClientX, pendingClientY);
+        }
+
+        function moveOwlDrag(clientX, clientY) {
+            if (!isDraggingOwl || !introOwlPopup) return;
+            pendingClientX = clientX;
+            pendingClientY = clientY;
+
+            if (!dragRafId) {
+                dragRafId = window.requestAnimationFrame(renderOwlDrag);
+            }
+        }
+
+        function endOwlDrag() {
+            // Cancel any queued animation frame
+            if (dragRafId) {
+                window.cancelAnimationFrame(dragRafId);
+                dragRafId = null;
+            }
+
+            // Immediately unbind global window listeners
+            window.removeEventListener('pointermove', onGlobalPointerMove);
+            window.removeEventListener('pointerup', onGlobalPointerUp);
+            window.removeEventListener('pointercancel', onGlobalPointerCancel);
+
+            // Safely release pointer capture
+            if (activePointerId !== null && introOwlPopup) {
+                try {
+                    if (introOwlPopup.hasPointerCapture && introOwlPopup.hasPointerCapture(activePointerId)) {
+                        introOwlPopup.releasePointerCapture(activePointerId);
+                    }
+                } catch (err) {}
+                activePointerId = null;
+            }
+
+            if (!isDraggingOwl || !introOwlPopup) {
+                isDraggingOwl = false;
+                return;
+            }
+
+            // If a fast drag had pending coordinates not yet painted by RAF, flush them immediately
+            if (pendingClientX && pendingClientY) {
+                applyOwlDragCoordinates(pendingClientX, pendingClientY);
+            }
+
             isDraggingOwl = false;
             const baseScale = getOwlBaseScale();
             introOwlPopup.classList.remove('is-dragging');
+            introOwlPopup.classList.add('is-custom-placed');
+            introOwlPopup.style.setProperty('--owl-scale', baseScale);
             introOwlPopup.style.transform = `translate(-50%, -50%) scale(${baseScale}) rotate(0deg)`;
-            updateOwlSpeech('"Tempat yang nyaman! Ayo lanjutkan membaca 📖"');
+
+            if (hasDraggedFar) {
+                updateOwlSpeech('"Tempat yang nyaman! Ayo lanjutkan membaca 📖"');
+            }
+        }
+
+        function onGlobalPointerMove(e) {
+            if (isDraggingOwl) {
+                if (e.cancelable) {
+                    e.preventDefault();
+                }
+                moveOwlDrag(e.clientX, e.clientY);
+            }
+        }
+
+        function onGlobalPointerUp(e) {
+            if (isDraggingOwl) {
+                endOwlDrag();
+            }
+        }
+
+        function onGlobalPointerCancel(e) {
+            if (isDraggingOwl) {
+                endOwlDrag();
+            }
         }
 
         // Pointer Events (supports mouse, stylus, touch unified)
         introOwlPopup.addEventListener('pointerdown', (e) => {
-            // Ignore drag if clicking links/buttons
-            if (e.target.closest('button, a')) return;
+            // Ignore drag if clicking links/buttons or if book is closed
+            if (!isBookOpen || e.target.closest('button, a')) return;
             e.preventDefault();
             e.stopPropagation();
+
+            if (isDraggingOwl) {
+                endOwlDrag();
+            }
+
+            activePointerId = e.pointerId;
             try {
                 introOwlPopup.setPointerCapture(e.pointerId);
             } catch (err) {}
+
             startOwlDrag(e.clientX, e.clientY);
+
+            // Bind global move, up, and cancel listeners with passive: false to prevent touch gesture conflicts
+            window.addEventListener('pointermove', onGlobalPointerMove, { passive: false });
+            window.addEventListener('pointerup', onGlobalPointerUp, { passive: false });
+            window.addEventListener('pointercancel', onGlobalPointerCancel, { passive: false });
         });
 
-        introOwlPopup.addEventListener('pointermove', (e) => {
+        introOwlPopup.addEventListener('pointerup', () => {
             if (isDraggingOwl) {
-                e.preventDefault();
-                moveOwlDrag(e.clientX, e.clientY);
-            }
-        });
-
-        introOwlPopup.addEventListener('pointerup', (e) => {
-            if (isDraggingOwl) {
-                e.preventDefault();
-                try {
-                    introOwlPopup.releasePointerCapture(e.pointerId);
-                } catch (err) {}
                 endOwlDrag();
             }
         });
 
-        introOwlPopup.addEventListener('pointercancel', (e) => {
+        introOwlPopup.addEventListener('pointercancel', () => {
             if (isDraggingOwl) {
-                try {
-                    introOwlPopup.releasePointerCapture(e.pointerId);
-                } catch (err) {}
                 endOwlDrag();
             }
         });
+
+        introOwlPopup.addEventListener('lostpointercapture', () => {
+            if (isDraggingOwl) {
+                endOwlDrag();
+            }
+        });
+
+        // Suppress click event if user was dragging
+        introOwlPopup.addEventListener('click', (e) => {
+            if (hasDraggedFar) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        }, true);
     }
 
     // Check if user already saw the intro (persisted in localStorage & sessionStorage)
@@ -796,6 +941,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (hasSeenIntro) {
         if (introOverlay) {
             introOverlay.classList.add('is-hidden');
+            introOverlay.style.display = 'none';
         }
     } else {
         if (introOverlay) {
@@ -934,8 +1080,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateOwlEyes(x, y) {
-        trackPupilsForMascot(athenaHeroMascot, heroPupilLeft, heroPupilRight, heroOwlHead, x, y);
-        trackPupilsForMascot(athenaIntroPopup, introPupilLeft, introPupilRight, introOwlHead, x, y);
+        const isIntroActive = introOverlay && !introOverlay.classList.contains('is-hidden') && introOverlay.style.display !== 'none';
+        if (isIntroActive) {
+            trackPupilsForMascot(athenaIntroPopup, introPupilLeft, introPupilRight, introOwlHead, x, y);
+        } else {
+            trackPupilsForMascot(athenaHeroMascot, heroPupilLeft, heroPupilRight, heroOwlHead, x, y);
+        }
     }
 
     // =========================================================================

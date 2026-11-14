@@ -33,7 +33,6 @@
             </nav>
 
             <div class="sidebar-spacer"></div>
-            <details class="profile-menu"><summary class="profile-button"><span class="avatar avatar-sidebar {{ auth()->user()->avatarUrl() ? '' : 'avatar-empty' }}">@if (auth()->user()->avatarUrl())<img src="{{ auth()->user()->avatarUrl() }}" alt="">@else<x-icon name="user" class="avatar-placeholder-icon" />@endif</span><span class="profile-copy"><strong>{{ auth()->user()->name }}</strong><small>Siswa SocratesRead</small></span><x-icon name="chevron-down" class="profile-chevron" /></summary><div class="profile-dropdown"><a href="{{ route('profile') }}">Profil</a><form method="POST" action="{{ route('logout') }}">@csrf<button type="submit">Keluar</button></form></div></details>
         </aside>
 
         <main class="main-content" id="dashboard">

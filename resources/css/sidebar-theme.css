@@ -58,14 +58,15 @@
 .sidebar.sidebar-theme::-webkit-scrollbar-thumb { border: 1px solid #0B1F3A; border-radius: 999px; background: rgb(169 196 245 / 30%); }
 .sidebar-theme .brand { gap: 11px; padding: 0 4px 24px; }
 .sidebar-theme .brand-logo {
-    width: 56px;
-    height: 56px;
-    flex: 0 0 56px;
-    border: 1px solid rgb(169 196 245 / 38%);
-    border-radius: 14px;
-    background: #071831;
-    object-fit: cover;
-    box-shadow: 0 5px 16px rgb(3 14 31 / 24%);
+    width: 48px;
+    height: 48px;
+    flex: 0 0 48px;
+    padding: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 13px;
+    background: #ffffff !important;
+    object-fit: contain;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16);
 }
 .sidebar-theme .brand-name { color: #fff; font-size: 18px; font-weight: 750; line-height: 1.02; letter-spacing: -.45px; }
 .sidebar-theme .brand-name > span { color: #A9C4F5; }
