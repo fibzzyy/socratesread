@@ -7,6 +7,8 @@
 @import './reading-book.css';
 @import './sidebar-theme.css';
 @import './responsive-system.css';
+@import './teacher-classrooms.css';
+@import './teacher-dashboard.css';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
