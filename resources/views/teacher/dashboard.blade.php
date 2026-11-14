@@ -6,7 +6,13 @@
 @section('content')
     @php($maxDailyActivity = max(1, $weeklyActivity->max('activity_count')))
     <section class="stage-heading" aria-labelledby="teacher-dashboard-title">
-        <div><h1 id="teacher-dashboard-title">Ringkasan belajar siswa</h1><p class="welcome-subtitle">Ikhtisar aktivitas anggota kelas pada bacaan yang Anda unggah.</p></div>
+        <div class="teacher-dashboard-heading-copy">
+            <span class="teacher-dashboard-heading-icon" aria-hidden="true"><x-icon name="layout-dashboard" /></span>
+            <div class="teacher-dashboard-heading-text">
+                <h1 id="teacher-dashboard-title">Ringkasan belajar siswa</h1>
+                <p class="welcome-subtitle">Ikhtisar aktivitas anggota kelas pada bacaan yang Anda unggah.</p>
+            </div>
+        </div>
         <div class="flex items-center gap-2 flex-wrap">
             <a href="{{ route('teacher.export.progress') }}" class="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition shadow-xs" title="Unduh data progres siswa (.CSV kompatibel Excel)">
                 <x-icon name="download" class="w-3.5 h-3.5 text-slate-500" />
@@ -25,7 +31,7 @@
 
     <div class="teacher-analytics-grid">
         <section class="panel activity-detail-panel" aria-labelledby="teacher-weekly-title">
-            <div class="section-heading"><div><h2 id="teacher-weekly-title">Jejak belajar 7 hari</h2></div><div class="chart-key"><i></i> Aktivitas</div></div>
+            <div class="section-heading"><div><h2 id="teacher-weekly-title"><x-icon name="chart-no-axes-combined" />Jejak belajar 7 hari</h2></div><div class="chart-key"><i></i> Aktivitas</div></div>
             <div class="weekly-chart" role="img" aria-label="Grafik aktivitas membaca siswa tujuh hari terakhir">
                 <div class="weekly-grid"><span>maks</span><span>75%</span><span>50%</span><span>0</span></div>
                 <div class="weekly-bars">
@@ -38,7 +44,7 @@
         </section>
 
         <section class="panel reflection-panel teacher-recent-panel" aria-labelledby="teacher-recent-title">
-            <span class="reflection-mark" aria-hidden="true"><x-icon name="clock" /></span><h2 id="teacher-recent-title">Siswa mulai berkembang</h2>
+            <span class="reflection-mark" aria-hidden="true"><x-icon name="clock" /></span><h2 id="teacher-recent-title"><x-icon name="megaphone" />Siswa mulai berkembang</h2>
             <div class="recent-activity-list">
                 @forelse ($recentActivities as $activity)
                     <article class="recent-activity-row"><span class="recent-activity-icon"><x-icon name="{{ $activity->event_type === 'reading_completed' ? 'book-open-text' : 'award' }}" /></span><div><strong>{{ $activity->student_name }} · {{ $activity->summary }}</strong><small>{{ $activity->document_title }} · {{ \Illuminate\Support\Carbon::parse($activity->created_at)->locale('id')->diffForHumans() }}</small></div><span class="recent-activity-xp">{{ $activity->xp_awarded ? '+'.$activity->xp_awarded.' XP' : 'Tercatat' }}</span></article>

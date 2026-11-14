@@ -12,7 +12,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body>
-    <div class="app-shell teacher-app-shell">
+    <div class="app-shell teacher-app-shell {{ request()->routeIs('teacher.dashboard') ? 'teacher-dashboard-page' : '' }}">
         <button class="scrim" type="button" aria-label="Tutup navigasi" data-menu-close></button>
         <aside class="sidebar" id="teacher-navigation" aria-label="Area guru">
             <a class="brand" href="{{ route('teacher.dashboard') }}" aria-label="SocratesRead, area guru">

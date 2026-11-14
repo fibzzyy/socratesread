@@ -115,6 +115,11 @@
             <path d="M4 18.463V21" />
             <path d="M8 14.656V21" />
             @break
+        @case('megaphone')
+            <path d="m3 11 18-5v12L3 13z" />
+            <path d="M11.6 14.6 14 21h-4l-2.2-7.1" />
+            <path d="M3 11v2a2 2 0 0 0 2 2h1" />
+            @break
         @case('library')
             <path d="m16 6 4 14" />
             <path d="M12 6v14" />
