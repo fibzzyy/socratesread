@@ -107,7 +107,7 @@ class ClassroomEnrollmentController extends Controller
             ->first();
 
         if (! $classroom) {
-            return redirect()->route('classrooms.index')
+            return back()
                 ->withErrors(['join_code' => 'Kode kelas tidak ditemukan atau sudah tidak aktif.'])
                 ->withInput();
         }

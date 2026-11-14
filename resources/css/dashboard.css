@@ -2835,12 +2835,12 @@ body { color: var(--ink); background: var(--canvas); }
 .sidebar-theme .profile-button { flex-shrink: 0; }
 .sidebar-theme .brand { gap: 11px; padding: 0 4px 22px; }
 .sidebar-theme .brand-logo {
-    width: 36px;
-    height: 36px;
-    flex: 0 0 36px;
-    padding: 5px;
-    border-radius: 50%;
-    background: #fff;
+    width: 48px;
+    height: 48px;
+    flex: 0 0 48px;
+    padding: 6px;
+    border-radius: 13px;
+    background: #ffffff !important;
     object-fit: contain;
 }
 .sidebar-theme .brand-name { color: #fff; font-size: 18px; }
@@ -2883,9 +2883,26 @@ body { color: var(--ink); background: var(--canvas); }
     .sidebar-theme .profile-button { min-height: 50px; }
 }
 .reading-room-shell { background: #F5F7FB !important; }
-.reading-page-content { width: 100%; max-width: none; margin: 0; padding: 0; background: #F5F7FB; }
-.main-content.reading-room-shell > .page-content.reading-page-content { padding: 0; }
-.reading-room-shell .page-footer { width: auto; margin: 18px 40px 0; padding: 0 0 14px; }
+.reading-page-content {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 0 30px 32px !important;
+    background: transparent;
+}
+.main-content.reading-room-shell > .page-content.reading-page-content {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 0 30px 32px !important;
+}
+.reading-room-shell .page-footer {
+    width: 100%;
+    margin: 32px 0 0;
+    padding: 0 0 16px;
+}
 
 .reading-topbar { display: flex; height: 72px; align-items: center; justify-content: space-between; gap: 18px; padding: 0 40px; color: #4F5B7D; background: #F5F7FB; }
 .reading-topbar-date { font: 500 14px/1.4 Inter, var(--font-body); }
@@ -3155,13 +3172,6 @@ html { font-size: 16px; }
 
 /* My Class: compact layout aligned to the shared content column */
 .page-content:has(.my-class-page) { padding: 0 0 24px; }
-.main-content:has(.my-class-page) > .topbar .topbar-title,
-.main-content:has(.my-class-page) > .topbar .breadcrumb { font-size: 14px; }
-.main-content:has(.my-class-page) > .topbar .breadcrumb { color: #4f5b7d; }
-.main-content:has(.my-class-page) > .topbar .breadcrumb strong { color: #14213d; font-weight: 600; }
-.main-content:has(.my-class-page) > .topbar .today-label { color: #4f5b7d; font-size: 13px; }
-.main-content:has(.my-class-page) > .topbar .notification-button { width: 40px; height: 40px; }
-.main-content:has(.my-class-page) > .topbar .avatar-top { width: 36px; height: 36px; }
 .page-content:has(.my-class-page) > .page-footer { width: min(100%, 1100px); margin: 0 auto; padding: 0 40px; }
 .my-class-page {
     width: min(100%, 1100px);
@@ -3278,7 +3288,18 @@ html { font-size: 16px; }
 .page-content:has(.quizzes-page),
 .page-content:has(.my-class-page),
 .page-content:has(.achievements-page),
-.page-content:has(.progress-overview) { width: 100%; max-width: 1600px; padding: 12px 36px 22px; background: transparent; }
+.page-content:has(.progress-overview),
+.page-content.reading-page-content,
+.main-content.reading-room-shell > .page-content.reading-page-content,
+.dashboard-page .page-content.student-dashboard,
+.dashboard-page #dashboard .page-content {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 0 30px 32px !important;
+    background: transparent;
+}
 .main-content:has(.quizzes-page),
 .main-content:has(.my-class-page),
 .main-content:has(.achievements-page),
@@ -3316,7 +3337,8 @@ html { font-size: 16px; }
     display: flex;
     align-items: center;
     gap: 4px;
-    font-size: 13px;
+    font-size: 13px !important;
+    line-height: 1.4;
     color: #526987;
     white-space: nowrap;
 }
@@ -3325,6 +3347,8 @@ html { font-size: 16px; }
 .student-topbar-pill .breadcrumb a {
     color: #526987;
     text-decoration: none;
+    font-size: 13px !important;
+    line-height: 1.4;
     transition: color .15s ease;
 }
 
@@ -3337,12 +3361,16 @@ html { font-size: 16px; }
 .student-topbar-pill .breadcrumb span {
     margin: 0 4px;
     color: #cbd5e1;
+    font-size: 13px !important;
+    line-height: 1.4;
 }
 
 .topbar .breadcrumb strong,
 .student-topbar-pill .breadcrumb strong {
     color: #10264a;
     font-weight: 700;
+    font-size: 13px !important;
+    line-height: 1.4;
 }
 
 .topbar .quiz-home-link,
@@ -3392,7 +3420,8 @@ html { font-size: 16px; }
     align-items: center;
     gap: 9px;
     color: var(--navy-primary, #193a68);
-    font-size: 13px;
+    font-size: 13px !important;
+    line-height: 1.4;
     font-weight: 500;
     white-space: nowrap;
 }
@@ -3461,8 +3490,23 @@ html { font-size: 16px; }
 .quiz-card .bg-indigo-600 { background: var(--navy-primary) !important; }
 .quiz-card .bg-indigo-600:hover { background: var(--navy-dark) !important; }
 @media (max-width: 1100px) {
-    .page-content:has(.quizzes-page) { padding-inline: 28px; }
-    .main-content:has(.quizzes-page) > .topbar { margin-inline: 28px; }
+    .page-content:has(.quizzes-page),
+    .page-content:has(.my-class-page),
+    .page-content:has(.achievements-page),
+    .page-content:has(.progress-overview),
+    .page-content.reading-page-content,
+    .main-content.reading-room-shell > .page-content.reading-page-content,
+    .dashboard-page .page-content.student-dashboard,
+    .dashboard-page #dashboard .page-content { padding-inline: 24px !important; }
+    .topbar,
+    .student-topbar-pill,
+    .reading-topbar,
+    .main-content:has(.quizzes-page) > .topbar,
+    .main-content:has(.my-class-page) > .topbar,
+    .main-content:has(.achievements-page) > .topbar,
+    .main-content:has(.progress-overview) > .topbar,
+    .main-content:has(.stage-two-content) > .topbar,
+    .dashboard-page .topbar { margin-inline: 24px !important; }
     .quizzes-stats { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
     .quizzes-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
     .quizzes-page .stage-heading.quizzes-hero { min-height: 210px; }
@@ -3472,7 +3516,17 @@ html { font-size: 16px; }
     .page-content:has(.quizzes-page),
     .page-content:has(.my-class-page),
     .page-content:has(.achievements-page),
-    .page-content:has(.progress-overview) { padding: 18px 20px 24px; }
+    .page-content:has(.progress-overview),
+    .page-content.reading-page-content,
+    .main-content.reading-room-shell > .page-content.reading-page-content,
+    .dashboard-page .page-content.student-dashboard,
+    .dashboard-page #dashboard .page-content {
+        box-sizing: border-box;
+        width: 100%;
+        max-width: none;
+        margin: 0;
+        padding: 0 12px 24px !important;
+    }
     .topbar,
     .student-topbar-pill,
     .reading-topbar,
@@ -3484,7 +3538,7 @@ html { font-size: 16px; }
     .dashboard-page .topbar {
         position: sticky;
         top: 8px;
-        margin: 8px 12px 14px;
+        margin: 8px 12px 14px !important;
         height: 60px;
         padding-inline: 12px;
         gap: 8px;
@@ -3717,6 +3771,19 @@ html { font-size: 16px; }
 .notification-center > summary::-webkit-details-marker { display: none; }
 .notification-count { position: absolute; top: -5px; right: -5px; display: grid; min-width: 17px; height: 17px; padding: 0 4px; place-items: center; border: 2px solid #fff; border-radius: 999px; color: #fff; background: #dc4c4c; font-size: 9px; font-weight: 700; line-height: 1; }
 .notification-panel { position: absolute; z-index: 60; top: calc(100% + 10px); right: 0; width: min(360px, calc(100vw - 32px)); max-height: min(70vh, 480px); overflow: auto; border: 1px solid #e4e7ec; border-radius: 12px; background: #fff; box-shadow: 0 16px 38px rgb(16 24 40 / 15%); }
+
+@media (max-width: 640px) {
+    .notification-panel {
+        position: fixed;
+        top: 72px;
+        left: 12px;
+        right: 12px;
+        width: auto;
+        max-width: min(380px, calc(100vw - 24px));
+        margin-inline: auto;
+        border-radius: 16px;
+    }
+}
 .notification-panel-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; border-bottom: 1px solid #eef0f3; }
 .notification-panel-header h2 { margin: 0; color: #1d2939; font-size: 14px; font-weight: 650; }
 .notification-panel-header button { padding: 0; border: 0; color: #3568c9; background: transparent; font: inherit; font-size: 11px; font-weight: 600; cursor: pointer; }

@@ -34,36 +34,16 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    background: radial-gradient(ellipse 95% 75% at 50% 25%, #1e3a8a 0%, #172554 35%, #0f172a 75%, #080e1a 100%);
+    background: radial-gradient(ellipse 110% 85% at 50% 18%, #1e40af 0%, #1e3a8a 35%, #172554 70%, #0f172a 100%);
     overflow: hidden;
-    transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.8s ease;
+    transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.6s ease;
+    contain: paint;
 }
 
 .book-intro-overlay.is-hidden {
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
-}
-
-/* Aurora Ambient Background Glow (Brightened for vivid contrast) */
-.aurora-ambient-glow {
-    position: absolute;
-    inset: -30%;
-    background: 
-        radial-gradient(ellipse at 50% 20%, rgba(147, 197, 253, 0.35) 0%, rgba(59, 130, 246, 0.22) 40%, transparent 70%),
-        radial-gradient(circle at 85% 25%, rgba(167, 139, 250, 0.26) 0%, transparent 55%),
-        radial-gradient(circle at 15% 35%, rgba(56, 189, 248, 0.24) 0%, transparent 50%),
-        radial-gradient(circle at 50% 85%, rgba(251, 191, 36, 0.14) 0%, transparent 60%);
-    filter: blur(55px);
-    pointer-events: none;
-    animation: auroraWave 14s ease-in-out infinite alternate;
-    z-index: 1;
-}
-
-@keyframes auroraWave {
-    0% { transform: scale(1) rotate(0deg); opacity: 0.65; }
-    50% { transform: scale(1.08) rotate(3deg); opacity: 0.85; }
-    100% { transform: scale(1.04) rotate(-3deg); opacity: 0.7; }
 }
 
 .book-intro-overlay .stars-canvas {
@@ -82,20 +62,14 @@
     will-change: opacity, transform;
 }
 
-.star-particle.sparkle-4pt {
-    border-radius: 0;
-    clip-path: polygon(50% 0%, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0% 50%, 38% 38%);
-}
-
 @keyframes starTwinkle {
     0%, 100% {
-        opacity: var(--min-opacity, 0.15);
-        transform: scale(0.65);
+        opacity: var(--min-opacity, 0.2);
+        transform: scale(0.75);
     }
     50% {
         opacity: var(--max-opacity, 0.95);
-        transform: scale(1.35);
-        box-shadow: 0 0 6px currentColor, 0 0 14px currentColor;
+        transform: scale(1.15);
     }
 }
 
@@ -120,14 +94,14 @@
         transform: translateX(76px) scale(0.78) !important;
     }
     .book-cover-front-face {
-        padding: 16px 12px;
+        padding: 14px 10px;
     }
     .book-cover-border {
-        inset: 8px;
+        inset: 6px;
     }
     .book-corner {
-        width: 16px;
-        height: 16px;
+        width: 14px;
+        height: 14px;
     }
 }
 
@@ -292,10 +266,9 @@
     inset: 0;
     background: #091224;
     border-radius: 4px 12px 12px 4px;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 60px rgba(37, 99, 235, 0.2);
+    box-shadow: 0 18px 36px rgba(0, 0, 0, 0.75);
     transform: translateZ(-20px);
 }
-
 
 .book-sheet-stack {
     position: absolute;
@@ -304,18 +277,11 @@
     border-radius: 0 8px 8px 0;
     transform: translateZ(0px);
     box-shadow: 
-        inset 0 0 18px rgba(0, 0, 0, 0.05),
-        2px 0 0 #f7f1e5,
-        4px 0 0 #ede2ce,
-        6px 0 0 #e4d7c0,
-        8px 0 0 #d9cbb0,
-        10px 0 0 #cfc0a2,
-        12px 0 0 #c4b494,
-        14px 0 0 #b9a886,
-        16px 0 0 #af9d78,
-        18px 0 0 #a4916a,
-        0 4px 10px rgba(0, 0, 0, 0.15),
-        22px 8px 28px rgba(0, 0, 0, 0.4);
+        inset 0 0 14px rgba(0, 0, 0, 0.04),
+        3px 0 0 #ede2ce,
+        6px 0 0 #cfc0a2,
+        9px 0 0 #a4916a,
+        14px 6px 20px rgba(0, 0, 0, 0.35);
     overflow: hidden;
     opacity: 0;
     visibility: hidden;
@@ -409,41 +375,26 @@
     border-left: 1px solid rgba(217, 206, 187, 0.8);
 }
 
-/* Staggered page fluttering cascade with dynamic 3D arching bend */
+/* Staggered page fluttering cascade (Hardware Accelerated) */
 .book-stage.is-open .book-flip-leaf.leaf-1 {
-    animation: flipCascade 0.74s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.10s forwards;
+    animation: flipCascade 0.72s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.12s forwards;
 }
 
 .book-stage.is-open .book-flip-leaf.leaf-2 {
-    animation: flipCascade 0.78s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.22s forwards;
-}
-
-.book-stage.is-open .book-flip-leaf.leaf-3 {
-    animation: flipCascade 0.82s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.34s forwards;
-}
-
-.book-stage.is-open .book-flip-leaf.leaf-4 {
-    animation: flipCascade 0.86s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.46s forwards;
+    animation: flipCascade 0.76s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.24s forwards;
 }
 
 @keyframes flipCascade {
     0% {
         transform: rotateY(0deg) translateZ(0);
         opacity: 1;
-        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
     }
-    35% {
-        transform: rotateY(-50deg) translateZ(28px) skewY(-1.5deg);
-        filter: drop-shadow(-8px 14px 20px rgba(0, 0, 0, 0.3));
+    40% {
+        transform: rotateY(-70deg) translateZ(16px);
     }
-    65% {
-        transform: rotateY(-115deg) translateZ(24px) skewY(1.5deg);
-        filter: drop-shadow(-14px 18px 24px rgba(0, 0, 0, 0.35));
-    }
-    94% {
-        transform: rotateY(-174deg) translateZ(4px) skewY(0deg);
-        opacity: 1;
-        filter: drop-shadow(-2px 4px 8px rgba(0, 0, 0, 0.15));
+    85% {
+        transform: rotateY(-155deg) translateZ(4px);
+        opacity: 0.9;
     }
     100% {
         transform: rotateY(-175deg) translateZ(1px);
@@ -790,25 +741,34 @@
     align-items: center;
     cursor: grab;
     user-select: none;
+    -webkit-user-select: none;
     touch-action: none;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.001); /* Invisible solid hit surface prevents transparent pass-through */
     transition: left 0.8s cubic-bezier(0.2, 0.9, 0.3, 1), 
                 top 0.8s cubic-bezier(0.2, 0.9, 0.3, 1),
                 transform 0.8s cubic-bezier(0.2, 0.9, 0.3, 1),
                 opacity 0.5s ease;
 }
 
-/* Luminous Halo behind Athena for High Contrast & Radiance */
+.intro-owl-popup * {
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-user-drag: none;
+    touch-action: none;
+}
+
+/* Luminous Halo behind Athena for High Contrast & Radiance (Hardware Accelerated) */
 .intro-owl-popup::before {
     content: '';
     position: absolute;
-    top: 58%;
+    top: 55%;
     left: 50%;
-    width: 280px;
-    height: 230px;
+    width: 320px;
+    height: 260px;
     transform: translate(-50%, -50%);
-    background: radial-gradient(circle, rgba(191, 219, 254, 0.45) 0%, rgba(147, 197, 253, 0.22) 40%, transparent 70%);
+    background: radial-gradient(ellipse at center, rgba(219, 234, 254, 0.55) 0%, rgba(147, 197, 253, 0.28) 38%, rgba(96, 165, 250, 0.10) 58%, transparent 75%);
     border-radius: 50%;
-    filter: blur(28px);
     pointer-events: none;
     z-index: -1;
 }
@@ -818,6 +778,10 @@
 .book-intro-overlay.is-book-open .intro-owl-flight {
     opacity: 1;
     pointer-events: auto;
+}
+
+.book-intro-overlay.is-book-open .intro-owl-popup:not(.is-dragging):not(.is-custom-placed),
+.book-intro-overlay.is-book-open .intro-owl-flight:not(.is-dragging):not(.is-custom-placed) {
     /* Desktop (>= 1024px): anchored to top-right corner, 100% clear of the 2-page book spread */
     left: auto;
     right: clamp(1.5rem, 4vw, 5rem);
@@ -827,8 +791,8 @@
 }
 
 @media (min-width: 640px) and (max-width: 1023px) {
-    .book-intro-overlay.is-book-open .intro-owl-popup,
-    .book-intro-overlay.is-book-open .intro-owl-flight {
+    .book-intro-overlay.is-book-open .intro-owl-popup:not(.is-dragging):not(.is-custom-placed),
+    .book-intro-overlay.is-book-open .intro-owl-flight:not(.is-dragging):not(.is-custom-placed) {
         left: 50%;
         right: auto;
         top: 65px;
@@ -838,8 +802,8 @@
 }
 
 @media (max-width: 639px) {
-    .book-intro-overlay.is-book-open .intro-owl-popup,
-    .book-intro-overlay.is-book-open .intro-owl-flight {
+    .book-intro-overlay.is-book-open .intro-owl-popup:not(.is-dragging):not(.is-custom-placed),
+    .book-intro-overlay.is-book-open .intro-owl-flight:not(.is-dragging):not(.is-custom-placed) {
         left: 50%;
         right: auto;
         top: 36px;
@@ -851,15 +815,25 @@
 /* User dragging state */
 .intro-owl-popup.is-dragging {
     cursor: grabbing !important;
+    right: auto !important;
+    bottom: auto !important;
     transition: none !important;
     animation: none !important;
     z-index: 300 !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
 }
 
 .intro-owl-popup.is-custom-placed {
     right: auto !important;
+    bottom: auto !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+}
+
+.intro-owl-popup.is-custom-placed:not(.is-dragging) {
     transition: none !important;
-    animation: owlCustomPlacedHover 3.2s ease-in-out infinite !important;
+    animation: owlCustomPlacedHover 3.2s ease-in-out infinite;
 }
 
 @keyframes owlCustomPlacedHover {
@@ -887,7 +861,8 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
     margin-bottom: 6px;
     user-select: none;
-    pointer-events: none;
+    pointer-events: auto;
+    cursor: grab;
     backdrop-filter: blur(6px);
     transition: transform 0.2s ease, background 0.2s ease;
 }
@@ -906,9 +881,18 @@
 }
 
 .owl-interactive-svg-wrap {
-    pointer-events: none;
+    pointer-events: auto;
+    cursor: grab;
     transition: transform 0.25s ease;
-    filter: drop-shadow(0 0 18px rgba(191, 219, 254, 0.6)) drop-shadow(0 10px 24px rgba(0, 0, 0, 0.45));
+    filter: drop-shadow(0 0 16px rgba(191, 219, 254, 0.75)) drop-shadow(0 10px 22px rgba(15, 23, 42, 0.45));
+}
+
+.intro-owl-popup.is-dragging,
+.intro-owl-popup.is-dragging .owl-interactive-svg-wrap,
+.intro-owl-popup.is-dragging .athena-mascot-svg,
+.intro-owl-popup.is-dragging .owl-drag-badge,
+.intro-owl-popup.is-dragging .intro-owl-bubble {
+    cursor: grabbing !important;
 }
 
 @keyframes owlFlightHoverDesktop {
@@ -1042,6 +1026,10 @@
     line-height: 1.4;
     margin-bottom: 6px;
     position: relative;
+    pointer-events: auto;
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
     animation: owlBubbleFloat 3s ease-in-out infinite;
 }
 
