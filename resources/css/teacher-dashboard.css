@@ -160,8 +160,8 @@
 }
 
 @media (min-width: 1025px) {
-    .teacher-dashboard-page > .sidebar { width: 244px; padding: 22px 14px 16px; }
-    .teacher-dashboard-page > .main-content { width: auto; margin-left: 244px; }
+    .teacher-app-shell > .sidebar { width: var(--app-sidebar-width); }
+    .teacher-app-shell > .main-content { margin-left: var(--app-sidebar-width); }
 }
 
 @media (max-width: 767px) {
