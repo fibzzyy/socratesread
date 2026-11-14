@@ -50,7 +50,12 @@
                     <button class="icon-button menu-toggle" type="button" aria-label="Buka navigasi" aria-controls="primary-navigation" aria-expanded="false" data-menu-toggle><x-icon name="menu" /></button>
                     <div class="breadcrumb">
                         <a href="{{ route('dashboard') }}" class="quiz-home-link topbar-home-link" aria-label="Beranda"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7M5 9v12h14V9M9 21v-7h6v7" /></svg></a>
-                        <a href="{{ route('dashboard') }}" class="hover:text-blue-600 transition-colors">Ruang belajar</a><span>/</span><strong>@yield('breadcrumb', 'Halaman')</strong>
+                        <a href="{{ route('dashboard') }}" class="hover:text-blue-600 transition-colors">Ruang belajar</a>
+                        @hasSection('breadcrumb_items')
+                            @yield('breadcrumb_items')
+                        @else
+                            <span>/</span><strong>@yield('breadcrumb', 'Halaman')</strong>
+                        @endif
                     </div>
                     <div class="topbar-actions">
                         <span class="today-label"><x-icon name="calendar-days" />{{ now()->locale('id')->translatedFormat('l, d F Y') }}</span>

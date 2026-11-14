@@ -782,6 +782,13 @@ h1, h2, h3, p { margin-top: 0; }
 .stage-heading h1 { margin: 8px 0 5px; color: #17223a; font: 800 clamp(24px, 2.3vw, 30px)/1.2 var(--font-display); letter-spacing: -1px; }
 .back-link { display: inline-flex; min-height: 36px; align-items: center; gap: 8px; padding: 0 11px; border: 1px solid #e5e9f0; border-radius: 8px; color: #6b7892; background: white; font-size: 10px; font-weight: 600; white-space: nowrap; }
 .back-link:hover { color: #3f67db; border-color: #cbd7ff; }
+.page-content:has(.teacher-challenge-heading) { padding-top: 8px; }
+.teacher-challenge-heading { align-items: center; gap: 24px; margin-bottom: 14px; }
+.teacher-challenge-heading > div:first-child { min-width: 0; flex: 1 1 auto; }
+.teacher-challenge-category { box-sizing: border-box; width: min(220px, 30%); min-height: 54px; flex: 0 0 min(220px, 30%); align-items: center; padding: 10px 12px; line-height: 1.35; overflow-wrap: anywhere; }
+.teacher-challenge-category svg { flex: 0 0 18px; }
+.teacher-challenge-toggle { min-height: 40px; white-space: nowrap; }
+.teacher-challenge-toggle svg { display: block; flex: 0 0 16px; }
 .reading-room-grid { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(250px, .72fr); align-items: stretch; gap: 17px; }
 .passage-panel {
     display: flex;
@@ -1586,6 +1593,8 @@ body { color: var(--ink); background: var(--canvas); }
     .stage-two-content {
         padding-top: 20px;
     }
+    .teacher-challenge-heading { align-items: stretch; gap: 12px; margin-bottom: 14px; }
+    .teacher-challenge-category { width: 100%; min-height: 58px; flex-basis: auto; padding: 12px 15px; }
     .stage-heading {
         flex-direction: column;
         align-items: stretch;
@@ -1919,6 +1928,45 @@ body { color: var(--ink); background: var(--canvas); }
     padding: 14px 22px;
     border-top: 1px solid var(--line);
     background: #fafcff;
+}
+.teacher-challenge-navigation {
+    min-height: 72px;
+    margin-top: 0;
+    padding: 10px 18px;
+}
+.teacher-challenge-navigation-group {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 8px;
+}
+.teacher-challenge-navigation .teacher-challenge-navigation-button {
+    display: inline-flex;
+    min-width: 126px;
+    min-height: 44px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 0 14px;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+.teacher-challenge-navigation .teacher-challenge-navigation-button svg {
+    display: block;
+    width: 16px;
+    height: 16px;
+    flex: 0 0 16px;
+}
+.teacher-challenge-navigation .teacher-challenge-navigation-button span { margin-left: 0; }
+.teacher-challenge-navigation .challenge-button { min-height: 44px; white-space: nowrap; }
+@media (max-width: 640px) {
+    .teacher-challenge-navigation { align-items: stretch; flex-direction: column; padding: 12px; }
+    .teacher-challenge-navigation-group { width: 100%; }
+    .teacher-challenge-navigation-group:first-child .teacher-challenge-navigation-button { min-width: 0; flex: 1 1 0; }
+    .teacher-challenge-navigation-actions { justify-content: space-between; }
+    .teacher-challenge-navigation-actions #btnNextQuestion { min-width: 112px; }
+    .teacher-challenge-navigation-actions .challenge-button { min-width: 0; flex: 1 1 auto; white-space: normal; }
 }
 .number-grid-card { padding: 18px; }
 .num-box {
@@ -3966,6 +4014,8 @@ html { font-size: 16px; }
 
 /* Keep the student overview as restrained and consistent as the teacher dashboard. */
 .student-dashboard .welcome-row { align-items: center; margin-bottom: 18px; }
+.dashboard-page .topbar { margin-bottom: 8px; }
+.dashboard-page .student-dashboard { padding-top: 8px; }
 .student-dashboard .welcome-row h1 { margin-top: 5px; color: #253247; font-size: 25px; letter-spacing: -.65px; }
 .student-dashboard .welcome-row h1 #greetingText { color: #3568c9; }
 .student-dashboard .welcome-subtitle { color: #778397; }
@@ -3984,7 +4034,7 @@ html { font-size: 16px; }
 }
 .student-dashboard .hero-card::before { display: none; }
 .student-dashboard .hero-copy { max-width: 100%; }
-.student-dashboard .hero-copy h2 { color: #253247; font-size: 21px; letter-spacing: -.45px; }
+.student-dashboard .hero-copy h2 { margin-top: 0; color: #253247; font-size: 21px; letter-spacing: -.45px; }
 .student-dashboard .hero-copy h2 span { color: #3568c9; }
 .student-dashboard .hero-copy p { color: #778397; }
 .student-dashboard .hero-cta { min-height: 38px; border-radius: 8px; background: #3568c9; box-shadow: none; }
@@ -4007,6 +4057,10 @@ html { font-size: 16px; }
 .student-dashboard .category-tag { border-color: #e4e8ee; border-radius: 5px; background: #f7f8fa; color: #667085; }
 .student-dashboard .category-tag.border-blue-200 { border-color: #dce5f3; background: #f2f6fc; color: #3568a8; }
 .student-dashboard .category-tag.border-emerald-200 { border-color: #dce5e1; background: #f4f8f6; color: #477463; }
+
+@media (min-width: 1025px) {
+    .dashboard-page .burhan-owl { right: 5%; bottom: 0; width: min(76%, 240px); height: 100%; }
+}
 
 /* Match student sidebar proportions and branding to the teacher area. */
 .sidebar-theme { width: 244px; padding: 22px 14px 16px; }

@@ -100,3 +100,17 @@ dialog[open] { box-sizing: border-box; max-width: calc(100vw - 2rem); max-height
         transition-duration: .01ms !important;
     }
 }
+
+/* Give Kelas Saya the same balanced gutters as the dashboard content. */
+.page-content:has(.my-class-page) { padding-top: 0; padding-inline: 24px; }
+.my-class-page { width: min(100%, 1600px); padding: 12px 24px 40px; }
+
+@media (max-width: 1024px) {
+    .page-content:has(.my-class-page) { padding-inline: 20px; }
+    .my-class-page { width: 100%; padding: 10px 20px 36px; }
+}
+
+@media (max-width: 767px) {
+    .page-content:has(.my-class-page) { padding: 12px 12px 24px; }
+    .my-class-page { padding: 8px 10px 28px; }
+}

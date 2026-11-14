@@ -412,13 +412,14 @@
                 </button>
             @endforeach
         </div>
-        <dialog class="academy-badge-dialog" aria-labelledby="academy-dialog-title"><button type="button" class="academy-dialog-close" aria-label="Tutup detail"><x-icon name="x" /></button><span class="academy-dialog-emblem"><x-icon name="award" /></span><p class="academy-overline">DETAIL LENCANA</p><h4 id="academy-dialog-title"></h4><p class="academy-dialog-description"></p><span class="academy-dialog-requirement"></span></dialog>
+        <dialog class="academy-badge-dialog" aria-labelledby="academy-dialog-title"><button type="button" class="academy-dialog-close" aria-label="Tutup detail"><x-icon name="x" /></button><span class="academy-dialog-emblem"><img class="academy-dialog-medal" src="" alt=""></span><p class="academy-overline">DETAIL LENCANA</p><h4 id="academy-dialog-title"></h4><p class="academy-dialog-description"></p><span class="academy-dialog-requirement"></span></dialog>
     </section>
     <script>
         (() => {
             const collection = document.querySelector('.academy-collection');
             if (!collection) return;
             const dialog = collection.querySelector('.academy-badge-dialog');
+            const dialogMedal = dialog.querySelector('.academy-dialog-medal');
             try {
                 const currentXp = Number(@json($studentXp));
                 const previousXp = Number(sessionStorage.getItem('socratesread-academy-xp'));
@@ -430,6 +431,8 @@
                 sessionStorage.setItem('socratesread-academy-xp', String(currentXp));
             } catch (_) {}
             collection.querySelectorAll('[data-academy-badge]').forEach((badge) => badge.addEventListener('click', () => {
+                const badgeImage = badge.querySelector('img');
+                if (badgeImage) dialogMedal.src = badgeImage.currentSrc || badgeImage.src;
                 dialog.querySelector('#academy-dialog-title').textContent = badge.dataset.name;
                 dialog.querySelector('.academy-dialog-description').textContent = badge.dataset.description;
                 dialog.querySelector('.academy-dialog-requirement').textContent = badge.dataset.requirement;

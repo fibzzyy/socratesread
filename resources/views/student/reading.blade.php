@@ -31,7 +31,7 @@
         </a>
     </section>
 
-    <div class="reading-room-grid reading-workspace-grid">
+    <div class="reading-workspace-grid">
         <article class="panel passage-panel reading-document-workspace" aria-labelledby="passage-title">
             <div class="passage-toolbar flex-wrap">
                 <div class="passage-tags">
@@ -56,7 +56,7 @@
                 </div>
             </div>
 
-            <div class="passage-content reading-canvas" data-reading-text>
+            <div class="passage-content reading-canvas" data-reading-text data-reading-scroll-container>
                 <p class="section-overline">{{ mb_strtoupper($document->category) }} · BACAAN PILIHAN</p>
                 <h2 id="passage-title">{{ $document->title }}</h2>
                 @php
@@ -97,28 +97,46 @@
                 </div>
             </div>
 
-            <div class="passage-bottom">
-                <span class="read-progress-label">
-                    <span class="read-progress-dot"></span> Progres membaca <strong data-read-progress>{{ $initialProgress }}%</strong>
-                </span>
-                <div class="progress-track">
-                    <span data-bottom-progress-bar style="width:{{ $initialProgress }}%"></span>
-                </div>
-                @if ($session->isCompleted())
-                    <button type="button" class="outline-button is-complete" disabled data-complete-reading data-session-id="{{ $session->id }}" data-progress-url="{{ route('reading.progress') }}">
-                        <span data-complete-label>Tugas Selesai & Terkunci</span>
-                        <x-icon name="check" />
-                    </button>
-                @else
-                    <button type="button" class="outline-button" data-complete-reading data-session-id="{{ $session->id }}" data-progress-url="{{ route('reading.progress') }}">
-                        <span data-complete-label>Selesai membaca</span>
-                        <x-icon name="check" />
-                    </button>
-                @endif
-            </div>
         </article>
 
         <aside class="reading-side-column reading-companion-panel" aria-label="Panduan membaca">
+            <section class="panel session-card reading-status-card" aria-labelledby="reading-status-title">
+                <div class="session-head">
+                    <div class="session-icon"><x-icon name="book-open-text" /></div>
+                    <div>
+                        <p class="section-overline">STATUS MEMBACA</p>
+                        <h2 id="reading-status-title">{{ $document->title }}</h2>
+                    </div>
+                </div>
+                <div class="session-stat-row">
+                    <span>Status sesi</span>
+                    <strong data-session-status-label>{{ $session->isCompleted() ? 'Selesai & Terkunci' : 'Sedang dibaca' }}</strong>
+                </div>
+                <div class="session-stat-row">
+                    <span>Mulai membaca</span>
+                    <strong>{{ $session->started_at?->format('H:i') ?? '—' }} WIB</strong>
+                </div>
+                <div class="passage-bottom">
+                    <span class="read-progress-label">
+                        <span class="read-progress-dot"></span> Progres membaca <strong data-read-progress>{{ $initialProgress }}%</strong>
+                    </span>
+                    <div class="progress-track">
+                        <span data-bottom-progress-bar style="width:{{ $initialProgress }}%"></span>
+                    </div>
+                    @if ($session->isCompleted())
+                        <button type="button" class="outline-button is-complete" disabled data-complete-reading data-session-id="{{ $session->id }}" data-progress-url="{{ route('reading.progress') }}">
+                            <span data-complete-label>Tugas Selesai & Terkunci</span>
+                            <x-icon name="check" />
+                        </button>
+                    @else
+                        <button type="button" class="outline-button" data-complete-reading data-session-id="{{ $session->id }}" data-progress-url="{{ route('reading.progress') }}">
+                            <span data-complete-label>Selesai membaca</span>
+                            <x-icon name="check" />
+                        </button>
+                    @endif
+                </div>
+            </section>
+
             <section class="panel session-card" data-session-card>
                 <div class="session-head">
                     <div class="session-icon"><x-icon name="book-open-text" /></div>
