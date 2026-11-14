@@ -31,7 +31,7 @@
                 <button class="icon-button menu-toggle" type="button" aria-label="Buka navigasi" aria-controls="teacher-navigation" aria-expanded="false" data-menu-toggle><x-icon name="menu" /></button>
                 <div class="breadcrumb"><a href="{{ route('teacher.dashboard') }}">Area guru</a><span>/</span><strong>@yield('breadcrumb', 'Ringkasan')</strong></div>
                 <div class="topbar-actions">
-                    <span class="today-label">{{ now()->locale('id')->translatedFormat('l, d F Y') }}</span>
+                    <span class="today-label"><x-icon name="calendar-days" />{{ now()->locale('id')->translatedFormat('l, d F Y') }}</span>
                     <x-notification-center />
                     <x-profile-dropdown />
                 </div>

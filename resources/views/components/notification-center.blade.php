@@ -1,7 +1,7 @@
 @php
     $account = auth()->user();
-    $notificationItems = $account->notifications()->latest()->limit(8)->get();
-    $unreadNotificationCount = $account->unreadNotifications()->count();
+    $notificationItems = $account ? $account->notifications()->latest()->limit(8)->get() : collect();
+    $unreadNotificationCount = $account ? $account->unreadNotifications()->count() : 0;
 @endphp
 
 <details class="notification-center">
