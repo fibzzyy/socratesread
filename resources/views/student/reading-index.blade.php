@@ -2,6 +2,9 @@
 
 @section('title', $selectedGroup['category'] ?? 'Reading Room')
 @section('breadcrumb', $selectedGroup ? 'Reading Room / '.$selectedGroup['category'] : 'Reading Room')
+@php
+    $readingUserName = auth()->user()->name ?? 'Pengguna';
+@endphp
 
 @section('content')
     <header class="topbar reading-topbar student-topbar-pill quiz-topbar">
@@ -14,6 +17,15 @@
             <span class="today-label"><x-icon name="calendar-days" />{{ now()->locale('id')->translatedFormat('l, d F Y') }}</span>
             <button class="icon-button notification-button reading-notification" type="button" aria-label="Notifikasi"><x-icon name="bell" /><i aria-hidden="true"></i></button>
             <x-profile-dropdown />
+        <span class="reading-topbar-date">{{ now()->locale('id')->translatedFormat('l, j F Y') }}</span>
+        <div class="reading-topbar-actions">
+            <span class="reading-stat-chip"><x-icon name="star" /> 0 XP</span>
+            <span class="reading-stat-chip"><x-icon name="flame" /> Rutinitas 0 hari</span>
+            <x-notification-center />
+            <a href="{{ route('profile') }}" class="reading-user" aria-label="Profil {{ $readingUserName }}" title="{{ $readingUserName }}">
+                <span class="reading-user-avatar {{ auth()->user()->avatarUrl() ? '' : 'is-empty' }}">@if (auth()->user()->avatarUrl())<img src="{{ auth()->user()->avatarUrl() }}" alt="">@else<x-icon name="user" class="avatar-placeholder-icon" />@endif</span>
+                <x-icon name="chevron-down" />
+            </a>
         </div>
     </header>
     @if ($selectedGroup)

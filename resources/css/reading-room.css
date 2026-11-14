@@ -311,7 +311,7 @@
     .rh-body p { margin-bottom: 12px; font-size: 14px; }
     .rh-search { width: 100%; max-width: none; height: 42px; justify-self: stretch; }
     .reading-filter-toolbar { align-items: flex-start; flex-direction: column; gap: 10px; margin-top: 20px; }
-    .reading-filters { max-width: 100%; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; }
+    .reading-filters { width: 100%; max-width: 100%; flex-wrap: wrap; overflow: visible; gap: 8px 6px; padding-bottom: 0; }
     .reading-class-grid { grid-template-columns: 1fr; gap: 16px; }
     .reading-class-card { width: 100%; }
     .reading-room-shell .page-footer { margin-top: 40px; padding-bottom: 24px; }

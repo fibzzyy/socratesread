@@ -139,7 +139,7 @@
                                 @if ($second->avatar_url)
                                     <img src="{{ $second->avatar_url }}" alt="{{ $second->name }}" class="w-full h-full object-cover">
                                 @else
-                                    <span class="text-sm font-bold text-slate-700">{{ $second->initials }}</span>
+                                    <x-icon name="user" class="h-7 w-7 text-slate-400" />
                                 @endif
                             </div>
                             <span class="achievement-rank-pill achievement-rank-pill-second absolute -bottom-2 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-700 text-white shadow-2xs">#2</span>
@@ -169,7 +169,7 @@
                                 @if ($first->avatar_url)
                                     <img src="{{ $first->avatar_url }}" alt="{{ $first->name }}" class="w-full h-full object-cover">
                                 @else
-                                    <span class="text-base font-extrabold text-amber-800">{{ $first->initials }}</span>
+                                    <x-icon name="user" class="h-8 w-8 text-slate-400" />
                                 @endif
                             </div>
                             <span class="achievement-rank-pill achievement-rank-pill-first absolute -bottom-2 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-gradient-to-r from-amber-500 to-yellow-500 text-white shadow-sm">#1 Juara</span>
@@ -206,7 +206,7 @@
                                 @if ($third->avatar_url)
                                     <img src="{{ $third->avatar_url }}" alt="{{ $third->name }}" class="w-full h-full object-cover">
                                 @else
-                                    <span class="text-sm font-bold text-amber-900">{{ $third->initials }}</span>
+                                    <x-icon name="user" class="h-7 w-7 text-slate-400" />
                                 @endif
                             </div>
                             <span class="achievement-rank-pill achievement-rank-pill-third absolute -bottom-2 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-800 text-white shadow-2xs">#3</span>
@@ -283,7 +283,7 @@
                                         @if ($student->avatar_url)
                                             <img src="{{ $student->avatar_url }}" alt="{{ $student->name }}" class="w-full h-full object-cover">
                                         @else
-                                            {{ $student->initials }}
+                                            <x-icon name="user" class="h-4 w-4 text-slate-400" />
                                         @endif
                                     </div>
                                     <div>

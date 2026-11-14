@@ -16,7 +16,7 @@
     <div class="app-shell">
         <button class="scrim" type="button" aria-label="Tutup navigasi" data-menu-close></button>
         <aside class="sidebar sidebar-theme" id="primary-navigation" aria-label="Navigasi utama">
-            <a class="brand" href="{{ route('dashboard') }}" aria-label="SocratesRead, beranda"><img class="brand-logo" src="{{ asset('images/socratesread-logo.jpeg') }}" alt=""><span class="brand-name">socrates<span>read</span><small>LEARN · THINK · GROW</small></span></a>
+            <a class="brand" href="{{ route('dashboard') }}" aria-label="SocratesRead, beranda"><img class="brand-logo" src="{{ asset('images/logo.png') }}" alt=""><span class="brand-name">Socrates<span>Read</span></span></a>
 
             <div class="nav-label">MENU UTAMA</div>
             <nav class="nav-list" aria-label="Menu utama">
@@ -33,6 +33,7 @@
             </nav>
 
             <div class="sidebar-spacer"></div>
+            <details class="profile-menu"><summary class="profile-button"><span class="avatar avatar-sidebar {{ auth()->user()->avatarUrl() ? '' : 'avatar-empty' }}">@if (auth()->user()->avatarUrl())<img src="{{ auth()->user()->avatarUrl() }}" alt="">@else<x-icon name="user" class="avatar-placeholder-icon" />@endif</span><span class="profile-copy"><strong>{{ auth()->user()->name }}</strong><small>Siswa SocratesRead</small></span><x-icon name="chevron-down" class="profile-chevron" /></summary><div class="profile-dropdown"><a href="{{ route('profile') }}">Profil</a><form method="POST" action="{{ route('logout') }}">@csrf<button type="submit">Keluar</button></form></div></details>
         </aside>
 
         <main class="main-content" id="dashboard">
@@ -43,16 +44,16 @@
                     <a href="{{ route('dashboard') }}" class="hover:text-blue-600 transition-colors">Ruang belajar</a><span>/</span><strong>Beranda</strong>
                 </div>
                 <div class="topbar-actions">
-                    <span class="today-label"><x-icon name="calendar-days" />{{ now()->locale('id')->translatedFormat('l, d F Y') }}</span>
-                    <button class="icon-button notification-button" type="button" aria-label="Notifikasi"><x-icon name="bell" /><i></i></button>
+                    <span class="today-label">{{ now()->locale('id')->translatedFormat('l, d F Y') }}</span>
+                    <x-notification-center />
                     <x-profile-dropdown />
                 </div>
             </header>
 
-            <div class="page-content">
+            <div class="page-content student-dashboard">
                 @if (session('notice')) <div class="auth-notice" role="status">{{ session('notice') }}</div> @endif
                 <section class="welcome-row" aria-labelledby="welcome-title">
-                    <div><p class="eyebrow">{{ now()->locale('id')->translatedFormat('l, d F Y') }} <span class="eyebrow-dot">·</span> SIAP BELAJAR?</p><h1 id="welcome-title"><span id="greetingText" class="text-blue-600">{{ $greeting ?? 'Selamat malam' }}</span>, {{ auth()->user()->name }} <span class="welcome-dot" aria-hidden="true">·</span></h1><p class="welcome-subtitle">Pikiran hebat tumbuh dari pertanyaan yang tepat.</p></div>
+                    <div><p class="eyebrow">{{ now()->locale('id')->translatedFormat('l, d F Y') }}</p><h1 id="welcome-title"><span id="greetingText" class="text-blue-600">{{ $greeting ?? 'Selamat malam' }}</span>, {{ auth()->user()->name }} <span class="welcome-dot" aria-hidden="true">·</span></h1><p class="welcome-subtitle">Pikiran hebat tumbuh dari pertanyaan yang tepat.</p></div>
                     <div class="welcome-actions flex items-center gap-2 flex-wrap">
                         <!-- Dropdown Pilihan Tingkat Kelas -->
                         <div class="relative filter-dropdown-container" id="classFilterContainer">
@@ -62,7 +63,7 @@
                                 <x-icon name="chevron-down" class="filter-chevron" />
                             </button>
 
-                            <div id="classFilterMenu" class="filter-dropdown-menu hidden absolute right-0 sm:right-auto sm:left-0 top-[calc(100%+6px)] z-50 w-52 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl transition-all" role="menu">
+                            <div id="classFilterMenu" class="filter-dropdown-menu hidden absolute left-0 right-auto top-[calc(100%+6px)] z-50 w-52 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl transition-all" role="menu">
                                 <div class="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
                                     Pilih Tingkat Kelas
                                 </div>
@@ -185,7 +186,7 @@
 
                 <div class="content-grid">
                     <section class="panel reading-panel scroll-mt-6" id="bacaan" aria-labelledby="reading-heading">
-                        <div class="section-heading"><div><p class="section-overline">LANJUTKAN DARI SINI</p><h2 id="reading-heading">Bacaan untukmu</h2></div><a class="text-link" href="{{ route('reading') }}">Buka Reading Room <x-icon name="arrow-right" /></a></div>
+                        <div class="section-heading"><div><h2 id="reading-heading">Bacaan untukmu</h2></div><a class="text-link" href="{{ route('reading') }}">Buka Reading Room <x-icon name="arrow-right" /></a></div>
                         @forelse ($readingDocuments as $document)
                             @php($session = $document->readingSessions->first())
                             @php($isSessionCompleted = $session?->status === 'completed')
@@ -209,7 +210,7 @@
                     </section>
 
                     <div class="right-column">
-                        <section class="panel challenge-panel scroll-mt-6" id="tantangan" aria-labelledby="challenge-heading"><div class="section-heading compact-heading"><div><p class="section-overline">ASAH RASA INGIN TAHU</p><h2 id="challenge-heading">Tantanganmu</h2></div><span class="challenge-mark" aria-hidden="true"><x-icon name="circle-help" /></span></div>
+                        <section class="panel challenge-panel scroll-mt-6" id="tantangan" aria-labelledby="challenge-heading"><div class="section-heading compact-heading"><div><h2 id="challenge-heading">Tantanganmu</h2></div><span class="challenge-mark" aria-hidden="true"><x-icon name="circle-help" /></span></div>
                             @if ($isPriorGrade)
                                 <div class="challenge-question"><span class="question-label">TINGKAT SEBELUM PENDAFTARAN</span><p>Tantangan Socratic Anda aktif mulai Kelas {{ $user->entry_grade ?? 10 }}.</p></div><div class="challenge-footer"><span class="challenge-reward"><strong>Halaman Kosong</strong></span><a class="challenge-button" href="{{ route('dashboard', ['grade' => $user->currentGrade() ?? ($user->entry_grade ?? 10)]) }}">Beralih ke Kelas {{ $user->currentGrade() ?? ($user->entry_grade ?? 10) }} <x-icon name="arrow-right" /></a></div>
                             @elseif ($challengeQuestion && $activeSession)
@@ -232,7 +233,7 @@
                             @endif
                         </section>
 
-                        <section class="panel activity-panel scroll-mt-6" id="progress" aria-labelledby="activity-heading"><div class="section-heading compact-heading"><div><p class="section-overline">JEJAK PERJALANANMU</p><h2 id="activity-heading">Aktivitas terbaru</h2></div><a class="more-button" href="{{ route('progress') }}" aria-label="Lihat semua aktivitas"><x-icon name="arrow-right" /></a></div><div class="recent-activity-list">@forelse ($recentActivities as $activity)@php($actDoc = $activity->document ?? $activity->readingSession?->document)<article class="recent-activity-row"><span class="recent-activity-icon"><x-icon name="{{ $activity->event_type === 'reading_completed' ? 'book-open-text' : 'award' }}" /></span><div><strong>{{ $activity->summary }}</strong><small>{{ $actDoc?->category ? $actDoc->category . ' · ' : '' }}{{ $actDoc?->title ?? 'Sesi membaca' }} · {{ $activity->created_at->locale('id')->diffForHumans() }}</small></div><span class="recent-activity-xp">{{ $activity->xp_awarded ? '+'.$activity->xp_awarded.' XP' : 'Tercatat' }}</span></article>@empty<div class="activity-empty">Selesaikan bacaan atau tantangan untuk mulai mencatat perjalanan belajarmu.</div>@endforelse</div></section>
+                        <section class="panel activity-panel scroll-mt-6" id="progress" aria-labelledby="activity-heading"><div class="section-heading compact-heading"><div><h2 id="activity-heading">Aktivitas terbaru</h2></div><a class="more-button" href="{{ route('progress') }}" aria-label="Lihat semua aktivitas"><x-icon name="arrow-right" /></a></div><div class="recent-activity-list">@forelse ($recentActivities as $activity)@php($actDoc = $activity->document ?? $activity->readingSession?->document)<article class="recent-activity-row"><span class="recent-activity-icon"><x-icon name="{{ $activity->event_type === 'reading_completed' ? 'book-open-text' : 'award' }}" /></span><div><strong>{{ $activity->summary }}</strong><small>{{ $actDoc?->category ? $actDoc->category . ' · ' : '' }}{{ $actDoc?->title ?? 'Sesi membaca' }} · {{ $activity->created_at->locale('id')->diffForHumans() }}</small></div><span class="recent-activity-xp">{{ $activity->xp_awarded ? '+'.$activity->xp_awarded.' XP' : 'Tercatat' }}</span></article>@empty<div class="activity-empty">Selesaikan bacaan atau tantangan untuk mulai mencatat perjalanan belajarmu.</div>@endforelse</div></section>
                     </div>
                 </div>
                 <footer class="page-footer"><span>Terus bertanya, terus bertumbuh.</span><span>© 2026 SocratesRead</span></footer>

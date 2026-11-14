@@ -44,7 +44,7 @@
                                 @if ($user->avatarUrl())
                                     <img src="{{ $user->avatarUrl() }}" alt="Foto profil {{ $user->name }}" class="w-full h-full object-cover">
                                 @else
-                                    <span>{{ mb_strtoupper(collect(explode(' ', $user->name))->filter()->take(2)->map(fn ($part) => mb_substr($part, 0, 1))->implode('')) }}</span>
+                                    <x-icon name="user" class="h-10 w-10" />
                                 @endif
                             </div>
                         </div>

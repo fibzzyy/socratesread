@@ -20,7 +20,7 @@
                     <div class="mx-auto w-full max-w-[380px]">
                         <div class="mb-6 flex flex-col items-center text-center">
                             <a href="{{ route('login') }}" class="mb-4 inline-flex items-center justify-center gap-2.5 text-decoration-none">
-                                <img src="{{ asset('images/socratesread-logo.jpeg') }}" alt="Logo SocratesRead" class="h-9 w-9 rounded-lg object-cover shadow-xs">
+                                <img src="{{ asset('images/logo.png') }}" alt="Logo SocratesRead" class="h-9 w-9 object-contain">
                                 <span class="font-display text-xl font-extrabold tracking-tight text-slate-900">
                                     Socrates<span class="text-blue-600">Read</span>
                                 </span>

@@ -6,6 +6,7 @@
 @import './achievements.css';
 @import './reading-book.css';
 @import './sidebar-theme.css';
+@import './responsive-system.css';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';

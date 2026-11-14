@@ -41,11 +41,11 @@
                             <tr>
                                 <td>
                                     <span class="teacher-student-name">
-                                        <span class="avatar">
+                                        <span class="avatar {{ $student->avatarUrl() ? '' : 'avatar-empty' }}">
                                             @if ($student->avatarUrl())
                                                 <img src="{{ $student->avatarUrl() }}" alt="Foto profil {{ $student->name }}" class="avatar-image">
                                             @else
-                                                {{ mb_strtoupper(mb_substr($student->name, 0, 1)) }}
+                                                <x-icon name="user" class="avatar-placeholder-icon" />
                                             @endif
                                         </span>
                                         {{ $student->name }}

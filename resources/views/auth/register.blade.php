@@ -76,9 +76,7 @@
                 <div class="mb-6">
                     <div class="mb-4 flex items-center">
                         <a href="{{ route('login') }}" class="group inline-flex items-center gap-2.5 text-decoration-none">
-                            <div class="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl border border-blue-100 bg-white shadow-xs transition-transform group-hover:scale-105">
-                                <img src="{{ asset('images/socratesread-logo.jpeg') }}" alt="Logo SocratesRead" class="h-full w-full object-cover">
-                            </div>
+                            <img src="{{ asset('images/logo.png') }}" alt="Logo SocratesRead" class="h-9 w-9 object-contain">
                             <span class="font-display text-lg font-extrabold tracking-tight text-slate-900">
                                 Socrates<span class="text-blue-600">Read</span>
                             </span>

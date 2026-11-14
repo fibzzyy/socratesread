@@ -515,8 +515,7 @@
 .academy-badge-dialog h4 { margin: 5px 0; color: var(--academy-ink); font-size: 18px; font-weight: 800; }
 .academy-dialog-description { margin: 0 0 14px; color: var(--academy-muted); font-size: 12px; }
 .academy-dialog-requirement { display: inline-flex; padding: 7px 12px; border: 1px solid #d7e4da; border-radius: 999px; color: #42664e; background: #edf5ef; font-size: 10px; font-weight: 800; }
-@media (max-width: 900px) { .academy-badge-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-@media (max-width: 600px) { .academy-collection { padding: 17px 13px; border-radius: 19px; } .academy-collection-heading { align-items: flex-start; flex-wrap: wrap; gap: 10px; } .academy-heading-seal { width: 40px; height: 40px; flex-basis: 40px; } .academy-collection-heading h3 { font-size: 16px; } .academy-collection-heading > div > p:last-child { max-width: 230px; font-size: 10px; } .academy-xp-total { margin-left: auto; padding: 6px 8px; font-size: 9px; } .academy-badge-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; } .academy-badge-card { min-height: 222px; padding-inline: 8px; } .academy-mission-grid { grid-template-columns: 1fr; gap: 8px; } .academy-mission-card { min-height: 76px; } }
+@media (max-width: 600px) { .academy-collection { padding: 17px 13px; border-radius: 19px; } .academy-collection-heading { align-items: flex-start; flex-wrap: wrap; gap: 10px; } .academy-heading-seal { width: 40px; height: 40px; flex-basis: 40px; } .academy-collection-heading h3 { font-size: 16px; } .academy-collection-heading > div > p:last-child { max-width: 230px; font-size: 10px; } .academy-xp-total { margin-left: auto; padding: 6px 8px; font-size: 9px; } }
 @media (prefers-reduced-motion: reduce) { .academy-badge-card, .academy-mission-card { transition: none; } }
 
 

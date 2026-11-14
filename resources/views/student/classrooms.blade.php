@@ -30,11 +30,7 @@
             <span class="my-class-join-accent" aria-hidden="true"></span>
             <span class="my-class-join-decoration" aria-hidden="true"></span>
             <div class="my-class-join-copy">
-                <div class="my-class-join-eyebrow">
-                    <x-icon name="users-round" />
-                    <span>GABUNG KELAS</span>
-                </div>
-                <h2 id="join-class-heading">Gabung kelas baru. Belajar bersama guru.</h2>
+                <h2 id="join-class-heading">Gabung kelas baru.<br><span>Belajar bersama guru.</span></h2>
 
                 <form method="POST" action="{{ route('classrooms.join') }}" class="my-class-join-form">
                     @csrf
