@@ -125,6 +125,7 @@ class ReadingMaterialFormatter
         $normalized = str_replace(["\r\n", "\r"], "\n", $rawText);
         $normalized = preg_replace('/(?m)^([a-zA-Z\d]+[\.\)])([A-Za-z])/u', '$1 $2', $normalized) ?? $normalized;
         $normalized = preg_replace('/(?<!^|\n)\s*([•·\x{2022}\x{25CB}\x{25CF}\x{25AA}\x{25AB}\x{25BA}\x{2713}\x{2714}\x{2756}❖⚬○■□▪▫◆◇✦✧])/u', "\n$1 ", $normalized) ?? $normalized;
+        $normalized = preg_replace('/(?<=[.?!;):\x{201D}\x{2019}\"\'\]\}])\s*[-–—\•\*]\s+(?=[A-Z\p{Lu}])/u', "\n- ", $normalized) ?? $normalized;
         $rawLines = explode("\n", $normalized);
 
         $blocks = [];
@@ -140,6 +141,20 @@ class ReadingMaterialFormatter
             $joined = preg_replace('/[ \t]+/u', ' ', $joined) ?? $joined;
             $joined = preg_replace('/^(\b\p{L}+\b)(?:\s+\1)+(?=\s+(?:adalah|merupakan|yaitu|yakni|ialah|dalam|pada|sebagai)\b)/iu', '$1', $joined) ?? $joined;
             $joined = preg_replace('/(?<=[.?!])\s+(?:Rangkuman|Ringkasan|Ikhtisar|Referensi)(?:\s+(?:Rangkuman|Ringkasan|Ikhtisar|Referensi))*$/iu', '', $joined) ?? $joined;
+
+            // Jika seluruh buffer ternyata diawali bullet marker atau tanda daftar
+            if (preg_match('/^[-–—\•\*]\s+/u', $joined)) {
+                $subItems = preg_split('/(?<=[.?!;):\x{201D}\x{2019}\"\'\]\}])\s*[-–—\•\*]\s+(?=[A-Z\p{Lu}])/u', $joined) ?: [$joined];
+                foreach ($subItems as $subItem) {
+                    $subItem = trim(preg_replace('/^[-–—\•\*]\s+/u', '', $subItem) ?? '');
+                    if ($subItem !== '') {
+                        $blocks[] = '- ' . $this->enhanceInlineTypography($subItem);
+                    }
+                }
+                $paragraphBuffer = [];
+                return;
+            }
+
             $joined = $this->enhanceInlineTypography(trim($joined));
             if ($joined !== '') {
                 $blocks[] = $joined;
@@ -155,7 +170,7 @@ class ReadingMaterialFormatter
             $codeBuffer = [];
         };
 
-        $listMarkers = '/^([•·\x{2022}\x{25CB}\x{25CF}\x{25AA}\x{25AB}\x{25BA}\x{2713}\x{2714}\x{2756}❖⚬○■□▪▫◆◇✦✧])\s*(.*)$/u';
+        $listMarkers = '/^(?:([•·\x{2022}\x{25CB}\x{25CF}\x{25AA}\x{25AB}\x{25BA}\x{2713}\x{2714}\x{2756}❖⚬○■□▪▫◆◇✦✧])\s*|([–—\-\*])\s+)(.*)$/u';
         $orderedMarker = '/^(\d+[\.\)])\s+(.+)$/u';
         $pageNumberLine = '/^(?:halaman|hal\.?|page)?\s*\d+(?:\s*(?:of|\/)\s*\d+)?$/iu';
 
@@ -283,13 +298,13 @@ class ReadingMaterialFormatter
                 continue;
             }
 
-            // Deteksi bullet list (•, ⚬, dll.)
+            // Deteksi bullet list (•, ⚬, -, *, dll.)
             if (preg_match($listMarkers, $line, $m)) {
                 $flushParagraph();
-                $bulletSymbol = $m[1];
-                $isSubBullet = in_array($bulletSymbol, ['⚬', '○', '▫', '▪', '·'], true);
+                $bulletSymbol = ! empty($m[1]) ? $m[1] : ($m[2] ?? '-');
+                $isSubBullet = in_array($bulletSymbol, ['⚬', '○', '▫', '▪', '·'], true) || (bool) preg_match('/^\s{2,}/', $rawLine);
                 $prefix = $isSubBullet ? '  - ' : '- ';
-                $itemText = $this->restoreMissingSpaces(trim($m[2]));
+                $itemText = $this->restoreMissingSpaces(trim($m[3]));
 
                 while ($i + 1 < $totalLines) {
                     $nextRaw = trim($rawLines[$i + 1]);
@@ -311,7 +326,13 @@ class ReadingMaterialFormatter
 
                 if ($itemText !== '') {
                     $itemText = preg_replace('/[ \t]+/u', ' ', $itemText) ?? $itemText;
-                    $blocks[] = $prefix . $this->enhanceInlineTypography($itemText);
+                    $subItems = preg_split('/(?<=[.?!;):\x{201D}\x{2019}\"\'\]\}])\s*[-–—\•\*]\s+(?=[A-Z\p{Lu}])/u', $itemText) ?: [$itemText];
+                    foreach ($subItems as $subItem) {
+                        $subItem = trim(preg_replace('/^[-–—\•\*]\s+/u', '', $subItem) ?? '');
+                        if ($subItem !== '') {
+                            $blocks[] = $prefix . $this->enhanceInlineTypography($subItem);
+                        }
+                    }
                 }
                 continue;
             }

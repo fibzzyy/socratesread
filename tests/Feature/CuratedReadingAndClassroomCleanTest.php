@@ -244,4 +244,49 @@ class CuratedReadingAndClassroomCleanTest extends TestCase
         $this->assertStringNotContainsString('ma’moer', $formatted);
         $this->assertStringNotContainsString('ma\'moer', $formatted);
     }
+
+    public function test_inline_bullet_splitting_and_rhetorical_question_excerpt_filter(): void
+    {
+        $formatter = app(ReadingMaterialFormatter::class);
+        $aiProcessor = app(DocumentAiProcessor::class);
+
+        // 1. Uji pemecahan bullet sebaris (inline hyphens)
+        $doc28Inline = "- Kapan bahasa Indonesia lahir, bagaimana proses kelahirannya, dan peristiwa apa saja yang melatarbelakanginya? - Lahirnya bahasa Indonesia tentu bukanlah hal yang mudah, pasti penuh tantangan, pemikiran, dan perjuangan keras. - Bahasa Indonesia diresmikan penggunaannya satu hari setelah Proklamasi Kemerdekaan Indonesia, tepatnya pada tanggal 18 Agustus 1945, bersamaan dengan mulai berlakunya Undang-undang Dasar Republik Indonesia 1945.\n\nNaskah Melayu kuno dengan pengaruh Arab";
+        $formatted28 = $formatter->format($doc28Inline, 'PKN');
+
+        $this->assertStringContainsString("- Kapan bahasa Indonesia lahir", $formatted28);
+        $this->assertStringContainsString("- Lahirnya bahasa Indonesia tentu bukanlah hal yang mudah", $formatted28);
+        $this->assertStringContainsString("- Bahasa Indonesia diresmikan penggunaannya", $formatted28);
+        // Pastikan tidak menyatu dalam satu baris dengan inline hyphen
+        $this->assertStringNotContainsString("? - Lahirnya", $formatted28);
+        $this->assertStringNotContainsString("keras. - Bahasa", $formatted28);
+
+        // 2. Uji bullet sebaris pada kaidah kebahasaan
+        $doc29Inline = "Unsur-Unsur Kaidah Bahasa\n\n- Diksi (pilihan kata) → tepat, sesuai konteks. - Ejaan (EBI) → huruf kapital, tanda baca, penulisan kata. - Kalimat → subjek & predikat jelas. - Kohesi & Koherensi → kepaduan bentuk & makna. - Gaya Bahasa → majas sesuai tujuan.";
+        $formatted29 = $formatter->format($doc29Inline, 'PKL');
+
+        $this->assertStringContainsString("- Diksi (pilihan kata)", $formatted29);
+        $this->assertStringContainsString("- Ejaan (EBI)", $formatted29);
+        $this->assertStringContainsString("- Kalimat → subjek & predikat jelas.", $formatted29);
+        $this->assertStringContainsString("- Kohesi & Koherensi", $formatted29);
+        $this->assertStringContainsString("- Gaya Bahasa", $formatted29);
+
+        // 3. Pastikan teks bold Markdown **Judul** tidak rusak menjadi - *Judul
+        $boldText = "Contoh Perbaikan Kalimat\n\n**Latihan Perbaikan Kalimat Perbaiki kalimat berikut:**\n\n1. Kami sudah mempersiapkan.";
+        $formattedBold = $formatter->format($boldText, 'Latihan');
+        $this->assertStringContainsString("**Latihan Perbaikan Kalimat Perbaiki kalimat berikut:**", $formattedBold);
+        $this->assertStringNotContainsString("- *Latihan", $formattedBold);
+
+        // 4. Pastikan intisari bacaan (excerpt) menolak pertanyaan retoris yang diakhiri tanda tanya
+        $excerpt28 = $aiProcessor->generateHeuristicExcerpt($formatted28, 'PKN');
+        $this->assertStringNotContainsString("Kapan bahasa Indonesia lahir", $excerpt28);
+        $this->assertStringContainsString("Lahirnya bahasa Indonesia tentu bukanlah hal yang mudah", $excerpt28);
+        $this->assertFalse(str_ends_with(trim($excerpt28), '?'));
+
+        // 5. Pastikan pertanyaan dengan jawaban substantif hanya mengambil jawabannya
+        $qAndA = "Apa yang dimaksud dengan kaidah kebahasaan? seperangkat aturan dan norma yang mengatur penggunaan bahasa Indonesia agar komunikasi dapat berjalan dengan baik, benar, dan jelas.";
+        $excerpt29 = $aiProcessor->generateHeuristicExcerpt($qAndA, 'PKL');
+        $this->assertStringNotContainsString("Apa yang dimaksud", $excerpt29);
+        $this->assertStringContainsString("Seperangkat aturan dan norma yang mengatur", $excerpt29);
+    }
 }

@@ -46,6 +46,14 @@ class DocumentAiProcessor
                     $fullLen = mb_strlen(trim($cleanedFullBody));
                     if ($aiBodyLen < (int) ($fullLen * 0.85)) {
                         $aiResult['cleaned_body'] = $cleanedFullBody;
+                    } else {
+                        $aiResult['cleaned_body'] = $this->formatter->format($aiResult['cleaned_body']);
+                    }
+
+                    // Pastikan excerpt bukan pertanyaan retoris
+                    $aiExcerpt = trim((string) ($aiResult['excerpt'] ?? ''));
+                    if ($aiExcerpt === '' || str_ends_with($aiExcerpt, '?') || preg_match('/^(?:apa|kapan|bagaimana|mengapa|apakah|siapakah)\b/iu', $aiExcerpt)) {
+                        $aiResult['excerpt'] = $this->generateHeuristicExcerpt($aiResult['cleaned_body'], $title);
                     }
 
                     return $aiResult;
@@ -195,7 +203,7 @@ INSTRUCTIONS;
         }
 
         $aiCleaned = trim((string) ($parsed['cleaned_body'] ?? ''));
-        $finalBody = $aiCleaned !== '' ? $aiCleaned : $formattedBody;
+        $finalBody = $aiCleaned !== '' ? $this->formatter->format($aiCleaned) : $formattedBody;
 
         $defaultEssaySkills = [
             1 => 'Pengertian & Konsep Utama',
@@ -988,11 +996,20 @@ INSTRUCTIONS;
             if (str_contains($plain, '·') || str_contains($plain, '@')) {
                 continue;
             }
+            // Abaikan pertanyaan retoris atau instruksi tugas di awal bacaan
+            if (str_ends_with($plain, '?') || preg_match('/^(?:apa|kapan|bagaimana|mengapa|apakah|siapakah|mengapakah|kenapa|perhatikan|simak|jawablah|kerjakan)\b/iu', $plain)) {
+                // Kecuali jika baris ini berisi jawaban substantif setelah tanda tanya (misal: "Apa itu X? X adalah...")
+                if (preg_match('/\?\s*([A-Za-z\p{L}].{30,})$/u', $plain, $mAnswer)) {
+                    $plain = trim($mAnswer[1]);
+                } else {
+                    continue;
+                }
+            }
             // Abaikan baris judul/subjudul cover pendek yang tidak diakhiri titik
             if (! preg_match('/[.?!]$/u', $plain) && mb_strlen($plain) < 95) {
                 continue;
             }
-            if (preg_match('/^(?:setelah mengikuti|tujuan pembelajaran|lembar kerja|menjelaskan pengertian|mengidentifikasi kedudukan|menunjukkan sikap|menyusun strategi|sumber rujukan|daftar pustaka|terima kasih|proposal perancangan)/iu', $plain)) {
+            if (preg_match('/^(?:setelah mengikuti|setelah mempelajari|tujuan pembelajaran|capaian pembelajaran|lembar kerja|memahami pengertian|mengidentifikasi karakteristik|menganalisis keterkaitan|menjelaskan pengertian|mengidentifikasi kedudukan|menunjukkan sikap|menyusun strategi|sumber rujukan|daftar pustaka|terima kasih|proposal perancangan)/iu', $plain)) {
                 continue;
             }
 
@@ -1000,7 +1017,7 @@ INSTRUCTIONS;
         }
 
         if (empty($cleanLines)) {
-            return "Pelajari konsep utama dan penerapan materi {$title} secara terstruktur untuk melatih pemahaman kritis.";
+            return "Materi {$title} menyajikan konsep fundamental, analisis terstruktur, dan penerapan praktis untuk melatih pemahaman kritis.";
         }
 
         // Ambil kalimat utuh (tidak pernah terpotong di tengah kata)
@@ -1012,6 +1029,11 @@ INSTRUCTIONS;
             if ($s === '' || mb_strlen($s) < 25) {
                 continue;
             }
+            if (str_ends_with($s, '?') || preg_match('/^(?:apa|kapan|bagaimana|mengapa|apakah|siapakah|mengapakah|kenapa|perhatikan|simak|kerjakan|jawablah)\b/iu', $s)) {
+                continue;
+            }
+            // Huruf kapital awal kalimat
+            $s = mb_convert_case(mb_substr($s, 0, 1), MB_CASE_UPPER) . mb_substr($s, 1);
             if ($summary === '') {
                 $summary = $s;
             } elseif (mb_strlen($summary . ' ' . $s) <= 230) {
@@ -1025,7 +1047,16 @@ INSTRUCTIONS;
         }
 
         if ($summary === '') {
-            $summary = $cleanLines[0];
+            foreach ($cleanLines as $candidate) {
+                if (! str_ends_with($candidate, '?') && ! preg_match('/^(?:apa|kapan|bagaimana|mengapa|apakah)\b/iu', $candidate)) {
+                    $summary = mb_convert_case(mb_substr($candidate, 0, 1), MB_CASE_UPPER) . mb_substr($candidate, 1);
+                    break;
+                }
+            }
+        }
+
+        if ($summary === '') {
+            return "Materi {$title} menyajikan konsep fundamental, analisis terstruktur, dan penerapan praktis untuk melatih pemahaman kritis.";
         }
 
         // Jika masih terlalu panjang, potong rapi pada batas kata terakhir (bukan tengah kata)

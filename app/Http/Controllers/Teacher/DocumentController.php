@@ -118,8 +118,14 @@ class DocumentController extends Controller
                 ? $request->boolean('enable_teacher_challenges')
                 : ($request->has('enable_teacher_challenges') ? $request->boolean('enable_teacher_challenges') : true);
 
+            $formatter = app(ReadingMaterialFormatter::class);
             $cleanedBody = ! empty($processed['cleaned_body']) ? (string) $processed['cleaned_body'] : $sourceText;
-            $excerpt = ! empty($processed['excerpt']) ? (string) $processed['excerpt'] : mb_substr(strip_tags($cleanedBody), 0, 200);
+            $cleanedBody = $formatter->format($cleanedBody);
+
+            $excerpt = ! empty($processed['excerpt']) ? trim((string) $processed['excerpt']) : '';
+            if ($excerpt === '' || str_ends_with($excerpt, '?') || preg_match('/^(?:apa|kapan|bagaimana|mengapa|apakah|siapakah)\b/iu', $excerpt)) {
+                $excerpt = $aiProcessor->generateHeuristicExcerpt($cleanedBody, $title);
+            }
 
             $questions = ! empty($processed['questions']) && is_array($processed['questions'])
                 ? $processed['questions']
