@@ -14,7 +14,9 @@ class PdfTextExtractor
         UploadedFile $file,
         ?int $pageStart = null,
         ?int $pageEnd = null,
-        ?string $lastSubtopicHeading = null
+        ?string $lastSubtopicHeading = null,
+        ?string $startSubtopicHeading = null,
+        ?string $documentTitle = null
     ): array
     {
         $config = new Config();
@@ -99,6 +101,11 @@ class PdfTextExtractor
             throw new PdfDocumentRejected('PDF tidak berisi teks yang bisa diekstrak. Pastikan halaman yang dipilih memiliki teks digital.');
         }
 
+        // Potong sisa latihan/materi bab sebelumnya di atas jika guru menentukan submateri awal atau terdeteksi dari judul
+        if (! empty($startSubtopicHeading) || ! empty($documentTitle)) {
+            $text = $this->trimTextBeforeStartSubtopic($text, $startSubtopicHeading, $documentTitle);
+        }
+
         // Potong teks jika guru menentukan batas submateri terakhir pertemuan ini
         if (! empty($lastSubtopicHeading)) {
             $text = $this->cutTextAtSubtopicBoundary($text, $lastSubtopicHeading);
@@ -109,6 +116,59 @@ class PdfTextExtractor
             'pages' => $pages,
             'extracted_pages' => ($endIdx - $startIdx + 1),
         ];
+    }
+
+    /**
+     * Memotong teks sebelum kemunculan submateri awal agar sisa latihan/materi bab sebelumnya di atasnya diabaikan.
+     * Menggabungkan Solusi 1 (input manual guru) dan Solusi 2 (deteksi cerdas otomatis dari judul bacaan).
+     */
+    public function trimTextBeforeStartSubtopic(string $text, ?string $startHeading = null, ?string $documentTitle = null): string
+    {
+        $targetHeading = trim((string) $startHeading);
+
+        // Jika tidak ada input manual submateri awal, gunakan deteksi otomatis cerdas dari judul dokumen
+        if ($targetHeading === '' && ! empty($documentTitle)) {
+            $cleanTitle = trim(preg_replace('/^(?:Bab|Pertemuan|Modul|Materi)\s*[\dIVXLCDM.\-:\s]*/iu', '', $documentTitle) ?? $documentTitle);
+            if (mb_strlen($cleanTitle) >= 4) {
+                $searchRegion = mb_substr($text, 0, 3000);
+                $escaped = preg_quote($cleanTitle, '/');
+                $pattern = '/(?:^|\R)\s*(((?:[A-Z]|\d+(?:\.\d+)*)\.?\s*)?' . $escaped . ')\b/iu';
+                if (preg_match($pattern, $searchRegion, $m)) {
+                    $foundHeading = trim($m[1]);
+                    $foundPos = mb_stripos($text, $foundHeading);
+                    if ($foundPos !== false && $foundPos >= 40) {
+                        $targetHeading = $foundHeading;
+                    }
+                }
+            }
+        }
+
+        if ($targetHeading === '') {
+            return $text;
+        }
+
+        $pos = mb_stripos($text, $targetHeading);
+        if ($pos === false) {
+            $bareHeading = trim(preg_replace('/^[\d.\-\s]+/u', '', $targetHeading) ?? $targetHeading);
+            if ($bareHeading !== '' && mb_strlen($bareHeading) >= 4) {
+                $escaped = preg_quote($bareHeading, '/');
+                $pattern = '/(?:^|\R)\s*(((?:[A-Z]|\d+(?:\.\d+)*)\.?\s*)?' . $escaped . ')\b/iu';
+                if (preg_match($pattern, $text, $m)) {
+                    $pos = mb_stripos($text, trim($m[1]));
+                } else {
+                    $pos = mb_stripos($text, $bareHeading);
+                }
+            }
+        }
+
+        if ($pos !== false && $pos > 0) {
+            $trimmed = trim(mb_substr($text, $pos));
+            if (mb_strlen($trimmed) >= 60) {
+                return $trimmed;
+            }
+        }
+
+        return $text;
     }
 
     /**
@@ -138,8 +198,8 @@ class PdfTextExtractor
         $remainingText = mb_substr($text, $afterHeadingStart);
 
         // Cari kemunculan heading berikutnya:
-        // Pola: Baris baru diikuti (A-Z. atau 1.2 / 2.5 atau Bab X atau Kata Tebal / Heading huruf kapital)
-        if (preg_match('/\R+(?=(?:[A-Z]\.|\d+\.\d+|\bBab\s+[IVXLCDM\d]+|[A-Z]{3,}\b))/u', $remainingText, $m, PREG_OFFSET_CAPTURE)) {
+        // Pola: Baris baru diikuti (A-Z. atau 1.2 / 2.5 atau Bab X atau Kata Tebal / Heading huruf kapital atau 1. Kata)
+        if (preg_match('/\R+(?=(?:[A-Z]\.|\d+\.\d+|\bBab\s+[IVXLCDM\d]+|[A-Z]{3,}\b|\d+\.\s+[A-Z]))/u', $remainingText, $m, PREG_OFFSET_CAPTURE)) {
             $byteOffset = $m[0][1];
             $charOffset = mb_strlen(substr($remainingText, 0, $byteOffset));
             $cutoffPoint = $afterHeadingStart + $charOffset;

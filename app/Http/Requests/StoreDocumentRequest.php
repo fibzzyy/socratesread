@@ -23,6 +23,7 @@ class StoreDocumentRequest extends FormRequest
             'page_scope' => ['nullable', 'string', 'in:all,range'],
             'page_start' => ['nullable', 'integer', 'min:1'],
             'page_end' => ['nullable', 'integer', 'min:1'],
+            'start_subtopic_heading' => ['nullable', 'string', 'max:160'],
             'last_subtopic_heading' => ['nullable', 'string', 'max:160'],
             'has_teacher_challenges_toggle' => ['nullable'],
             'enable_teacher_challenges' => ['nullable', 'boolean'],

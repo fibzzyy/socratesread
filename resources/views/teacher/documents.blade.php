@@ -109,15 +109,27 @@
                     </div>
                 </div>
 
-                <!-- Input Batas Submateri Terakhir -->
-                <div class="pt-2 border-t border-blue-100/60">
-                    <label for="last_subtopic_heading" class="text-xs font-semibold text-slate-700 flex items-center gap-1">
-                        Batas Submateri Terakhir yang Diajarkan Hari Ini (Opsional)
-                    </label>
-                    <input id="last_subtopic_heading" name="last_subtopic_heading" type="text" maxlength="160" class="upload-field bg-white text-xs mt-1" placeholder="Contoh: 2.4 Kaidah Kebahasaan (materi 2.5 ke bawah otomatis diabaikan)">
-                    <small class="text-[11px] text-slate-500 block mt-1">
-                        Gunakan ini jika waktu kelas habis di tengah halaman. Sistem otomatis memotong materi setelah submateri ini agar soal kuis 100% adil dan sesuai apa yang diajarkan.
-                    </small>
+                <!-- Input Batas Submateri Awal & Terakhir -->
+                <div class="pt-2 border-t border-blue-100/60 space-y-3">
+                    <div>
+                        <label for="start_subtopic_heading" class="text-xs font-semibold text-slate-700 flex items-center gap-1">
+                            Mulai dari Submateri Awal yang Diajarkan Hari Ini (Opsional)
+                        </label>
+                        <input id="start_subtopic_heading" name="start_subtopic_heading" type="text" maxlength="160" class="upload-field bg-white text-xs mt-1" placeholder="Contoh: 2. Barisan Geometri (sisa latihan/bab sebelumnya di atasnya diabaikan)">
+                        <small class="text-[11px] text-slate-500 block mt-1">
+                            Gunakan ini jika materi baru dimulai di tengah halaman (setelah sisa latihan bab sebelumnya). Jika dikosongkan, sistem juga cerdas mendeteksi otomatis dari judul bacaan.
+                        </small>
+                    </div>
+
+                    <div>
+                        <label for="last_subtopic_heading" class="text-xs font-semibold text-slate-700 flex items-center gap-1">
+                            Batas Submateri Terakhir yang Diajarkan Hari Ini (Opsional)
+                        </label>
+                        <input id="last_subtopic_heading" name="last_subtopic_heading" type="text" maxlength="160" class="upload-field bg-white text-xs mt-1" placeholder="Contoh: B. Sifat-Sifat Eksponen (materi setelahnya otomatis diabaikan)">
+                        <small class="text-[11px] text-slate-500 block mt-1">
+                            Gunakan ini jika waktu kelas habis di tengah halaman. Sistem otomatis memotong materi setelah submateri ini agar soal kuis 100% adil dan sesuai apa yang diajarkan.
+                        </small>
+                    </div>
                 </div>
             </div>
 

@@ -79,10 +79,12 @@ class DocumentController extends Controller
             $pageStart = $request->filled('page_start') ? (int) $request->input('page_start') : null;
             $pageEnd = $request->filled('page_end') ? (int) $request->input('page_end') : null;
         }
+        $startHeading = $request->filled('start_subtopic_heading') ? trim($request->string('start_subtopic_heading')->toString()) : null;
         $lastHeading = $request->filled('last_subtopic_heading') ? trim($request->string('last_subtopic_heading')->toString()) : null;
+        $title = trim($request->string('title')->toString());
 
         try {
-            $extracted = $extractor->extract($request->file('file'), $pageStart, $pageEnd, $lastHeading);
+            $extracted = $extractor->extract($request->file('file'), $pageStart, $pageEnd, $lastHeading, $startHeading, $title);
         } catch (Throwable $exception) {
             Log::warning('PDF document extraction failed.', [
                 'exception' => class_basename($exception),
