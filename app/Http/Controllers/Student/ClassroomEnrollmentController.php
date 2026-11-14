@@ -107,7 +107,9 @@ class ClassroomEnrollmentController extends Controller
             ->first();
 
         if (! $classroom) {
-            return back()->withErrors(['join_code' => 'Kode kelas tidak ditemukan atau sudah tidak aktif.'])->withInput();
+            return redirect()->route('classrooms.index')
+                ->withErrors(['join_code' => 'Kode kelas tidak ditemukan atau sudah tidak aktif.'])
+                ->withInput();
         }
 
         $student = $request->user();
@@ -122,9 +124,9 @@ class ClassroomEnrollmentController extends Controller
         ]);
 
         if ($inserted === 0) {
-            return back()->with('notice', 'Kamu sudah tergabung di kelas ini.');
+            return redirect()->route('classrooms.index')->with('notice', 'Kamu sudah tergabung di kelas ini.');
         }
 
-        return back()->with('notice', 'Berhasil bergabung dengan kelas '.$classroom->name.'.');
+        return redirect()->route('classrooms.index')->with('notice', 'Berhasil bergabung dengan kelas '.$classroom->name.'.');
     }
 }
