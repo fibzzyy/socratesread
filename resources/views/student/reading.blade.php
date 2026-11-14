@@ -95,12 +95,11 @@
                         <span>Saat membaca, cari kalimat yang menjadi <strong>bukti</strong> untuk setiap gagasan penting.</span>
                     </div>
                 </div>
-            </div>
 
         </article>
 
         <aside class="reading-side-column reading-companion-panel" aria-label="Panduan membaca">
-            <section class="panel session-card reading-status-card" aria-labelledby="reading-status-title">
+            <section class="panel session-card reading-status-card" data-session-card aria-labelledby="reading-status-title">
                 <div class="session-head">
                     <div class="session-icon"><x-icon name="book-open-text" /></div>
                     <div>
@@ -137,7 +136,7 @@
                 </div>
             </section>
 
-            <section class="panel session-card" data-session-card>
+            <section class="panel session-card coach-panel" data-coach-card data-reading-coach data-endpoint="{{ route('reading.coach') }}" data-session-id="{{ $session->id }}" data-max-length="{{ config('ai.limits.message_characters', 1200) }}" data-initial-history="{{ json_encode($coachHistory ?? []) }}" aria-labelledby="coach-title">
                 <div class="session-head">
                     <div class="session-icon"><x-icon name="book-open-text" /></div>
                     <div>
@@ -167,7 +166,7 @@
                     <button type="button" data-coach-prompt="Bukti apa yang mendukung ide penting dalam bacaan?">Cari bukti</button>
                     <button type="button" data-coach-prompt="Adakah sudut pandang lain atau makna mendalam dari bacaan ini?">Sudut pandang</button>
                 </div>
-                <form class="coach-form" data-coach-form>
+                <form class="coach-form" data-coach-form method="POST" onsubmit="return false;">
                     <label class="sr-only" for="coach-message">Tulis pertanyaan atau pemikiranmu</label>
                     <textarea id="coach-message" name="message" rows="2" maxlength="{{ config('ai.limits.message_characters', 1200) }}" placeholder="Tulis pertanyaan atau pemikiranmu…" required data-coach-input></textarea>
                     <div class="coach-form-footer">

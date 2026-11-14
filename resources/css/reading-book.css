@@ -56,7 +56,12 @@
 .reading-book-page .reading-book-header .back-link:hover svg { transform: translateX(-3px); }
 
 /* Two distinct surfaces: a compact control rail and a quiet editorial page. */
-.reading-book-page .reading-workspace-grid { display: grid; grid-template-columns: minmax(0, 1fr) 350px; align-items: stretch; gap: 18px; }
+.reading-book-page .reading-workspace-grid {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1.85fr) minmax(310px, 350px) !important;
+    align-items: start !important;
+    gap: 20px !important;
+}
 .reading-book-page .reading-document-workspace { display: flex; min-width: 0; flex-direction: column; gap: 12px; padding: 0; overflow: visible; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
 .reading-book-page .passage-toolbar { display: flex; min-height: 54px; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; padding: 9px 14px; border: 1px solid var(--reader-border); border-radius: 13px; background: #fff; box-shadow: 0 4px 14px rgb(16 38 74 / 4%); }
 .reading-book-page .passage-tags { display: flex; min-width: 0; flex-wrap: wrap; align-items: center; gap: 7px 12px; }
@@ -111,7 +116,18 @@
 .reading-book-page .outline-button.is-complete { color: #39755B; border-color: #CEE4D6; background: #F0F7F2; }
 
 /* Reading companion */
-.reading-book-page .reading-companion-panel { display: grid; min-width: 0; max-height: min(66vh, 720px); align-content: start; gap: 12px; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
+.reading-book-page .reading-companion-panel,
+.reading-book-page .reading-side-column {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 16px !important;
+    min-width: 0 !important;
+    width: 100% !important;
+}
+.reading-book-page .reading-companion-panel > * {
+    width: 100% !important;
+    max-width: 100% !important;
+}
 .reading-book-page .reading-canvas,
 .reading-book-page .reading-companion-panel { scrollbar-width: thin; scrollbar-color: #B9CBE4 transparent; }
 .reading-book-page .reading-canvas::-webkit-scrollbar,
@@ -161,8 +177,8 @@
 .reading-book-page .privacy-note svg { color: #6F91C8; }
 .reading-book-page .toast-message { border-color: #CFE0F7; color: var(--reader-deep); background: #F4F8FE; }
 
-@media (max-width: 959px) {
-    .reading-book-page .reading-workspace-grid { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+@media (max-width: 860px) {
+    .reading-book-page .reading-workspace-grid { grid-template-columns: minmax(0, 1fr) !important; gap: 16px !important; }
     .reading-book-page .reading-canvas { max-height: none; overflow: visible; scrollbar-gutter: auto; }
     .reading-book-page .reading-companion-panel { max-height: none; overflow: visible; scrollbar-gutter: auto; }
 }
