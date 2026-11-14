@@ -31,7 +31,7 @@
         </a>
     </section>
 
-    <div class="reading-room-grid reading-workspace-grid">
+    <div class="reading-workspace-grid">
         <article class="panel passage-panel reading-document-workspace" aria-labelledby="passage-title">
             <div class="passage-toolbar flex-wrap">
                 <div class="passage-tags">
@@ -56,7 +56,7 @@
                 </div>
             </div>
 
-            <div class="passage-content reading-canvas" data-reading-text>
+            <div class="passage-content reading-canvas" data-reading-text data-reading-scroll-container>
                 <p class="section-overline">{{ mb_strtoupper($document->category) }} · BACAAN PILIHAN</p>
                 <h2 id="passage-title">{{ $document->title }}</h2>
                 @php
@@ -97,65 +97,47 @@
                 </div>
             </div>
 
-            <div class="passage-bottom">
-                <span class="read-progress-label">
-                    <span class="read-progress-dot"></span> Progres membaca <strong data-read-progress>{{ $initialProgress }}%</strong>
-                </span>
-                <div class="progress-track">
-                    <span data-bottom-progress-bar style="width:{{ $initialProgress }}%"></span>
-                </div>
-                @if ($session->isCompleted())
-                    <button type="button" class="outline-button is-complete" disabled data-complete-reading data-session-id="{{ $session->id }}" data-progress-url="{{ route('reading.progress') }}">
-                        <span data-complete-label>Tugas Selesai & Terkunci</span>
-                        <x-icon name="check" />
-                    </button>
-                @else
-                    <button type="button" class="outline-button" data-complete-reading data-session-id="{{ $session->id }}" data-progress-url="{{ route('reading.progress') }}">
-                        <span data-complete-label>Selesai membaca</span>
-                        <x-icon name="check" />
-                    </button>
-                @endif
-            </div>
         </article>
 
         <aside class="reading-side-column reading-companion-panel" aria-label="Panduan membaca">
-            <!-- 1. KOTAK STATUS MEMBACA -->
-            <section class="panel session-card" data-session-card>
+            <section class="panel session-card reading-status-card" aria-labelledby="reading-status-title">
                 <div class="session-head">
-                    <div class="session-icon text-blue-600 bg-blue-50">
-                        <x-icon name="book-open-text" />
-                    </div>
+                    <div class="session-icon"><x-icon name="book-open-text" /></div>
                     <div>
                         <p class="section-overline">STATUS MEMBACA</p>
-                        <h2 class="text-sm font-bold text-slate-800 truncate" title="{{ $document->title }}">{{ $document->title }}</h2>
+                        <h2 id="reading-status-title">{{ $document->title }}</h2>
                     </div>
                 </div>
-
                 <div class="session-stat-row">
                     <span>Status sesi</span>
-                    <strong data-session-status-label class="text-blue-600 font-bold">
-                        {{ $session->isCompleted() ? 'Selesai & Terkunci' : $initialProgress . '% dibaca' }}
-                    </strong>
+                    <strong data-session-status-label>{{ $session->isCompleted() ? 'Selesai & Terkunci' : 'Sedang dibaca' }}</strong>
                 </div>
                 <div class="session-stat-row">
                     <span>Mulai membaca</span>
-                    <strong>{{ $session->started_at ? $session->started_at->format('H:i') : now()->format('H:i') }} WIB</strong>
+                    <strong>{{ $session->started_at?->format('H:i') ?? '—' }} WIB</strong>
                 </div>
-                <div class="session-stat-row {{ $session->completed_at ? '' : 'hidden' }}" data-session-completed-row>
-                    <span>Waktu selesai</span>
-                    <strong data-session-completed-time>{{ $session->completed_at ? $session->completed_at->format('H:i') . ' WIB' : '' }}</strong>
-                </div>
-
-                <div class="session-progress mt-2.5">
-                    <div class="progress-track flex-1 h-2">
-                        <span data-session-progress-bar style="width:{{ $initialProgress }}%"></span>
+                <div class="passage-bottom">
+                    <span class="read-progress-label">
+                        <span class="read-progress-dot"></span> Progres membaca <strong data-read-progress>{{ $initialProgress }}%</strong>
+                    </span>
+                    <div class="progress-track">
+                        <span data-bottom-progress-bar style="width:{{ $initialProgress }}%"></span>
                     </div>
-                    <span class="font-bold text-xs text-blue-600 shrink-0" data-session-progress-text>{{ $initialProgress }}%</span>
+                    @if ($session->isCompleted())
+                        <button type="button" class="outline-button is-complete" disabled data-complete-reading data-session-id="{{ $session->id }}" data-progress-url="{{ route('reading.progress') }}">
+                            <span data-complete-label>Tugas Selesai & Terkunci</span>
+                            <x-icon name="check" />
+                        </button>
+                    @else
+                        <button type="button" class="outline-button" data-complete-reading data-session-id="{{ $session->id }}" data-progress-url="{{ route('reading.progress') }}">
+                            <span data-complete-label>Selesai membaca</span>
+                            <x-icon name="check" />
+                        </button>
+                    @endif
                 </div>
             </section>
 
-            <!-- 2. KOTAK DISKUSI SOCRATIC -->
-            <section class="panel session-card coach-panel" data-coach-card>
+            <section class="panel session-card" data-session-card>
                 <div class="session-head">
                     <div class="session-icon"><x-icon name="book-open-text" /></div>
                     <div>

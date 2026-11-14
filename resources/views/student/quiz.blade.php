@@ -79,6 +79,24 @@
             color: #dc2626 !important;
             animation: pulse 1s infinite;
         }
+
+        .quiz-card-panel .quiz-card-footer {
+            min-height: 0;
+            padding: 8px 20px !important;
+        }
+        .quiz-card-panel .quiz-card-footer [data-btn-prev] {
+            display: inline-flex;
+            min-width: 124px;
+            min-height: 42px;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 0 14px;
+        }
+        .quiz-card-panel .quiz-card-footer [data-btn-prev] span {
+            margin-left: 0;
+        }
     </style>
 
     <section class="stage-heading" aria-labelledby="quiz-heading-title">

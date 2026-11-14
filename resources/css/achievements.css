@@ -506,12 +506,12 @@
 .academy-mission-copy > span { display: -webkit-box; overflow: hidden; color: var(--academy-muted); font-size: 9px; line-height: 1.35; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .academy-mission-copy small { color: #547762; font-size: 8px; font-weight: 800; }
 .academy-mission-card.is-locked { filter: saturate(.55); }
-.academy-badge-dialog { position: fixed; width: min(360px, calc(100vw - 32px)); padding: 28px; border: 1px solid #d9e4dc; border-radius: 22px; color: var(--academy-ink); background: linear-gradient(145deg, #fff, #f2f7f3); box-shadow: 0 24px 70px rgb(13 32 56 / 25%); text-align: center; }
+.academy-badge-dialog { position: fixed; inset: 0; width: min(360px, calc(100vw - 32px)); margin: auto; padding: 28px; border: 1px solid #d9e4dc; border-radius: 22px; color: var(--academy-ink); background: linear-gradient(145deg, #fff, #f2f7f3); box-shadow: 0 24px 70px rgb(13 32 56 / 25%); text-align: center; }
 .academy-badge-dialog::backdrop { background: rgb(12 27 47 / 45%); backdrop-filter: blur(3px); }
 .academy-dialog-close { position: absolute; top: 12px; right: 12px; display: grid; width: 30px; height: 30px; place-items: center; border: 1px solid #e0e7e2; border-radius: 10px; color: #526581; background: #fff; cursor: pointer; }
 .academy-dialog-close .lucide-icon { width: 16px; height: 16px; }
-.academy-dialog-emblem { display: grid; width: 60px; height: 60px; place-items: center; margin: 0 auto 12px; border: 2px solid #fff; border-radius: 50%; color: #fff; background: linear-gradient(145deg, #6c9179, #315b49); box-shadow: 0 0 0 2px #8daa96, 0 0 0 7px #e0ebe2; }
-.academy-dialog-emblem .lucide-icon { width: 28px; height: 28px; }
+.academy-dialog-emblem { display: grid; width: 60px; height: 60px; place-items: center; margin: 0 auto 12px; }
+.academy-dialog-medal { display: block; width: 60px; height: 60px; max-width: 60px; max-height: 60px; object-fit: contain; }
 .academy-badge-dialog h4 { margin: 5px 0; color: var(--academy-ink); font-size: 18px; font-weight: 800; }
 .academy-dialog-description { margin: 0 0 14px; color: var(--academy-muted); font-size: 12px; }
 .academy-dialog-requirement { display: inline-flex; padding: 7px 12px; border: 1px solid #d7e4da; border-radius: 999px; color: #42664e; background: #edf5ef; font-size: 10px; font-weight: 800; }
