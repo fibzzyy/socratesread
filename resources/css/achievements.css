@@ -512,23 +512,22 @@
 .academy-badge-dialog h4 { margin: 5px 0; color: var(--academy-ink); font-size: 18px; font-weight: 800; }
 .academy-dialog-description { margin: 0 0 14px; color: var(--academy-muted); font-size: 12px; }
 .academy-dialog-requirement { display: inline-flex; padding: 7px 12px; border: 1px solid #d7e4da; border-radius: 999px; color: #42664e; background: #edf5ef; font-size: 10px; font-weight: 800; }
-@media (max-width: 900px) { .academy-badge-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-@media (max-width: 600px) { .academy-collection { padding: 17px 13px; border-radius: 19px; } .academy-collection-heading { align-items: flex-start; flex-wrap: wrap; gap: 10px; } .academy-heading-seal { width: 40px; height: 40px; flex-basis: 40px; } .academy-collection-heading h3 { font-size: 16px; } .academy-collection-heading > div > p:last-child { max-width: 230px; font-size: 10px; } .academy-xp-total { margin-left: auto; padding: 6px 8px; font-size: 9px; } .academy-badge-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; } .academy-badge-card { min-height: 222px; padding-inline: 8px; } .academy-mission-grid { grid-template-columns: 1fr; gap: 8px; } .academy-mission-card { min-height: 76px; } }
+@media (max-width: 600px) { .academy-collection { padding: 17px 13px; border-radius: 19px; } .academy-collection-heading { align-items: flex-start; flex-wrap: wrap; gap: 10px; } .academy-heading-seal { width: 40px; height: 40px; flex-basis: 40px; } .academy-collection-heading h3 { font-size: 16px; } .academy-collection-heading > div > p:last-child { max-width: 230px; font-size: 10px; } .academy-xp-total { margin-left: auto; padding: 6px 8px; font-size: 9px; } }
 @media (prefers-reduced-motion: reduce) { .academy-badge-card, .academy-mission-card { transition: none; } }
 
 /* Activity badges use illustrated emblems while keeping their existing progress data and actions. */
 .academy-mission-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
-.academy-mission-card { --mission-accent: #527eaa; --mission-soft: #edf5ff; --mission-glow: rgb(86 145 205 / 18%); position: relative; display: flex; min-height: 225px; flex-direction: column; align-items: center; justify-content: flex-start; gap: 4px; overflow: hidden; padding: 14px 13px 12px; border: 1px solid color-mix(in srgb, var(--mission-accent) 26%, #fff); border-radius: 18px; background: radial-gradient(ellipse at 50% 18%, var(--mission-soft), transparent 68%), linear-gradient(145deg, #fff, #f8faf9); text-align: center; box-shadow: 0 7px 19px color-mix(in srgb, var(--mission-accent) 8%, transparent), inset 0 1px #fff; transition: transform .3s ease, box-shadow .3s ease, border-color .3s ease; }
-.academy-mission-card::before { position: absolute; inset: 5px; border: 1px solid color-mix(in srgb, var(--mission-accent) 16%, transparent); border-radius: 14px; content: ''; pointer-events: none; }
+.academy-mission-card { --mission-accent: #527eaa; --mission-soft: #edf5ff; --mission-glow: rgb(86 145 205 / 18%); position: relative; display: flex; min-width: 0; min-height: 82px; align-items: center; gap: 8px; overflow: hidden; padding: 7px 9px; border: 1px solid color-mix(in srgb, var(--mission-accent) 26%, #fff); border-radius: 14px; background: radial-gradient(ellipse at 50% 18%, var(--mission-soft), transparent 68%), linear-gradient(145deg, #fff, #f8faf9); text-align: left; box-shadow: 0 7px 19px color-mix(in srgb, var(--mission-accent) 8%, transparent), inset 0 1px #fff; transition: transform .3s ease, box-shadow .3s ease, border-color .3s ease; }
+.academy-mission-card::before { position: absolute; inset: 3px; border: 1px solid color-mix(in srgb, var(--mission-accent) 16%, transparent); border-radius: 11px; content: ''; pointer-events: none; }
 .academy-mission-card:hover, .academy-mission-card:focus-visible { transform: translateY(-4px); border-color: color-mix(in srgb, var(--mission-accent) 55%, #fff); outline: none; box-shadow: 0 13px 28px var(--mission-glow), 0 4px 12px rgb(17 39 65 / 7%), inset 0 1px #fff; }
-.academy-mission-art { position: relative; display: grid; width: 100%; height: 128px; place-items: center; flex: 0 0 128px; }
-.academy-mission-art::before { position: absolute; width: 92px; height: 92px; border-radius: 50%; background: var(--mission-glow); filter: blur(18px); content: ''; }
-.academy-mission-art img { position: relative; display: block; width: min(100%, 152px); height: 126px; object-fit: contain; filter: drop-shadow(0 5px 5px color-mix(in srgb, var(--mission-accent) 19%, transparent)); transition: transform .3s ease, filter .3s ease; }
+.academy-mission-art { position: relative; display: grid; width: 60px; height: 60px; flex: 0 0 60px; place-items: center; }
+.academy-mission-art::before { position: absolute; width: 42px; height: 42px; border-radius: 50%; background: var(--mission-glow); filter: blur(10px); content: ''; }
+.academy-mission-art img { position: relative; display: block; width: 60px; height: 60px; object-fit: contain; filter: drop-shadow(0 5px 5px color-mix(in srgb, var(--mission-accent) 19%, transparent)); transition: transform .3s ease, filter .3s ease; }
 .academy-mission-card:hover .academy-mission-art img, .academy-mission-card:focus-visible .academy-mission-art img { transform: translateY(-2px) scale(1.04); filter: drop-shadow(0 8px 8px color-mix(in srgb, var(--mission-accent) 29%, transparent)); }
-.academy-mission-copy { position: relative; display: grid; width: 100%; min-width: 0; flex: 1; align-content: start; justify-items: center; gap: 4px; }
-.academy-mission-copy strong { max-width: 100%; color: color-mix(in srgb, var(--mission-accent) 76%, #142d49); font-size: 11px; font-weight: 800; text-overflow: ellipsis; }
-.academy-mission-copy > span { min-height: 25px; font-size: 9px; line-height: 1.4; }
-.academy-mission-copy small { margin-top: 3px; padding: 4px 9px; border: 1px solid color-mix(in srgb, var(--mission-accent) 18%, white); border-radius: 999px; color: color-mix(in srgb, var(--mission-accent) 72%, #244533); background: color-mix(in srgb, var(--mission-soft) 78%, white); font-size: 8px; }
+.academy-mission-copy { position: relative; display: grid; min-width: 0; flex: 1; align-content: center; justify-items: start; gap: 3px; }
+.academy-mission-copy strong { max-width: 100%; overflow: hidden; color: color-mix(in srgb, var(--mission-accent) 76%, #142d49); font-size: 10px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+.academy-mission-copy > span { font-size: 8px; line-height: 1.4; }
+.academy-mission-copy small { margin-top: 1px; padding: 3px 7px; border: 1px solid color-mix(in srgb, var(--mission-accent) 18%, white); border-radius: 999px; color: color-mix(in srgb, var(--mission-accent) 72%, #244533); background: color-mix(in srgb, var(--mission-soft) 78%, white); font-size: 7px; }
 .academy-mission-card.is-locked .academy-mission-art img { filter: saturate(.48) opacity(.68) drop-shadow(0 4px 5px rgb(48 64 80 / 12%)); }
 .academy-mission-card.is-locked .academy-mission-copy small { color: #68788a; border-color: #e5eaf0; background: #f4f6f8; }
 .academy-mission-first_reader { --mission-accent: #4f83b9; --mission-soft: #eaf4ff; --mission-glow: rgb(83 151 220 / 22%); }
@@ -538,30 +537,7 @@
 .academy-mission-class_podium { --mission-accent: #b98420; --mission-soft: #fff6d9; --mission-glow: rgb(228 179 54 / 25%); }
 .academy-mission-perfect_score { --mission-accent: #ca4e73; --mission-soft: #fff0f4; --mission-glow: rgb(224 91 130 / 22%); }
 @media (max-width: 900px) { .academy-mission-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 600px) { .academy-mission-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; } .academy-mission-card { min-height: 204px; padding: 10px 8px; } .academy-mission-art { height: 112px; flex-basis: 112px; } .academy-mission-art img { height: 110px; } }
-@media (max-width: 380px) { .academy-mission-grid { grid-template-columns: 1fr; } .academy-mission-card { min-height: 190px; } }
-
-/* Keep the activity collection at the compact proportions of its original cards. */
-.academy-mission-card { min-height: 104px; flex-direction: row; align-items: center; justify-content: flex-start; gap: 10px; padding: 10px 12px; text-align: left; }
-.academy-mission-card::before { inset: 4px; border-radius: 13px; }
-.academy-mission-art { width: 76px; height: 76px; flex: 0 0 76px; }
-.academy-mission-art::before { width: 52px; height: 52px; filter: blur(12px); }
-.academy-mission-art img { width: 76px; height: 76px; }
-.academy-mission-copy { justify-items: start; align-content: center; gap: 3px; }
-.academy-mission-copy > span { min-height: 0; }
-.academy-mission-copy small { margin-top: 1px; }
-@media (max-width: 600px) { .academy-mission-grid { grid-template-columns: 1fr; gap: 8px; } .academy-mission-card { min-height: 82px; padding: 7px 10px; } .academy-mission-art { width: 64px; height: 64px; flex-basis: 64px; } .academy-mission-art img { width: 64px; height: 64px; } }
-
-/* Further reduce activity badge card and emblem scale. */
-.academy-mission-card { min-height: 82px; gap: 8px; padding: 7px 9px; border-radius: 14px; }
-.academy-mission-card::before { inset: 3px; border-radius: 11px; }
-.academy-mission-art { width: 60px; height: 60px; flex-basis: 60px; }
-.academy-mission-art img { width: 60px; height: 60px; }
-.academy-mission-art::before { width: 42px; height: 42px; filter: blur(10px); }
-.academy-mission-copy strong { font-size: 10px; }
-.academy-mission-copy > span { font-size: 8px; }
-.academy-mission-copy small { padding: 3px 7px; font-size: 7px; }
-@media (max-width: 600px) { .academy-mission-card { min-height: 72px; padding: 6px 8px; } .academy-mission-art { width: 52px; height: 52px; flex-basis: 52px; } .academy-mission-art img { width: 52px; height: 52px; } }
+@media (max-width: 600px) { .academy-mission-grid { grid-template-columns: 1fr; gap: 8px; } .academy-mission-card { min-height: 72px; padding: 6px 8px; } .academy-mission-art { width: 52px; height: 52px; flex-basis: 52px; } .academy-mission-art img { width: 52px; height: 52px; } }
 
 /* Custom art and elevated presentation for permanent academy badges only. */
 .academy-badge-card { border-width: 1.5px; box-shadow: 0 7px 18px color-mix(in srgb, var(--medal) 13%, transparent), inset 0 1px #fff; }
@@ -575,7 +551,6 @@
 .academy-badge-card.is-locked .academy-medal-art { filter: grayscale(.55) saturate(.65) drop-shadow(0 4px 5px color-mix(in srgb, var(--medal) 15%, transparent)); }
 .academy-badge-card.is-newly-earned .academy-medal-art { animation: academy-art-earned .95s ease-out 1; }
 @keyframes academy-art-earned { 0% { transform: scale(.88); filter: drop-shadow(0 0 0 transparent); } 65% { transform: scale(1.045); filter: drop-shadow(0 0 16px color-mix(in srgb, var(--medal) 52%, transparent)); } 100% { transform: scale(1); } }
-@media (max-width: 600px) { .academy-medal-wrap { height: 150px; flex-basis: 150px; } .academy-medal-art { width: 136px; height: 150px; } }
 @media (prefers-reduced-motion: reduce) { .academy-medal-art, .academy-badge-card.is-newly-earned .academy-medal-art { animation: none; transition: none; } }
 
 /* Compact permanent badge collection. */
@@ -583,5 +558,4 @@
 .academy-badge-card { min-height: 218px; padding: 12px 9px 10px; border-radius: 15px; }
 .academy-medal-wrap { height: 124px; flex-basis: 124px; margin-bottom: 2px; }
 .academy-medal-art { width: 112px; height: 124px; filter: drop-shadow(0 5px 6px color-mix(in srgb, var(--medal) 26%, transparent)); }
-@media (max-width: 900px) { .academy-badge-grid { grid-template-columns: repeat(3, minmax(0, 196px)); } }
-@media (max-width: 660px) { .academy-badge-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; } .academy-badge-card { min-height: 205px; padding: 10px 7px 9px; } .academy-medal-wrap { height: 106px; flex-basis: 106px; } .academy-medal-art { width: 96px; height: 106px; } }
+@media (max-width: 660px) { .academy-badge-card { min-height: 205px; padding: 10px 7px 9px; } .academy-medal-wrap { height: 106px; flex-basis: 106px; } .academy-medal-art { width: 96px; height: 106px; } }

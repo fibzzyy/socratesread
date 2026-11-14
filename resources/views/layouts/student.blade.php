@@ -93,12 +93,26 @@
     <script>
         (() => {
             const shell = document.querySelector('.app-shell');
+            const sidebar = shell?.querySelector('.sidebar');
             const toggle = document.querySelector('[data-menu-toggle]');
             const close = document.querySelector('[data-menu-close]');
-            const setOpen = (open) => { shell.classList.toggle('menu-open', open); toggle.setAttribute('aria-expanded', String(open)); document.body.classList.toggle('menu-locked', open); };
+            if (!shell || !sidebar || !toggle || !close) return;
+            const mobileNavigation = window.matchMedia('(max-width: 1024px)');
+            const setOpen = (open, restoreFocus = true) => {
+                const isOpen = mobileNavigation.matches && open;
+                shell.classList.toggle('menu-open', isOpen);
+                toggle.setAttribute('aria-expanded', String(isOpen));
+                document.body.classList.toggle('menu-locked', isOpen);
+                sidebar.inert = mobileNavigation.matches && !isOpen;
+                if (isOpen && restoreFocus) sidebar.querySelector('.nav-link')?.focus({ preventScroll: true });
+                else if (restoreFocus && sidebar.contains(document.activeElement) && toggle.getClientRects().length) toggle.focus({ preventScroll: true });
+            };
+            setOpen(false, false);
             toggle.addEventListener('click', () => setOpen(!shell.classList.contains('menu-open')));
             close.addEventListener('click', () => setOpen(false));
+            shell.querySelectorAll('.sidebar .nav-link, .sidebar .brand').forEach((link) => link.addEventListener('click', () => setOpen(false)));
             document.addEventListener('keydown', (event) => { if (event.key === 'Escape') setOpen(false); });
+            mobileNavigation.addEventListener('change', () => setOpen(false, false));
         })();
     </script>
     @stack('scripts')

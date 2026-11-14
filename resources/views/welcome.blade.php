@@ -61,7 +61,7 @@
                                 <x-icon name="chevron-down" class="filter-chevron" />
                             </button>
 
-                            <div id="classFilterMenu" class="filter-dropdown-menu hidden absolute right-0 sm:right-auto sm:left-0 top-[calc(100%+6px)] z-50 w-52 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl transition-all" role="menu">
+                            <div id="classFilterMenu" class="filter-dropdown-menu hidden absolute left-0 right-auto top-[calc(100%+6px)] z-50 w-52 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl transition-all" role="menu">
                                 <div class="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
                                     Pilih Tingkat Kelas
                                 </div>
