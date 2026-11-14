@@ -1,29 +1,15 @@
 @extends('layouts.student')
 
 @section('title', $selectedGroup['category'] ?? 'Ruang Baca')
-@section('breadcrumb', $selectedGroup ? 'Ruang Baca / '.$selectedGroup['category'] : 'Ruang Baca')
-@php
-    $readingUserName = auth()->user()->name ?? 'Pengguna';
-@endphp
+@section('breadcrumb_items')
+    @if ($selectedGroup)
+        <span>/</span><a href="{{ route('reading') }}" class="hover:text-blue-600 transition-colors">Ruang Baca</a><span>/</span><strong>{{ $selectedGroup['category'] }}</strong>
+    @else
+        <span>/</span><strong>Ruang Baca</strong>
+    @endif
+@endsection
 
 @section('content')
-    <header class="topbar reading-topbar student-topbar-pill quiz-topbar">
-        <button class="icon-button menu-toggle reading-menu-toggle" type="button" aria-label="Buka navigasi" aria-controls="primary-navigation" aria-expanded="false" data-menu-toggle><x-icon name="menu" /></button>
-        <div class="breadcrumb">
-            <a href="{{ route('dashboard') }}" class="quiz-home-link topbar-home-link" aria-label="Beranda"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7M5 9v12h14V9M9 21v-7h6v7" /></svg></a>
-            <a href="{{ route('dashboard') }}" class="hover:text-blue-600 transition-colors">Ruang belajar</a><span>/</span><strong>{{ $selectedGroup ? 'Ruang Baca / '.$selectedGroup['category'] : 'Ruang Baca' }}</strong>
-        </div>
-        <span class="reading-topbar-date">{{ now()->locale('id')->translatedFormat('l, j F Y') }}</span>
-        <div class="reading-topbar-actions">
-            <span class="reading-stat-chip"><x-icon name="star" /> 0 XP</span>
-            <span class="reading-stat-chip"><x-icon name="flame" /> Rutinitas 0 hari</span>
-            <x-notification-center />
-            <a href="{{ route('profile') }}" class="reading-user" aria-label="Profil {{ $readingUserName }}" title="{{ $readingUserName }}">
-                <span class="reading-user-avatar {{ auth()->user()->avatarUrl() ? '' : 'is-empty' }}">@if (auth()->user()->avatarUrl())<img src="{{ auth()->user()->avatarUrl() }}" alt="">@else<x-icon name="user" class="avatar-placeholder-icon" />@endif</span>
-                <x-icon name="chevron-down" />
-            </a>
-        </div>
-    </header>
     @if ($selectedGroup)
         @php
             $detailGrade = $selectedDocuments->first()?->target_grade ?? $grade;

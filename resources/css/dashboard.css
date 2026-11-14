@@ -3438,6 +3438,62 @@ html { font-size: 16px; }
     color: #356ae6;
 }
 
+.topbar .reading-stat-chip,
+.student-topbar-pill .reading-stat-chip,
+.topbar-stat-chip {
+    display: inline-flex;
+    height: 38px;
+    align-items: center;
+    gap: 7px;
+    padding: 0 13px;
+    border: 1px solid #dce8fa;
+    border-radius: 999px;
+    color: #173f75;
+    background: #ffffffed;
+    font-size: 13px !important;
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(36, 79, 142, 0.05);
+    transition: all .15s ease;
+}
+.topbar .reading-stat-chip:hover,
+.student-topbar-pill .reading-stat-chip:hover,
+.topbar-stat-chip:hover {
+    border-color: #bcd5f9;
+    box-shadow: 0 4px 14px rgba(36, 79, 142, 0.1);
+    transform: translateY(-1px);
+}
+.topbar .reading-stat-chip svg,
+.student-topbar-pill .reading-stat-chip svg,
+.topbar-stat-chip svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+.topbar .stat-chip-xp svg,
+.stat-chip-xp svg {
+    color: #356fe6 !important;
+}
+.topbar .stat-chip-streak svg,
+.stat-chip-streak svg {
+    color: #f97316 !important;
+}
+
+@media (max-width: 1200px) {
+    .topbar .today-label,
+    .student-topbar-pill .today-label {
+        display: none !important;
+    }
+}
+@media (max-width: 950px) {
+    .topbar .reading-stat-chip,
+    .student-topbar-pill .reading-stat-chip,
+    .topbar-stat-chip {
+        display: none !important;
+    }
+}
+
 .quiz-profile-chevron { display: inline-grid; width: 16px; height: 34px; color: var(--navy-primary); place-items: center; }
 .quiz-profile-chevron .lucide-icon { width: 14px; height: 14px; }
 .quizzes-page .stage-heading.quizzes-hero { position: relative; min-height: 220px; align-items: center; margin: 0 0 12px; padding: 0; overflow: visible; isolation: isolate; }

@@ -37,6 +37,13 @@ class ReadingRoomEnhancementsTest extends TestCase
     {
         $teacher = User::factory()->create(['role' => 'teacher']);
         $student = User::factory()->create(['role' => 'student']);
+        $classroom = \App\Models\TeacherClass::query()->create([
+            'teacher_id' => $teacher->id,
+            'name' => 'Bahasa Indonesia',
+            'join_code' => 'TESTBI10',
+            'target_grade' => 10,
+        ]);
+        $classroom->students()->attach($student->id, ['joined_at' => now()]);
         $document = Document::query()->create([
             'uploaded_by' => $teacher->id,
             'title' => 'Trigatra Bangun Bahasa',
