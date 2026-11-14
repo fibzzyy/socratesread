@@ -10,71 +10,47 @@
     <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
     @if (request()->routeIs('reading') && ! request()->route('document'))
         <link rel="preload" href="{{ asset('fonts/plus-jakarta-sans-latin.woff2') }}" as="font" type="font/woff2" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600&display=swap" rel="stylesheet">
-    @else
-        <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
     @endif
+    <!-- KaTeX Math Rendering Support for Mathematics & Sciences -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" crossorigin="anonymous"
+        onload="renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}, {left: '\\(', right: '\\)', display: false}, {left: '\\[', right: '\\]', display: true}], throwOnError: false});"></script>
     @yield('head')
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
 <body>
-    @php($userInitials = collect(explode(' ', auth()->user()->name))->filter()->take(2)->map(fn ($part) => mb_substr($part, 0, 1))->implode(''))
     @php($isReadingIndex = request()->routeIs('reading') && ! request()->route('document'))
     @php($isProgressOverview = request()->routeIs('progress') && ! request()->query('classroom'))
     <div class="app-shell">
         <button class="scrim" type="button" aria-label="Tutup navigasi" data-menu-close></button>
         <aside class="sidebar sidebar-theme" id="primary-navigation" aria-label="Navigasi utama">
-            <a class="brand" href="{{ route('dashboard') }}" aria-label="SocratesRead, beranda"><img class="brand-logo" src="{{ asset('images/logo.png') }}" alt=""><span class="brand-name">Socrates<span>Read</span></span></a>
+            <a class="brand" href="{{ route('dashboard') }}" aria-label="SocratesRead, beranda"><img class="brand-logo" src="{{ asset('images/logo.png') }}" alt="" style="width: 36px; height: 36px; object-fit: contain;"><span class="brand-name">Socrates<span>Read</span></span></a>
             <nav class="nav-list" aria-label="Menu utama">
                 <a class="nav-link {{ request()->routeIs('dashboard') ? 'is-active' : '' }}" href="{{ route('dashboard') }}" @if(request()->routeIs('dashboard')) aria-current="page" @endif><x-icon name="layout-dashboard" /><span>Beranda</span></a>
                 <a class="nav-link {{ request()->routeIs('reading') ? 'is-active' : '' }}" href="{{ route('reading') }}" @if(request()->routeIs('reading')) aria-current="page" @endif><x-icon name="book-open-text" /><span>Reading Room</span></a>
                 <a class="nav-link {{ request()->routeIs('classrooms.*') ? 'is-active' : '' }}" href="{{ route('classrooms.index') }}" @if(request()->routeIs('classrooms.*')) aria-current="page" @endif><x-icon name="users" /><span>Kelas saya</span></a>
-                <a class="nav-link {{ request()->routeIs('settings.profile', 'profile') ? 'is-active' : '' }}" href="{{ route('profile') }}" @if(request()->routeIs('settings.profile', 'profile')) aria-current="page" @endif><x-icon name="user" /><span>Profil</span></a>
             </nav>
             <div class="nav-label nav-label-spaced">BELAJAR</div>
             <nav class="nav-list" aria-label="Materi belajar">
-                <a class="nav-link {{ request()->routeIs('quiz.*') ? 'is-active' : '' }}" href="{{ route('quiz.index') }}" @if(request()->routeIs('quiz.*')) aria-current="page" @endif><x-icon name="brain-circuit" /><span>Challenge Socrates</span></a>
+                <a class="nav-link {{ request()->routeIs('quiz.*') ? 'is-active' : '' }}" href="{{ route('quiz.index') }}" @if(request()->routeIs('quiz.*')) aria-current="page" @endif><x-icon name="brain-circuit" /><span>Tantangan Socrates</span></a>
                 <a class="nav-link {{ request()->routeIs('progress') ? 'is-active' : '' }}" href="{{ route('progress') }}" @if(request()->routeIs('progress')) aria-current="page" @endif><x-icon name="chart-no-axes-combined" /><span>Kemajuan</span></a>
                 <a class="nav-link {{ request()->routeIs('achievements*') ? 'is-active' : '' }}" href="{{ route('achievements') }}" @if(request()->routeIs('achievements*')) aria-current="page" @endif><x-icon name="award" /><span>Pencapaian</span></a>
             </nav>
             <div class="sidebar-spacer"></div>
-            <details class="profile-menu">
-                <summary class="profile-button">
-                <span class="avatar avatar-sidebar {{ auth()->user()->avatarUrl() ? '' : 'avatar-empty' }}">
-                    @if (auth()->user()->avatarUrl())
-                        <img src="{{ auth()->user()->avatarUrl() }}" alt="{{ auth()->user()->name }}" class="avatar-image">
-                    @else
-                        <x-icon name="user" class="h-4 w-4 text-slate-400" />
-                    @endif
-                </span>
-                <span class="profile-copy">
-                    <strong>{{ auth()->user()->name }}</strong>
-                    <small>Siswa SocratesRead</small>
-                </span>
-                <x-icon name="chevron-down" class="profile-chevron" />
-                </summary>
-                <div class="profile-dropdown">
-                    <a href="{{ route('profile') }}">Profil</a>
-                    <form method="POST" action="{{ route('logout') }}">@csrf<button type="submit">Keluar</button></form>
-                </div>
-            </details>
         </aside>
         <main class="main-content {{ $isReadingIndex ? 'reading-room-shell' : '' }}">
             @unless($isReadingIndex)
-                <header class="topbar {{ request()->routeIs('quiz.index') ? 'quiz-topbar' : '' }} {{ $isProgressOverview ? 'progress-topbar' : '' }}">
+                <header class="topbar student-topbar-pill quiz-topbar">
                     <button class="icon-button menu-toggle" type="button" aria-label="Buka navigasi" aria-controls="primary-navigation" aria-expanded="false" data-menu-toggle><x-icon name="menu" /></button>
                     <div class="breadcrumb">
-                        @if($isProgressOverview)
-                            <strong>Dashboard Siswa</strong>
-                        @else
-                        @if(request()->routeIs('quiz.index'))
-                            <a href="{{ route('dashboard') }}" class="quiz-home-link" aria-label="Beranda"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7M5 9v12h14V9M9 21v-7h6v7" /></svg></a>
-                        @endif
-                        <a href="{{ route('dashboard') }}">Ruang belajar</a><span>/</span><strong>@yield('breadcrumb', 'Halaman')</strong>
-                        @endif
+                        <a href="{{ route('dashboard') }}" class="quiz-home-link topbar-home-link" aria-label="Beranda"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7M5 9v12h14V9M9 21v-7h6v7" /></svg></a>
+                        <a href="{{ route('dashboard') }}" class="hover:text-blue-600 transition-colors">Ruang belajar</a><span>/</span><strong>@yield('breadcrumb', 'Halaman')</strong>
                     </div>
                     <div class="topbar-actions">
                         <span class="today-label">@if(request()->routeIs('quiz.index'))<x-icon name="calendar-days" />@endif{{ now()->locale('id')->translatedFormat('l, d F Y') }}</span>

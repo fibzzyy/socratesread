@@ -9,6 +9,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <!-- KaTeX Math Rendering Support for Mathematics & Sciences -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" crossorigin="anonymous"
+        onload="renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}, {left: '\\(', right: '\\)', display: false}, {left: '\\[', right: '\\]', display: true}], throwOnError: false});"></script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body>
@@ -16,13 +21,17 @@
         <button class="scrim" type="button" aria-label="Tutup navigasi" data-menu-close></button>
         <aside class="sidebar" id="teacher-navigation" aria-label="Area guru">
             <a class="brand" href="{{ route('teacher.dashboard') }}" aria-label="SocratesRead, area guru">
-                <img src="{{ asset('images/logo.png') }}" alt="Logo SocratesRead" class="brand-logo">
-                <span class="brand-name">Socrates<span>Read</span></span>
+                <span class="brand-logo-wrap">
+                    <img src="{{ asset('images/logo.png') }}" alt="Logo SocratesRead" class="brand-logo">
+                </span>
+                <span class="brand-name">socrates<span>read</span><small>AREA GURU</small></span>
             </a>
+            <div class="nav-label">PEMANTAUAN BELAJAR</div>
             <nav class="nav-list" aria-label="Menu guru">
                 <a class="nav-link {{ request()->routeIs('teacher.dashboard') ? 'is-active' : '' }}" href="{{ route('teacher.dashboard') }}" @if(request()->routeIs('teacher.dashboard')) aria-current="page" @endif><x-icon name="layout-dashboard"/><span>Ringkasan</span></a>
                 <a class="nav-link {{ request()->routeIs('teacher.classrooms*') ? 'is-active' : '' }}" href="{{ route('teacher.classrooms') }}" @if(request()->routeIs('teacher.classrooms*')) aria-current="page" @endif><x-icon name="users"/><span>Kelas saya</span></a>
                 <a class="nav-link {{ request()->routeIs('teacher.documents*') ? 'is-active' : '' }}" href="{{ route('teacher.documents') }}" @if(request()->routeIs('teacher.documents*')) aria-current="page" @endif><x-icon name="book-open-text"/><span>Kelola bacaan</span></a>
+                <a class="nav-link {{ request()->routeIs('teacher.reports*') ? 'is-active' : '' }}" href="{{ route('teacher.reports') }}" @if(request()->routeIs('teacher.reports*')) aria-current="page" @endif><x-icon name="clipboard-check"/><span>Rekap & Laporan</span></a>
             </nav>
             <div class="sidebar-spacer"></div>
         </aside>

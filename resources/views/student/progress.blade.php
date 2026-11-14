@@ -1,15 +1,7 @@
 @extends('layouts.student')
 
-@section('title', $activeClassroom ? 'Progress ' . $activeClassroom->name : 'Progress Belajar')
-@section('breadcrumb')
-    @if ($activeClassroom)
-        <a href="{{ route('progress') }}" class="text-slate-500 hover:text-blue-600">Progress</a>
-        <span class="mx-1">/</span>
-        <strong>{{ $activeClassroom->name }}</strong>
-    @else
-        <strong>Progress</strong>
-    @endif
-@endsection
+@section('title', $activeClassroom ? 'Kemajuan ' . $activeClassroom->name : 'Kemajuan Belajar')
+@section('breadcrumb', $activeClassroom ? 'Kemajuan / ' . $activeClassroom->name : 'Kemajuan')
 
 @section('content')
     @php
@@ -98,7 +90,7 @@
                 <div>
                     <p>Tantangan selesai</p>
                     <strong>{{ $completedChallenges }}</strong>
-                    <small>Challenge Socrates & Tantangan Guru selesai</small>
+                    <small>Tantangan Socrates & Tantangan Guru selesai</small>
                 </div>
             </article>
         </section>
@@ -268,7 +260,7 @@
                 <div>
                     <p>Total tantangan selesai</p>
                     <strong>{{ $completedChallenges }}</strong>
-                    <small>Challenge Socrates & Tantangan Guru selesai</small>
+                    <small>Tantangan Socrates & Tantangan Guru selesai</small>
                 </div>
             </article>
         </section>

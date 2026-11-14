@@ -300,11 +300,14 @@
     opacity: .72;
 }
 .achievement-place-placeholder .achievement-podium-base { opacity: .55; }
-.achievement-trophy { display: grid; width: 50px; height: 44px; place-items: center; margin: 0 auto 3px; filter: drop-shadow(0 3px 6px rgb(25 49 88 / 18%)); animation: achievement-trophy-float 4.4s ease-in-out infinite; }
-.achievement-trophy img { display: block; width: 100%; height: 100%; object-fit: contain; }
-.achievement-trophy-first { width: 54px; height: 48px; filter: drop-shadow(0 3px 7px rgb(245 185 66 / 42%)); animation-delay: 0s; }
-.achievement-trophy-second { filter: drop-shadow(0 3px 6px rgb(115 128 148 / 30%)); animation-delay: .55s; }
-.achievement-trophy-third { filter: drop-shadow(0 3px 6px rgb(154 99 53 / 30%)); animation-delay: 1.1s; }
+.achievement-trophy { display: grid; width: 36px; height: 32px; place-items: center; margin: 0 auto 3px; filter: drop-shadow(0 2px 4px rgb(25 49 88 / 18%)); animation: achievement-trophy-float 4.4s ease-in-out infinite; }
+.achievement-trophy img { display: block; width: 100%; height: 100%; max-width: 36px; max-height: 32px; object-fit: contain; }
+.achievement-trophy-first { width: 42px; height: 36px; filter: drop-shadow(0 3px 6px rgb(245 185 66 / 42%)); animation-delay: 0s; }
+.achievement-trophy-first img { max-width: 42px; max-height: 36px; }
+.achievement-trophy-second { width: 34px; height: 30px; filter: drop-shadow(0 2px 5px rgb(115 128 148 / 30%)); animation-delay: .55s; }
+.achievement-trophy-second img { max-width: 34px; max-height: 30px; }
+.achievement-trophy-third { width: 34px; height: 30px; filter: drop-shadow(0 2px 5px rgb(154 99 53 / 30%)); animation-delay: 1.1s; }
+.achievement-trophy-third img { max-width: 34px; max-height: 30px; }
 .achievement-profile { margin-bottom: 9px; }
 .achievement-crown {
     display: grid;
@@ -515,47 +518,242 @@
 @media (max-width: 600px) { .academy-collection { padding: 17px 13px; border-radius: 19px; } .academy-collection-heading { align-items: flex-start; flex-wrap: wrap; gap: 10px; } .academy-heading-seal { width: 40px; height: 40px; flex-basis: 40px; } .academy-collection-heading h3 { font-size: 16px; } .academy-collection-heading > div > p:last-child { max-width: 230px; font-size: 10px; } .academy-xp-total { margin-left: auto; padding: 6px 8px; font-size: 9px; } }
 @media (prefers-reduced-motion: reduce) { .academy-badge-card, .academy-mission-card { transition: none; } }
 
-/* Activity badges use illustrated emblems while keeping their existing progress data and actions. */
-.academy-mission-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
-.academy-mission-card { --mission-accent: #527eaa; --mission-soft: #edf5ff; --mission-glow: rgb(86 145 205 / 18%); position: relative; display: flex; min-width: 0; min-height: 82px; align-items: center; gap: 8px; overflow: hidden; padding: 7px 9px; border: 1px solid color-mix(in srgb, var(--mission-accent) 26%, #fff); border-radius: 14px; background: radial-gradient(ellipse at 50% 18%, var(--mission-soft), transparent 68%), linear-gradient(145deg, #fff, #f8faf9); text-align: left; box-shadow: 0 7px 19px color-mix(in srgb, var(--mission-accent) 8%, transparent), inset 0 1px #fff; transition: transform .3s ease, box-shadow .3s ease, border-color .3s ease; }
-.academy-mission-card::before { position: absolute; inset: 3px; border: 1px solid color-mix(in srgb, var(--mission-accent) 16%, transparent); border-radius: 11px; content: ''; pointer-events: none; }
-.academy-mission-card:hover, .academy-mission-card:focus-visible { transform: translateY(-4px); border-color: color-mix(in srgb, var(--mission-accent) 55%, #fff); outline: none; box-shadow: 0 13px 28px var(--mission-glow), 0 4px 12px rgb(17 39 65 / 7%), inset 0 1px #fff; }
-.academy-mission-art { position: relative; display: grid; width: 60px; height: 60px; flex: 0 0 60px; place-items: center; }
-.academy-mission-art::before { position: absolute; width: 42px; height: 42px; border-radius: 50%; background: var(--mission-glow); filter: blur(10px); content: ''; }
-.academy-mission-art img { position: relative; display: block; width: 60px; height: 60px; object-fit: contain; filter: drop-shadow(0 5px 5px color-mix(in srgb, var(--mission-accent) 19%, transparent)); transition: transform .3s ease, filter .3s ease; }
-.academy-mission-card:hover .academy-mission-art img, .academy-mission-card:focus-visible .academy-mission-art img { transform: translateY(-2px) scale(1.04); filter: drop-shadow(0 8px 8px color-mix(in srgb, var(--mission-accent) 29%, transparent)); }
-.academy-mission-copy { position: relative; display: grid; min-width: 0; flex: 1; align-content: center; justify-items: start; gap: 3px; }
-.academy-mission-copy strong { max-width: 100%; overflow: hidden; color: color-mix(in srgb, var(--mission-accent) 76%, #142d49); font-size: 10px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
-.academy-mission-copy > span { font-size: 8px; line-height: 1.4; }
-.academy-mission-copy small { margin-top: 1px; padding: 3px 7px; border: 1px solid color-mix(in srgb, var(--mission-accent) 18%, white); border-radius: 999px; color: color-mix(in srgb, var(--mission-accent) 72%, #244533); background: color-mix(in srgb, var(--mission-soft) 78%, white); font-size: 7px; }
-.academy-mission-card.is-locked .academy-mission-art img { filter: saturate(.48) opacity(.68) drop-shadow(0 4px 5px rgb(48 64 80 / 12%)); }
-.academy-mission-card.is-locked .academy-mission-copy small { color: #68788a; border-color: #e5eaf0; background: #f4f6f8; }
+
+/* Activity badges: compact, elegant horizontal layout */
+.academy-mission-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.academy-mission-card {
+    --mission-accent: #527eaa;
+    --mission-soft: #edf5ff;
+    --mission-glow: rgb(86 145 205 / 18%);
+    position: relative;
+    display: flex;
+    min-height: 74px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+    overflow: hidden;
+    padding: 8px 12px;
+    border: 1px solid color-mix(in srgb, var(--mission-accent) 26%, #fff);
+    border-radius: 15px;
+    background: radial-gradient(ellipse at 20% 50%, var(--mission-soft), transparent 70%), linear-gradient(145deg, #fff, #f8faf9);
+    text-align: left;
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--mission-accent) 8%, transparent), inset 0 1px #fff;
+    cursor: pointer;
+    transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+}
+.academy-mission-card::before {
+    position: absolute;
+    inset: 3px;
+    border: 1px solid color-mix(in srgb, var(--mission-accent) 14%, transparent);
+    border-radius: 12px;
+    content: '';
+    pointer-events: none;
+}
+.academy-mission-card:hover, .academy-mission-card:focus-visible {
+    transform: translateY(-2px);
+    border-color: color-mix(in srgb, var(--mission-accent) 55%, #fff);
+    outline: none;
+    box-shadow: 0 8px 20px var(--mission-glow), inset 0 1px #fff;
+}
+.academy-mission-art {
+    position: relative;
+    display: grid;
+    width: 48px;
+    height: 48px;
+    place-items: center;
+    flex: 0 0 48px;
+}
+.academy-mission-art::before {
+    position: absolute;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--mission-glow);
+    filter: blur(8px);
+    content: '';
+}
+.academy-mission-art img {
+    position: relative;
+    display: block;
+    width: 44px;
+    height: 44px;
+    max-width: 44px;
+    max-height: 44px;
+    object-fit: contain;
+    filter: drop-shadow(0 3px 4px color-mix(in srgb, var(--mission-accent) 20%, transparent));
+    transition: transform .2s ease;
+}
+.academy-mission-card:hover .academy-mission-art img,
+.academy-mission-card:focus-visible .academy-mission-art img {
+    transform: scale(1.06);
+}
+.academy-mission-copy {
+    position: relative;
+    display: grid;
+    width: 100%;
+    min-width: 0;
+    flex: 1;
+    align-content: center;
+    justify-items: start;
+    gap: 2px;
+}
+.academy-mission-copy strong {
+    max-width: 100%;
+    color: color-mix(in srgb, var(--mission-accent) 76%, #142d49);
+    font-size: 11px;
+    font-weight: 800;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.academy-mission-copy > span {
+    display: -webkit-box;
+    overflow: hidden;
+    color: var(--academy-muted);
+    font-size: 9px;
+    line-height: 1.3;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+.academy-mission-copy small {
+    margin-top: 2px;
+    padding: 2px 7px;
+    border: 1px solid color-mix(in srgb, var(--mission-accent) 18%, white);
+    border-radius: 999px;
+    color: color-mix(in srgb, var(--mission-accent) 72%, #244533);
+    background: color-mix(in srgb, var(--mission-soft) 78%, white);
+    font-size: 8px;
+    font-weight: 700;
+}
+.academy-mission-card.is-locked .academy-mission-art img {
+    filter: saturate(.4) opacity(.65);
+}
+.academy-mission-card.is-locked .academy-mission-copy small {
+    color: #68788a;
+    border-color: #e5eaf0;
+    background: #f4f6f8;
+}
 .academy-mission-first_reader { --mission-accent: #4f83b9; --mission-soft: #eaf4ff; --mission-glow: rgb(83 151 220 / 22%); }
 .academy-mission-avid_reader { --mission-accent: #398d79; --mission-soft: #e9f8f2; --mission-glow: rgb(71 174 137 / 22%); }
 .academy-mission-critical_thinker { --mission-accent: #7352bd; --mission-soft: #f1eaff; --mission-glow: rgb(142 103 219 / 22%); }
 .academy-mission-quiz_master { --mission-accent: #dc792e; --mission-soft: #fff1df; --mission-glow: rgb(238 143 48 / 22%); }
 .academy-mission-class_podium { --mission-accent: #b98420; --mission-soft: #fff6d9; --mission-glow: rgb(228 179 54 / 25%); }
 .academy-mission-perfect_score { --mission-accent: #ca4e73; --mission-soft: #fff0f4; --mission-glow: rgb(224 91 130 / 22%); }
-@media (max-width: 900px) { .academy-mission-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 600px) { .academy-mission-grid { grid-template-columns: 1fr; gap: 8px; } .academy-mission-card { min-height: 72px; padding: 6px 8px; } .academy-mission-art { width: 52px; height: 52px; flex-basis: 52px; } .academy-mission-art img { width: 52px; height: 52px; } }
 
-/* Custom art and elevated presentation for permanent academy badges only. */
-.academy-badge-card { border-width: 1.5px; box-shadow: 0 7px 18px color-mix(in srgb, var(--medal) 13%, transparent), inset 0 1px #fff; }
-.academy-badge-card::after { position: absolute; top: -52px; left: 50%; width: 180px; height: 150px; border-radius: 50%; background: radial-gradient(ellipse, color-mix(in srgb, var(--medal) 14%, transparent), transparent 68%); content: ''; pointer-events: none; transform: translateX(-50%); }
-.academy-badge-card.is-earned { border-color: color-mix(in srgb, var(--medal) 36%, #fff); box-shadow: 0 8px 20px color-mix(in srgb, var(--medal) 17%, transparent), inset 0 1px #fff; }
-.academy-badge-card.is-earned::before { border-width: 1.5px; border-color: color-mix(in srgb, var(--medal) 25%, transparent); }
-.academy-badge-card.is-earned:hover, .academy-badge-card.is-earned:focus-visible { box-shadow: 0 14px 28px color-mix(in srgb, var(--medal) 26%, transparent), 0 0 0 3px color-mix(in srgb, var(--medal) 10%, transparent), inset 0 1px #fff; }
-.academy-medal-wrap { z-index: 1; width: 100%; height: 166px; flex-basis: 166px; margin-bottom: 4px; }
-.academy-medal-art { display: block; width: 150px; height: 166px; object-fit: contain; filter: drop-shadow(0 7px 7px color-mix(in srgb, var(--medal) 29%, transparent)); transition: filter .2s ease, transform .2s ease; }
-.academy-badge-card:hover .academy-medal-art, .academy-badge-card:focus-visible .academy-medal-art { filter: drop-shadow(0 9px 12px color-mix(in srgb, var(--medal) 42%, transparent)); transform: translateY(-2px) scale(1.035); }
-.academy-badge-card.is-locked .academy-medal-art { filter: grayscale(.55) saturate(.65) drop-shadow(0 4px 5px color-mix(in srgb, var(--medal) 15%, transparent)); }
-.academy-badge-card.is-newly-earned .academy-medal-art { animation: academy-art-earned .95s ease-out 1; }
-@keyframes academy-art-earned { 0% { transform: scale(.88); filter: drop-shadow(0 0 0 transparent); } 65% { transform: scale(1.045); filter: drop-shadow(0 0 16px color-mix(in srgb, var(--medal) 52%, transparent)); } 100% { transform: scale(1); } }
-@media (prefers-reduced-motion: reduce) { .academy-medal-art, .academy-badge-card.is-newly-earned .academy-medal-art { animation: none; transition: none; } }
+@media (max-width: 900px) {
+    .academy-mission-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 600px) {
+    .academy-mission-grid { grid-template-columns: 1fr; gap: 8px; }
+    .academy-mission-card { min-height: 68px; padding: 6px 10px; }
+    .academy-mission-art { width: 40px; height: 40px; flex-basis: 40px; }
+    .academy-mission-art img { width: 38px; height: 38px; max-width: 38px; max-height: 38px; }
+}
 
-/* Compact permanent badge collection. */
-.academy-badge-grid { grid-template-columns: repeat(5, minmax(0, 196px)); justify-content: start; gap: 10px; }
-.academy-badge-card { min-height: 218px; padding: 12px 9px 10px; border-radius: 15px; }
-.academy-medal-wrap { height: 124px; flex-basis: 124px; margin-bottom: 2px; }
-.academy-medal-art { width: 112px; height: 124px; filter: drop-shadow(0 5px 6px color-mix(in srgb, var(--medal) 26%, transparent)); }
-@media (max-width: 660px) { .academy-badge-card { min-height: 205px; padding: 10px 7px 9px; } .academy-medal-wrap { height: 106px; flex-basis: 106px; } .academy-medal-art { width: 96px; height: 106px; } }
+/* Permanent Exclusive Badges: elegant, compact proportions */
+.academy-badge-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 12px;
+}
+.academy-badge-card {
+    --medal: #7d5bc4;
+    --medal-light: #e6dcfa;
+    --medal-deep: #4b347e;
+    position: relative;
+    display: flex;
+    min-width: 0;
+    min-height: 185px;
+    flex-direction: column;
+    align-items: center;
+    padding: 14px 10px 12px;
+    overflow: hidden;
+    border: 1.5px solid color-mix(in srgb, var(--medal) 22%, #e1e7ef);
+    border-radius: 16px;
+    color: inherit;
+    background: linear-gradient(160deg, #fff 0%, color-mix(in srgb, var(--medal-light) 23%, #fff) 100%);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--medal) 8%, transparent), inset 0 1px #fff;
+    text-align: center;
+    cursor: pointer;
+    transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+}
+.academy-badge-card::before {
+    position: absolute;
+    inset: 4px;
+    border: 1px solid color-mix(in srgb, var(--medal) 16%, transparent);
+    border-radius: 12px;
+    content: '';
+    pointer-events: none;
+}
+.academy-badge-card::after {
+    position: absolute;
+    top: -40px;
+    left: 50%;
+    width: 140px;
+    height: 110px;
+    border-radius: 50%;
+    background: radial-gradient(ellipse, color-mix(in srgb, var(--medal) 14%, transparent), transparent 68%);
+    content: '';
+    pointer-events: none;
+    transform: translateX(-50%);
+}
+.academy-badge-card:hover, .academy-badge-card:focus-visible {
+    z-index: 1;
+    transform: translateY(-3px);
+    border-color: color-mix(in srgb, var(--medal) 50%, #dce5ee);
+    outline: none;
+    box-shadow: 0 10px 22px color-mix(in srgb, var(--medal) 20%, transparent), inset 0 1px #fff;
+}
+.academy-badge-card.is-earned {
+    border-color: color-mix(in srgb, var(--medal) 36%, #fff);
+    box-shadow: 0 6px 16px color-mix(in srgb, var(--medal) 15%, transparent), inset 0 1px #fff;
+}
+.academy-medal-wrap {
+    z-index: 1;
+    width: 100%;
+    height: 72px;
+    flex: 0 0 72px;
+    display: grid;
+    place-items: center;
+    margin-bottom: 6px;
+}
+.academy-medal-art {
+    display: block;
+    width: 62px;
+    height: 72px;
+    max-width: 62px;
+    max-height: 72px;
+    object-fit: contain;
+    filter: drop-shadow(0 4px 6px color-mix(in srgb, var(--medal) 28%, transparent));
+    transition: filter .2s ease, transform .2s ease;
+}
+.academy-badge-card:hover .academy-medal-art,
+.academy-badge-card:focus-visible .academy-medal-art {
+    filter: drop-shadow(0 6px 10px color-mix(in srgb, var(--medal) 40%, transparent));
+    transform: translateY(-2px) scale(1.05);
+}
+.academy-badge-card.is-locked .academy-medal-art {
+    filter: grayscale(.6) saturate(.5) opacity(.7);
+}
+.academy-badge-card.is-newly-earned .academy-medal-art {
+    animation: academy-art-earned .95s ease-out 1;
+}
+@keyframes academy-art-earned {
+    0% { transform: scale(.88); filter: drop-shadow(0 0 0 transparent); }
+    65% { transform: scale(1.06); filter: drop-shadow(0 0 14px color-mix(in srgb, var(--medal) 52%, transparent)); }
+    100% { transform: scale(1); }
+}
+
+@media (max-width: 960px) {
+    .academy-badge-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 640px) {
+    .academy-badge-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .academy-badge-card { min-height: 170px; padding: 10px 8px 8px; }
+    .academy-medal-wrap { height: 60px; flex-basis: 60px; }
+    .academy-medal-art { width: 52px; height: 60px; max-width: 52px; max-height: 60px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .academy-medal-art, .academy-badge-card.is-newly-earned .academy-medal-art { animation: none; transition: none; }
+}

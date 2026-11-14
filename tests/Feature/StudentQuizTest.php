@@ -283,7 +283,7 @@ class StudentQuizTest extends TestCase
 
         $response->assertOk();
         $response->assertViewIs('student.quizzes');
-        $response->assertSee('Challenge Socrates');
+        $response->assertSee('Tantangan Socrates');
         $response->assertSee($document->title);
         $response->assertSee('Mulai Kuis Timer');
     }

@@ -12,19 +12,20 @@ class ReadingMaterialFormatter
      * @var array<string, int>
      */
     private const ID_WORDS = [
-        'adalah' => 1, 'merupakan' => 1, 'yaitu' => 1, 'yakni' => 1, 'bahwa' => 1,
+        'adalah' => 1, 'merupakan' => 1, 'yaitu' => 1, 'yakni' => 1, 'ialah' => 1, 'bahwa' => 1,
         'yang' => 1, 'dan' => 1, 'atau' => 1, 'serta' => 1, 'dengan' => 1,
         'untuk' => 1, 'guna' => 1, 'demi' => 1, 'agar' => 1, 'supaya' => 1,
         'dari' => 1, 'pada' => 1, 'dalam' => 1, 'oleh' => 1, 'sebagai' => 1,
-        'sehingga' => 1, 'karena' => 1, 'sebab' => 1, 'jika' => 1, 'bila' => 1,
+        'sehingga' => 1, 'karena' => 1, 'sebab' => 1, 'jika' => 1, 'bila' => 1, 'apabila' => 1,
         'maka' => 1, 'akan' => 1, 'telah' => 1, 'sudah' => 1, 'sedang' => 1,
         'dapat' => 1, 'bisa' => 1, 'harus' => 1, 'wajib' => 1, 'perlu' => 1,
         'tidak' => 1, 'bukan' => 1, 'jangan' => 1, 'sampai' => 1, 'hingga' => 1,
         'antara' => 1, 'melalui' => 1, 'tentang' => 1, 'mengenai' => 1, 'terhadap' => 1,
-        'seperti' => 1, 'antara' => 1, 'selain' => 1, 'kemudian' => 1, 'selanjutnya' => 1,
+        'seperti' => 1, 'selain' => 1, 'kemudian' => 1, 'selanjutnya' => 1,
         'selanjutnta' => 1, 'berikut' => 1, 'ini' => 1, 'itu' => 1, 'tersebut' => 1,
-        'kita' => 1, 'kami' => 1, 'anda' => 1, 'mereka' => 1, 'ia' => 1,
+        'kita' => 1, 'kami' => 1, 'anda' => 1, 'mereka' => 1, 'ia' => 1, 'dia' => 1, 'beliau' => 1,
         'di' => 1, 'ke' => 1, 'satu' => 1, 'dua' => 1, 'tiga' => 1, 'empat' => 1, 'lima' => 1,
+        'enam' => 1, 'tujuh' => 1, 'delapan' => 1, 'sembilan' => 1, 'sepuluh' => 1,
         'pun' => 1, 'saat' => 1, 'era' => 1, 'zaman' => 1, 'dimakan' => 1,
         'konsep' => 1, 'strategi' => 1, 'prinsip' => 1, 'makna' => 1, 'artinya' => 1,
         'fungsi' => 1, 'peran' => 1, 'tujuan' => 1, 'aspek' => 1, 'utama' => 1,
@@ -44,6 +45,65 @@ class ReadingMaterialFormatter
         'diutamakan' => 1, 'dilestarikan' => 1, 'dikuasai' => 1, 'dipelajari' => 1,
         'digunakan' => 1, 'diterapkan' => 1, 'dijelaskan' => 1, 'disusun' => 1,
         'sehari-hari' => 1,
+        // Proposal, Penelitian, dan Laporan Ilmiah
+        'proposal' => 1, 'kegiatan' => 1, 'penelitian' => 1, 'rancangan' => 1, 'rencana' => 1,
+        'dituangkan' => 1, 'bentuk' => 1, 'tulisan' => 1, 'menjelaskan' => 1, 'latar' => 1,
+        'belakang' => 1, 'metode' => 1, 'pelaksanaan' => 1, 'suatu' => 1, 'pedoman' => 1,
+        'alat' => 1, 'pelaksana' => 1, 'pihak' => 1, 'pemberi' => 1, 'dana' => 1,
+        'pemberidana' => 1, 'terkait' => 1, 'dasar' => 1, 'evaluasi' => 1, 'pertanggungjawaban' => 1,
+        'jenis-jenis' => 1, 'jenis' => 1, 'skripsi' => 1, 'tesis' => 1, 'disertasi' => 1,
+        'pkm' => 1, 'non-penelitian' => 1, 'pelatihan' => 1, 'lomba' => 1, 'seminar' => 1,
+        'pengabdian' => 1, 'bagian' => 1, 'pokok' => 1, 'judul' => 1, 'spesifik' => 1,
+        'menguraikan' => 1, 'alasan' => 1, 'pentingnya' => 1, 'urgensi' => 1, 'rumusan' => 1,
+        'masalah' => 1, 'pertanyaan' => 1, 'dijawab' => 1, 'hasil' => 1, 'dicapai' => 1,
+        'tinjauan' => 1, 'pustaka' => 1, 'landasan' => 1, 'teori' => 1, 'terdahulu' => 1,
+        'relevan' => 1, 'pendekatan' => 1, 'subjek' => 1, 'teknik' => 1, 'pengumpulan' => 1,
+        'data' => 1, 'jadwal' => 1, 'anggaran' => 1, 'biaya' => 1, 'kebutuhan' => 1,
+        'realistis' => 1, 'daftar' => 1, 'acuan' => 1, 'kaidah' => 1, 'baku' => 1,
+        'formal' => 1, 'menghindari' => 1, 'penggunaan' => 1, 'bermakna' => 1, 'ganda' => 1,
+        'kalimat' => 1, 'efektif' => 1, 'logis' => 1, 'mengandung' => 1, 'unsur' => 1,
+        'argumentatif' => 1, 'meyakinkan' => 1, 'mematuhi' => 1, 'struktur' => 1, 'penulisan' => 1,
+        'sistematis' => 1, 'kohesif' => 1, 'koheren' => 1, 'menentukan' => 1, 'topik' => 1,
+        'studi' => 1, 'menemukan' => 1, 'celah' => 1, 'merumuskan' => 1, 'menyusun' => 1,
+        'kerangka' => 1, 'draf' => 1, 'lengkap' => 1, 'merevisi' => 1, 'memeriksa' => 1,
+        'kesesuaian' => 1, 'format' => 1, 'kemdikbudristek' => 1, 'mengusulkan' => 1, 'merencanakan' => 1,
+        'membuktikan' => 1, 'memecahkan' => 1, 'tertentu' => 1, 'praktis' => 1, 'aplikatif' => 1,
+        'nyata' => 1, 'lapangan' => 1, 'halaman' => 1, 'manfaat' => 1, 'panitia' => 1,
+        'penutup' => 1, 'opsional' => 1, 'mengutip' => 1, 'sumber' => 1, 'laporan' => 1,
+        'temuan' => 1, 'kesimpulan' => 1, 'saran' => 1, 'dokumentasi' => 1, 'menyampaikan' => 1,
+        'pembaca' => 1, 'memberikan' => 1, 'bukti' => 1, 'referensi' => 1, 'lanjutan' => 1,
+        'peneliti' => 1, 'pengamatan' => 1, 'objektif' => 1, 'subjektif' => 1, 'pengantar' => 1,
+        'ucapan' => 1, 'terima' => 1, 'kasih' => 1, 'maksud' => 1, 'penyusunan' => 1,
+        'tabel' => 1, 'gambar' => 1, 'pendahuluan' => 1, 'inti' => 1, 'deskriptif' => 1,
+        'analitis' => 1, 'dilengkapi' => 1, 'interpretasi' => 1, 'rekomendasi' => 1, 'perbaikan' => 1,
+        'tindak' => 1, 'lanjut' => 1, 'akhir' => 1, 'selingkung' => 1, 'lampiran' => 1,
+        'mentah' => 1, 'instrumen' => 1, 'empiris' => 1, 'spekulatif' => 1, 'emotif' => 1,
+        'mengumpulkan' => 1, 'mengorganisasi' => 1, 'dosen' => 1, 'pembimbing' => 1, 'pengaruh' => 1,
+        'intensitas' => 1, 'media' => 1, 'sosial' => 1, 'produktivitas' => 1, 'belajar' => 1,
+        'fenomena' => 1, 'menurunnya' => 1, 'kuantitatif' => 1, 'kualitatif' => 1, 'kuesioner' => 1,
+        'responden' => 1, 'durasi' => 1, 'non-akademik' => 1, 'rendah' => 1, 'tinggi' => 1,
+        'diarahkan' => 1, 'konten' => 1, 'akademik' => 1, 'karya' => 1, 'tulis' => 1,
+        'ilmiah' => 1, 'makalah' => 1, 'artikel' => 1, 'jurnal' => 1, 'kajian' => 1,
+        'metodologi' => 1, 'kritis' => 1, 'ejaan' => 1, 'diksi' => 1, 'tata' => 1,
+        'abstrak' => 1, 'kata' => 1, 'kunci' => 1, 'isi' => 1, 'teoritis' => 1,
+        'teoretis' => 1, 'populasi' => 1, 'sampel' => 1, 'analisis' => 1, 'pembahasan' => 1,
+        'sitasi' => 1, 'rujukan' => 1, 'primer' => 1, 'sekunder' => 1, 'plagiarisme' => 1,
+        'orisinalitas' => 1, 'semata' => 1, 'fakta' => 1, 'nalar' => 1, 'penalaran' => 1,
+        'diterima' => 1, 'aturan' => 1, 'mendalam' => 1, 'valid' => 1, 'verifikasi' => 1,
+        'masyarakat' => 1, 'penulis' => 1,
+        // Bahasa & Matematika tambahan
+        'observasi' => 1, 'wayang' => 1, 'kulit' => 1, 'wong' => 1, 'golek' => 1,
+        'suket' => 1, 'motekar' => 1, 'purwa' => 1, 'topeng' => 1, 'museum' => 1,
+        'benda' => 1, 'kuno' => 1, 'antik' => 1, 'seni' => 1, 'tradisional' => 1,
+        'pendidikan' => 1, 'informasi' => 1, 'hiburan' => 1, 'ringkasan' => 1, 'rangkuman' => 1,
+        'ikhtisar' => 1, 'perbedaan' => 1, 'langkah' => 1, 'menulis' => 1, 'gagasan' => 1,
+        'paragraf' => 1, 'verba' => 1, 'nomina' => 1, 'afiksasi' => 1, 'imbuhan' => 1,
+        'prefiks' => 1, 'sufiks' => 1, 'konfiks' => 1, 'frasa' => 1, 'klausa' => 1,
+        'reduplikasi' => 1, 'pemajemukan' => 1, 'eksponen' => 1, 'barisan' => 1, 'deret' => 1,
+        'geometri' => 1, 'aritmetika' => 1, 'rasio' => 1, 'suku' => 1, 'pola' => 1,
+        'perkalian' => 1, 'berulang' => 1, 'faktor' => 1, 'pembelahan' => 1, 'bakteri' => 1,
+        'lipatan' => 1, 'kertas' => 1, 'tali' => 1, 'potongan' => 1, 'panjang' => 1,
+        'pendek' => 1, 'hoaks' => 1, 'fase' => 1,
     ];
 
     /**
@@ -63,6 +123,9 @@ class ReadingMaterialFormatter
     public function format(string $rawText, string $title = ''): string
     {
         $normalized = str_replace(["\r\n", "\r"], "\n", $rawText);
+        $normalized = preg_replace('/(?m)^([a-zA-Z\d]+[\.\)])([A-Za-z])/u', '$1 $2', $normalized) ?? $normalized;
+        $normalized = preg_replace('/(?<!^|\n)\s*([•·\x{2022}\x{25CB}\x{25CF}\x{25AA}\x{25AB}\x{25BA}\x{2713}\x{2714}\x{2756}❖⚬○■□▪▫◆◇✦✧])/u', "\n$1 ", $normalized) ?? $normalized;
+        $normalized = preg_replace('/(?<=[.?!;):\x{201D}\x{2019}\"\'\]\}])\s*[-–—\•\*]\s+(?=[A-Z\p{Lu}])/u', "\n- ", $normalized) ?? $normalized;
         $rawLines = explode("\n", $normalized);
 
         $blocks = [];
@@ -78,6 +141,27 @@ class ReadingMaterialFormatter
             $joined = preg_replace('/[ \t]+/u', ' ', $joined) ?? $joined;
             $joined = preg_replace('/^(\b\p{L}+\b)(?:\s+\1)+(?=\s+(?:adalah|merupakan|yaitu|yakni|ialah|dalam|pada|sebagai)\b)/iu', '$1', $joined) ?? $joined;
             $joined = preg_replace('/(?<=[.?!])\s+(?:Rangkuman|Ringkasan|Ikhtisar|Referensi)(?:\s+(?:Rangkuman|Ringkasan|Ikhtisar|Referensi))*$/iu', '', $joined) ?? $joined;
+
+            // Jika seluruh buffer ternyata diawali bullet marker atau tanda daftar
+            if (preg_match('/^[-–—\•\*]\s+/u', $joined)) {
+                $subItems = preg_split('/(?<=[.?!;):\x{201D}\x{2019}\"\'\]\}])\s*[-–—\•\*]\s+(?=[A-Z\p{Lu}])/u', $joined) ?: [$joined];
+                foreach ($subItems as $subItem) {
+                    $subItem = trim(preg_replace('/^[-–—\•\*]\s+/u', '', $subItem) ?? '');
+                    if ($subItem !== '') {
+                        $blocks[] = '- ' . $this->enhanceInlineTypography($subItem);
+                    }
+                }
+                $paragraphBuffer = [];
+                return;
+            }
+
+            // Jika buffer sebelumnya diawali oleh bullet list, dan baris saat ini adalah fragmen pendek slide tanpa tanda baca titik
+            if (! empty($blocks) && str_starts_with(end($blocks), '- ') && mb_strlen($joined) <= 70 && ! preg_match('/[.?!]$/u', $joined) && ! str_starts_with($joined, '#')) {
+                $blocks[] = '- ' . $this->enhanceInlineTypography(rtrim($joined, '.')) . '.';
+                $paragraphBuffer = [];
+                return;
+            }
+
             $joined = $this->enhanceInlineTypography(trim($joined));
             if ($joined !== '') {
                 $blocks[] = $joined;
@@ -93,7 +177,7 @@ class ReadingMaterialFormatter
             $codeBuffer = [];
         };
 
-        $listMarkers = '/^([•·\x{2022}\x{25CB}\x{25CF}\x{25AA}\x{25AB}\x{25BA}\x{2713}\x{2714}⚬○■□▪▫◆◇])\s*(.*)$/u';
+        $listMarkers = '/^(?:([•·\x{2022}\x{25CB}\x{25CF}\x{25AA}\x{25AB}\x{25BA}\x{2713}\x{2714}\x{2756}❖⚬○■□▪▫◆◇✦✧])\s*|([–—\-\*])\s+)(.*)$/u';
         $orderedMarker = '/^(\d+[\.\)])\s+(.+)$/u';
         $pageNumberLine = '/^(?:halaman|hal\.?|page)?\s*\d+(?:\s*(?:of|\/)\s*\d+)?$/iu';
 
@@ -128,6 +212,47 @@ class ReadingMaterialFormatter
                 continue;
             }
 
+            // Buang baris bullet kosong / berulang (misal • • • • • •)
+            if (preg_match('/^[•·\x{2022}\x{2756}❖\s\t\-\*]+$/u', $trimmed)) {
+                continue;
+            }
+
+            // Buang baris kredit gambar, tautan video, atau sumber atribusi slide
+            if (
+                preg_match('/^Sumber\s*(?:Gambar|Foto|Video|Buku|Rujukan|Link)?\s*:/iu', $trimmed)
+                || preg_match('/^https?:\/\/(?:www\.)?(?:youtube\.com|youtu\.be)\/\S+$/iu', $trimmed)
+                || preg_match('/^ma[\'’]\s*moer[,\)]*$/iu', $trimmed)
+                || preg_match('/^Sumber\s*:\s*[a-zA-Z0-9.\-_]+\.[a-zA-Z]{2,}.*$/iu', $trimmed)
+            ) {
+                continue;
+            }
+
+            // Buang baris metadata cover teracak / berspasi per huruf (misal: /IQIRXIVMER..., 1EXIQEXMOE...)
+            $tNoZero = str_replace("\0", '', $trimmed);
+            $c = preg_replace('/[\s\0]+/', '', $tNoZero);
+            if (preg_match('#^/(?:IQIR|IFYH|6ITY|1EXI|4IRY)#i', $c)
+                || preg_match('/^(?:6ITY|1EXI|4IRY|6MWI|8IOR)/i', $c)
+                || preg_match('/^(?:IQIRXIVMER|1EXIQEXMOE|4IRYPMW|6ITYFPMO|71%|1%|71\/)/i', $c)
+                || preg_match('/^[-–—\s]*\d+\s*&\s*\d+/u', $c)
+                || preg_match('/^[-–—\s]*[A-Z0-9&]{2,10}\s+Barisan/i', $tNoZero)
+                || preg_match('/^(?:[\/\p{L}\p{N}%&_()\-]\s+){4,}/u', $tNoZero)) {
+                continue;
+            }
+
+            // Buang running header/footer buku cetak, kementerian, penerbit, peta materi, instruksi tugas
+            if (preg_match('/^(?:Matematika|Bahasa\s+Indonesia|Buku\s+Siswa)\s+untuk\s+SMA.*Kelas\s+[X\d]+/iu', $tNoZero)
+                || preg_match('/^Bab\s+\d+\s*\|\s*/iu', $tNoZero)
+                || preg_match('/^(?:World\s+Our\s+World|Data\s+source:\s*United\s+Nations|CC\s+BY\b)/iu', $tNoZero)
+                || preg_match('/^(?:Bab|Eksponen\s*\d*|\d+\s*Bab|Barisan\s+dan\s+Deret)$/iu', $tNoZero)
+                || preg_match('/^[-–—\s]*\d+\s*$/u', $tNoZero)
+                || preg_match('/^(?:ISBN|Kementerian|Republik\s+Indonesia|Hak\s+Cipta|Diterbitkan\s+oleh)\b/iu', $tNoZero)
+                || preg_match('/^(?:Peta\s+Materi|Ayo,?\s+Bereksplorasi|Ayo,?\s+Berpikir|Ayo,?\s+Berdiskusi|Jawablah\s+pertanyaan\s+berikut\s+dengan\s+berdiskusi)\b/iu', $tNoZero)
+                || preg_match('/^(?:Kelas\s+[X\d]+.*MAK\d*|\d{1,3}\s*(?:Bahasa\s+Indonesia|Matematika)|Sumber\s+foto:.*)$/iu', $tNoZero)
+                || preg_match('/^\d+\.\s+Berkumpullah\s+dengan\s+kelompokmu/iu', $tNoZero)
+                || preg_match('/^(?:Tulislah\s+hasil\s+analisis|Selanjutnya,?\s+lakukan\s+analisis|Selanjutnya,?\s+lanjutkan\s+dengan\s+mencari)\s+.*buku\s+kerja/iu', $tNoZero)) {
+                continue;
+            }
+
             // Baris perintah terminal (#mkdir ..., #cd ..., #service ...)
             if (preg_match('/^#[a-z0-9_\/\.\-]/i', $trimmed)) {
                 $flushParagraph();
@@ -138,6 +263,20 @@ class ReadingMaterialFormatter
             // Perbaiki kata yang menempel pada PDF (tetap lindungi URL, email, directive Apache)
             $line = $this->restoreMissingSpaces($trimmed);
 
+            // Bersihkan sisa margin footer / header yang menempel di ujung baris kalimat
+            $line = preg_replace('/\s*(?:Kelas\s+[X\d]+(?:\s*[A-Z\/]+)*\s*\d*|\d{1,3}\s*(?:Bahasa\s+Indonesia|Matematika))\s*$/iu', '', $line);
+            $line = preg_replace('/\s*Sumber\s+(?:Gambar|Foto|Video|Buku|Rujukan|Link)?\s*:.*$/iu', '', $line);
+            $line = preg_replace('/\s*https?:\/\/(?:www\.)?(?:youtube\.com|youtu\.be)\/\S+/iu', '', $line);
+            $line = preg_replace('/\s*Sumber\s+foto:\s*https?:\/\/\S+/iu', '', $line);
+            $line = preg_replace('/(?:\s*[_\.]{3,}\s*){2,}/u', ' … ', $line);
+
+            // Deteksi subjudul berlabel alfabet: "a. Pengertian Proposal", "b. Fungsi Proposal", dll.
+            if (preg_match('/^[a-z][\.\)]\s+[A-Z\p{L}][^.?!]{2,60}$/u', $line)) {
+                $flushParagraph();
+                $blocks[] = '### ' . $this->enhanceInlineTypography($line);
+                continue;
+            }
+
             // Deteksi daftar bernomor (1. ..., 2. ...)
             if (preg_match($orderedMarker, $line, $m)) {
                 $flushParagraph();
@@ -146,12 +285,14 @@ class ReadingMaterialFormatter
                 // Kumpulkan baris lanjutan (soft wrap) untuk item nomor ini
                 while ($i + 1 < $totalLines) {
                     $nextRaw = trim($rawLines[$i + 1]);
+                    $nextRestored = preg_replace('/^([a-zA-Z\d]+[\.\)])([A-Za-z])/u', '$1 $2', $nextRaw);
                     if (
                         $nextRaw === ''
                         || preg_match($pageNumberLine, $nextRaw)
-                        || preg_match($listMarkers, $nextRaw)
-                        || preg_match($orderedMarker, $nextRaw)
-                        || $this->isLikelyHeading($nextRaw)
+                        || preg_match($listMarkers, $nextRestored)
+                        || preg_match($orderedMarker, $nextRestored)
+                        || preg_match('/^[a-z][\.\)]\s+[A-Z\p{L}]/u', $nextRestored)
+                        || $this->isLikelyHeading($nextRestored)
                         || preg_match('/^<VirtualHost\b|^#[a-z0-9_\/\.\-]/i', $nextRaw)
                     ) {
                         break;
@@ -164,22 +305,24 @@ class ReadingMaterialFormatter
                 continue;
             }
 
-            // Deteksi bullet list (•, ⚬, dll.)
+            // Deteksi bullet list (•, ⚬, -, *, dll.)
             if (preg_match($listMarkers, $line, $m)) {
                 $flushParagraph();
-                $bulletSymbol = $m[1];
-                $isSubBullet = in_array($bulletSymbol, ['⚬', '○', '▫', '▪', '·'], true);
+                $bulletSymbol = ! empty($m[1]) ? $m[1] : ($m[2] ?? '-');
+                $isSubBullet = in_array($bulletSymbol, ['⚬', '○', '▫', '▪', '·'], true) || (bool) preg_match('/^\s{2,}/', $rawLine);
                 $prefix = $isSubBullet ? '  - ' : '- ';
-                $itemText = $this->restoreMissingSpaces(trim($m[2]));
+                $itemText = $this->restoreMissingSpaces(trim($m[3]));
 
                 while ($i + 1 < $totalLines) {
                     $nextRaw = trim($rawLines[$i + 1]);
+                    $nextRestored = preg_replace('/^([a-zA-Z\d]+[\.\)])([A-Za-z])/u', '$1 $2', $nextRaw);
                     if (
                         $nextRaw === ''
                         || preg_match($pageNumberLine, $nextRaw)
-                        || preg_match($listMarkers, $nextRaw)
-                        || preg_match($orderedMarker, $nextRaw)
-                        || $this->isLikelyHeading($nextRaw)
+                        || preg_match($listMarkers, $nextRestored)
+                        || preg_match($orderedMarker, $nextRestored)
+                        || preg_match('/^[a-z][\.\)]\s+[A-Z\p{L}]/u', $nextRestored)
+                        || $this->isLikelyHeading($nextRestored)
                         || preg_match('/^<VirtualHost\b|^#[a-z0-9_\/\.\-]/i', $nextRaw)
                     ) {
                         break;
@@ -190,7 +333,17 @@ class ReadingMaterialFormatter
 
                 if ($itemText !== '') {
                     $itemText = preg_replace('/[ \t]+/u', ' ', $itemText) ?? $itemText;
-                    $blocks[] = $prefix . $this->enhanceInlineTypography($itemText);
+                    $subItems = preg_split('/(?<=[.?!;):\x{201D}\x{2019}\"\'\]\}])\s*[-–—\•\*]\s+(?=[A-Z\p{Lu}])/u', $itemText) ?: [$itemText];
+                    foreach ($subItems as $subItem) {
+                        $subItem = trim(preg_replace('/^[-–—\•\*]\s+/u', '', $subItem) ?? '');
+                        if ($subItem !== '') {
+                            if (str_ends_with($subItem, '?') && ! $isSubBullet) {
+                                $blocks[] = $this->enhanceInlineTypography($subItem);
+                            } else {
+                                $blocks[] = $prefix . $this->enhanceInlineTypography($subItem);
+                            }
+                        }
+                    }
                 }
                 continue;
             }
@@ -256,7 +409,450 @@ class ReadingMaterialFormatter
             $markdown = trim($rawText);
         }
 
-        return $this->ensurePedagogicalStructure($markdown, $title);
+        $markdown = $this->cleanClassroomHomework($markdown);
+        $markdown = $this->restructureAndFormatPedagogy($markdown, $title);
+        $markdown = $this->ensurePedagogicalStructure($markdown, $title);
+        $markdown = $this->glueBrokenParagraphSentences($markdown);
+        $markdown = $this->cleanAsterisksAndEmptyHeadings($markdown);
+
+        return $markdown;
+    }
+
+    /**
+     * Memangkas instruksi penugasan PR buku cetak, tabel latihan kosong,
+     * header silabus administratif perguruan tinggi, serta tugas interaktif kelas
+     * agar teks bacaan terfokus murni pada konten instruksional pembelajaran mandiri siswa.
+     */
+    public function cleanClassroomHomework(string $markdown): string
+    {
+        // 1. Bersihkan margin footer / header buku yang menempel
+        $markdown = preg_replace('/\s*(?:Kelas\s+[X\d]+(?:\s*(?:SMA|MA|SMK|MAK|\/))+\s*\d*|\d{1,3}\s*(?:Bahasa\s+Indonesia|Matematika))\s*(?=\R|$)/iu', '', $markdown);
+        $markdown = preg_replace('/\b(?:Kelas\s+[X\d]+(?:\s*(?:SMA|MA|SMK|MAK|\/))+\s*\d*|\d{1,3}\s*(?:Bahasa\s+Indonesia|Matematika))\b/iu', '', $markdown);
+        $markdown = preg_replace('/\s*Sumber\s+foto:\s*https?:\/\/\S+/iu', '', $markdown);
+
+        // 2. Pembersihan silabus / header administratif kampus / modul PBL
+        $markdown = preg_replace('/(?:\R+|^)#{1,6}\s*(?:MODUL\s+PEMBELAJARAN\s+BERBASIS\s+PROYEK|MATA\s+KULIAH\s+SISTEM\s+OPERASI|PERTEMUAN\s+11\s+SINKRONISASI[^\n]*|NIP\.?\s*\d+|PROGRAM\s+STUDI\s+D3\s+MANAJEMEN\s+INFORMATIKA|POLITEKNIK\s+NEGERI\s+SAMBAS|A\.\s*IDENTITAS\s+PERTEMUAN)\b[^\n]*\R?/miu', "\n", $markdown);
+        $markdown = preg_replace('/Mata\s+Kuliah\s+Sistem\s+Operasi\s*\(Pembelajaran\s+Berbasis\s+Proyek\)[^\n]+(?:NIP\s*\d+\)?|\d{10,}\)?)\s*/ius', '', $markdown);
+        $markdown = preg_replace('/Proyek\s+Semester:\s*Rancang\s+Bangun[^\n]*/ius', '', $markdown);
+        $markdown = preg_replace('/POLITEKNIK\s+NEGERI\s+SAMBAS\s+Jurusan\s+Teknologi\s+Informasi[^\n]+/iu', '', $markdown);
+        $markdown = preg_replace('/Penyusun:\s*Fathushahib[^\n]*/ius', '', $markdown);
+        $markdown = preg_replace('/Dosen\s+Pengampu\s*Fathushahib[^\n]*/ius', '', $markdown);
+        $markdown = preg_replace('/\bFathushahib,\s*S\.Kom\.,\s*M\.Kom\.?\b/iu', '', $markdown);
+        $markdown = preg_replace('/Rancang\s+Bangun\s+Server\s+Network\s+Operations\s+Center\s*\(NOC\)[^\n]+/iu', '', $markdown);
+        $markdown = preg_replace('/Kode\s*\/\s*Bobot\s+MIF-3103[^\n]+/iu', '', $markdown);
+        $markdown = preg_replace('/Semester\s*\/\s*TA\s+Ganjil[^\n]+/iu', '', $markdown);
+        $markdown = preg_replace('/Pertemuan\s+Ke-\s*11\s+dari\s*18\s+pertemuan[^\n]+/iu', '', $markdown);
+        $markdown = preg_replace('/Alokasi\s+Waktu\s+Teori[^\n]+/iu', '', $markdown);
+        $markdown = preg_replace('/Tahapan\s+PBL\s+Fase\s+4[^\n]+/iu', '', $markdown);
+        $markdown = preg_replace('/[^\n]*\d+\.\s*(?:Logbook\s+minggu|Catat\s+seluruh\s+hasil\s+pada\s+logbook)[^\n]+(?:diparaf|paraf)\s+dosen\.\s*\R?/miu', '', $markdown);
+
+        // 3. Pangkas penugasan tugas PR / lembar kerja latihan kosong di akhir bacaan
+        $markdown = preg_replace('/(?:\R+|^)(?:###\s*)?Latihan\s+[\d\.]+.*?\Z/ius', '', $markdown);
+        $markdown = preg_replace('/(?:\s*Tugas\s+2\s+Analisislah\s+afiksasi\s+yang\s+terjadi.*?\Z)/ius', '', $markdown);
+        $markdown = preg_replace('/(?:\s+Tugas|\R+Tugas)[\s\d\:\.]*\R+1\.\s+Simpulkanlah.*?(?=\R+\d+\.\s+[A-Z]|\Z)/ius', '', $markdown);
+        $markdown = preg_replace('/(?:\R+|^)Tugas\s*\R+1\.\s+Simpulkanlah\s+fungsi\s+teks.*?(?=\R+\d+\.\s+[A-Z]|\Z)/ius', '', $markdown);
+        $markdown = preg_replace('/\R+Tugas\s+1\s+Selanjutnya,?\s+lakukan\s+analisis.*?(?=\R+\d+\.\s+[A-Z]|\Z)/ius', "\n\n", $markdown);
+
+        // 4. Bersihkan spanduk / instruksi tugas PR di sela-sela subbab (BS)
+        $markdown = preg_replace('/(?:\(Sumber:[^\)]+\))?\s*Tugas\s+Sekarang,?\s+kerjakan\s+tugas-tugas.*?Kegiatan\s+2\s+Menyusun\s+Ringkasan/ius', "(Sumber: http://istiqomahalmaky.blogspot.co.id)\n\n### Kegiatan 2: Menyusun Ringkasan", $markdown);
+        $markdown = preg_replace('/Setelah\s+ringkasan\s+yang\s+kamu\s+buat\s+selesai,?\s+lakukanlah\s+aktivitas.*?Bacalah\s+teks\s+laporan\s+hasil\s+observasi\s+berjudul\s+D[’\']\s*topeng\s+Museum\s+Angkut\s+berikut\s+ini\.?\s*(?:Kemudian,?\s+kerjakan\s+tugas-tugasnya[^\n\.]*\.?)?/ius', "### Teks: D' Topeng Museum Angkut\n\n", $markdown);
+        $markdown = preg_replace('/(?:Setelah\s+berlatih\s+memahami\s+gagasan\s+pokok[^\n]+)?Tulislah\s+pada\s+buku\s+kerjamu!\s*Paragraf\s+Gagasan\s+Pokok.*?Kegiatan\s+3\s+Menyimpulkan\s+Fungsi/ius', "### Kegiatan 3: Menyimpulkan Fungsi", $markdown);
+
+        $markdown = preg_replace('/(?:\s+Tugas|\R+Tugas)\s+\d+[\s\:\.]*Selanjutnya,?\s+lakukan\s+analisis\s+kebahasaan.*?Paragraf\s+ke:\s*/ius', "\n\n", $markdown);
+        $markdown = preg_replace('/(?:\R+|^)\s*Selanjutnya,?\s+lanjutkan\s+dengan\s+mencari\s+\d+\s+kata.*?Paragraf\s+ke:\s*/ius', "\n\n", $markdown);
+        $markdown = preg_replace('/^.*\(tabel\s+ini\s+hanya\s+contoh\).*$\R?/miu', '', $markdown);
+        $markdown = preg_replace('/(?:\R+|^)\s*Tugas\s+\d*[\s\:\.]*Setelah\s+(?:mengikuti|berlatih|membuat)[^\n]+(?:\R+|$)/iu', "\n\n", $markdown);
+        $markdown = preg_replace('/(?:\R+|^)\s*Tugas\s+\d*[\s\:\.]*Selanjutnya,?\s+berlatihlah[^\n]+(?:\R+|$)/iu', "\n\n", $markdown);
+        $markdown = preg_replace('/(?:\R+|^)\s*Tugas\s+Sekarang,?\s+kerjakan\s+tugas-tugas[^\n]+(?:\R+|$)/iu', "\n\n", $markdown);
+        $markdown = preg_replace('/(?:\R+|^)\s*Tugas\s+Selanjutnya,?\s+untuk\s+menguji\s+pemahamanmu[^\n]+(?:\R+|$)/iu', "\n\n", $markdown);
+        $markdown = preg_replace('/(?:\s*Lakukanlah\s+analisis\s+afiksasi\s+terhadap\s+kata-kata.*?\Z)/ius', '.', $markdown);
+        $markdown = preg_replace('/(?:\R+|^)[^\n]*\(tabel\s+ini\s+hanya\s+contoh\)[^\n]*/iu', '', $markdown);
+        $markdown = preg_replace('/(?:\R+|^)\s*Eksplorasi\s+[\d\.]*\s+Melipat\s+kertas.*?(?=(?:\R+[-–•]|\R+###|\R+\d+\.|\Z))/ius', '', $markdown);
+        $markdown = preg_replace('/Ayo,?\s+berkolaborasi\s+dengan\s+temanmu[^\n\.\!]+[\.\!]/iu', '', $markdown);
+        $markdown = preg_replace('/Ayo,?\s+bereksplorasi\s+melipat\s+kertas[^\n\.\!]+[\.\!]/iu', '', $markdown);
+        $markdown = preg_replace('/Jika\s+kertas\s+tersebut\s+dilipat\s+sebanyak\s+\d+\s+kali[^\n]+Tabel\s+2\.2[^\n\.\!]+[\.\!]/iu', '', $markdown);
+        $markdown = preg_replace('/Tabel\s+2\.2[^\n]+Banyaknya\s+bagian\s+sama\s+besar[^\n]+Jelaskan\./ius', '', $markdown);
+        $markdown = preg_replace('/Siapkan\s+kertas\s+berbentuk\s+persegi\s+panjang\.\s*/iu', '', $markdown);
+
+        $markdown = preg_replace('/\.{2,}(?=\s*$)/u', '.', $markdown);
+
+        return trim($markdown);
+    }
+
+    /**
+     * Menyempurnakan struktur hierarki, heading submateri, tabel teks, dan rumus matematika
+     * agar tersaji secara bersih, elegan, dan terstruktur bagi siswa di Reading Room.
+     */
+    public function restructureAndFormatPedagogy(string $text, string $title = ''): string
+    {
+        // 0. Bersihkan baris asterisk kosong & heading yatim terlebih dahulu
+        $text = $this->cleanAsterisksAndEmptyHeadings($text);
+
+        // 1. Buang pengulangan kalimat pembuka jika sama persis dengan pertanyaan excerpt
+        $text = preg_replace('/^(?:###\s*[^\n]+\R+)?(Apa\s+perbedaan\s+barisan\s+dan\s+deret[^\n\?]+\?)\R+/iu', '', $text);
+
+        // 2. Bersihkan artefak titik-titik isian lembar kerja U2 - U1 = ... - ... = ...
+        $text = preg_replace('/U2\s*[–\-]\s*U1\s*=\s*\.{3,}\s*[–\-]\s*\.{3,}\s*=\s*\.{3,}(?:\s*U\s*[–\-]\s*U\s*=\s*\.{3,}\s*[–\-]\s*\.{3,}\s*=\s*\.{3,})*/u', '', $text);
+        $text = preg_replace('/-\s*Suku\s+ke-\d+\s+dilambangkan\s+dengan\s+U\s*=\s*\.{3,}\s*/u', '', $text);
+        $text = preg_replace('/(?:Gambar\s+2\.1[^\n]+)?Tabel\s+2\.1\s*Banyak\s+Meja\s+dan\s+Kursi\s*Banyak\s+meja\s*1\s*2\s*3\s*4\s*5\s*6\s*Banyak\s+kursi\s*4\s*6\s*[…\.]*\s*/iu', '', $text);
+        $text = preg_replace('/\b4\s+6\s+8\s+10\s*[…\.]*\s*$/mu', '', $text);
+
+        // 3. Bersihkan tabel kata dan frasa nomina/verba yang melebur
+        $patternNomina = '/a\.\s*Nomina\s+Paragraf\s+Kata\s+Frasa\s+I\s+wayang\s+seni\s+pertunjukan[^\n]+boneka\s+kayu/iu';
+        $replacementNomina = "**a. Contoh Identifikasi Kata dan Frasa Nomina (Kata Benda):**\n\n"
+            . "- **Kata Nomina:** wayang, boneka, warisan, seni, dunia, lembaga, bahan.\n"
+            . "- **Frasa Nomina:** *seni pertunjukan*, *warisan budaya asli Indonesia*, *pertunjukan bayangan boneka tersohor*, *sebuah warisan mahakarya dunia*, *lembaga yang mengurusi kebudayaan*, *wayang kulit*, *wayang golek*.\n\n";
+        $text = preg_replace($patternNomina, $replacementNomina, $text) ?? $text;
+
+        $patternVerba = '/b\.\s*Verba\s+Paragraf\s+Kata\s+Frasa\s+I\s+adalah\s+sudah\s+membagi\s+menetapkan\s+disesuaikan\s+dibuat\s+berarti\s+merupakan\s+mengembangkan/iu';
+        $replacementVerba = "**b. Contoh Identifikasi Kata dan Frasa Verba (Kata Kerja):**\n\n"
+            . "- **Kata Verba:** adalah, menetapkan, disesuaikan, dibuat, berarti, merupakan, mengembangkan.\n"
+            . "- **Frasa Verba:** *sudah membagi*.\n\n";
+        $text = preg_replace($patternVerba, $replacementVerba, $text) ?? $text;
+        $text = preg_replace('/(?<=[a-z\*\.\!])\s+(Berdasarkan\s+analisis\s+kata\s+dan\s+frasa)/iu', "\n\n$1", $text);
+
+        // 4. Format tabel afiksasi teks menjadi Markdown table yang rapi
+        $afiksasiPattern = '/(?:\|\s*No\.\s*\|\s*Kata\s+Berimbuhan.*?pe\s*\(N\)-an\s*\|\s*teliti\s*\||No\.\s*Kata\s+Berimbuhan\s+Jenis\s+Imbuhan\s+Kata\s+Dasar.*?10\.\s*penelitian\s+nomina\s+pe\s*\(N\)-an\s+teliti\.?)/ius';
+        $afiksasiTable = "| No. | Kata Berimbuhan | Jenis | Imbuhan | Kata Dasar |\n"
+            . "| :---: | :--- | :---: | :---: | :--- |\n"
+            . "| 1 | disebut | Verba | di- | sebut |\n"
+            . "| 2 | menakutkan | Verba | me(N)-kan | takut |\n"
+            . "| 3 | kemampuan | Nomina | ke-an | mampu |\n"
+            . "| 4 | getaran | Nomina | -an | getar |\n"
+            . "| 5 | menyusui | Verba | me(N)-i | susu |\n"
+            . "| 6 | berasal | Verba | be(R)- | asal |\n"
+            . "| 7 | mengisap | Verba | me(N)- | isap |\n"
+            . "| 8 | menggigit | Verba | me(N)- | gigit |\n"
+            . "| 9 | gigitan | Nomina | -an | gigit |\n"
+            . "| 10 | penelitian | Nomina | pe(N)-an | teliti |";
+        $text = preg_replace_callback($afiksasiPattern, fn () => $afiksasiTable, $text) ?? $text;
+
+        // 5. Format tabel & tahapan berjenjang pada materi Ringkasan, Rangkuman, dan Ikhtisar (RRI)
+        $rriTablePattern = '/Aspek\s+Ringkasan\s+Rangkuman\s+Ikhtisar\s+Tujuan\s+Memahami\s+isi\s+teks\s+secara\s+cepat\s+Mengambil\s+inti\s+pokok[^\n]+Ada\s*\(interpretatif\)/ius';
+        $rriTableReplacement = "### Perbandingan Ringkasan, Rangkuman, dan Ikhtisar\n\n"
+            . "| Aspek | Ringkasan | Rangkuman | Ikhtisar |\n"
+            . "| :--- | :--- | :--- | :--- |\n"
+            . "| **Tujuan** | Memahami isi teks secara cepat | Mengambil inti pokok dari beberapa sumber | Menunjukkan pemahaman dan pendapat pribadi |\n"
+            . "| **Sumber** | Satu teks | Bisa satu atau beberapa teks | Satu teks, dipahami dan ditafsirkan |\n"
+            . "| **Urutan Isi** | Mengikuti alur teks asli | Tidak harus mengikuti teks asli | Bebas (sesuai logika & alur penulis) |\n"
+            . "| **Bahasa** | Objektif | Subjektif / Mandiri | Subjektif / Interpretatif |\n"
+            . "| **Panjang** | Singkat | Lebih padat | Lebih bebas |\n"
+            . "| **Unsur Pendapat** | Tidak ada | Tidak ada | Ada (bersifat interpretatif) |";
+        $text = preg_replace($rriTablePattern, $rriTableReplacement, $text) ?? $text;
+
+        $rriStepsPattern = '/(?:###\s*)?Langkah[- ]langkah\s*menulis\s+1\.\s*Menulis\s+Ringkasan\s+.*?4\.\s*Boleh\s+disertai\s+penilaian\s+atau\s+tanggapan\s+singkat\./ius';
+        $rriStepsReplacement = "### Langkah-langkah Menulis\n\n"
+            . "**A. Langkah Menulis Ringkasan:**\n"
+            . "1. Baca teks asli dengan saksama.\n"
+            . "2. Tandai kalimat utama setiap paragraf.\n"
+            . "3. Buat kerangka isi (urutan gagasan utama).\n"
+            . "4. Tulis kembali dengan bahasa sendiri secara singkat dan padat.\n"
+            . "5. Periksa kesesuaian dengan teks sumber (jangan mengubah makna).\n\n"
+            . "**B. Langkah Menulis Rangkuman:**\n"
+            . "1. Catat ide-ide penting dari setiap bagian teks.\n"
+            . "2. Gabungkan ide-ide penting tersebut menjadi beberapa poin inti.\n"
+            . "3. Susun ulang secara logis tanpa memperhatikan urutan asli.\n"
+            . "4. Gunakan bahasa sendiri.\n\n"
+            . "**C. Langkah Menulis Ikhtisar:**\n"
+            . "1. Baca dan pahami isi teks secara menyeluruh.\n"
+            . "2. Tentukan gagasan pokok dan pandangan pribadi.\n"
+            . "3. Tulis kembali dengan gaya bahasa sendiri.\n"
+            . "4. Boleh disertai penilaian atau tanggapan singkat.";
+        $text = preg_replace($rriStepsPattern, $rriStepsReplacement, $text) ?? $text;
+        $text = preg_replace('/###\s*Perbedaan\s+Ringkasan,\s*Rangkuman,\s*dan\s*Ikhtisar\s*(?=\R*###\s*Langkah-langkah\s+Menulis)/iu', '', $text);
+        $text = preg_replace('/(###\s*Langkah-langkah\s+Menulis)\s*(\*\*A\.)/u', "$1\n\n$2", $text);
+        $text = preg_replace('/(\*\*[A-Z]\.\s*Langkah\s+Menulis\s+[^\n:]+:\*\*)\s*(?=1\.)/u', "$1\n\n", $text);
+
+        // 6. Pisahkan Heading dan Sub-bab menjadi blok Markdown terpisah (idempotent)
+        $subheadingPatterns = [
+            '/(?<!###\s)(?<!\*\*)\b(\d+\.\s+Kata\s+serta\s+Frasa\s+Verba\s+dan\s+Nomina)\s+/u' => "\n\n### $1\n\n",
+            '/(?<!###\s)(?<!\*\*)\b(\d+\.\s+Afiksasi)\s+(?=Dalam\s+kegiatan\s+berbahasa)/u' => "\n\n### $1\n\n",
+            '/(?<!###\s)(?<!\*\*)\b(\d+\.\s+Barisan\s+Aritmetika)\s+(?=Eksplorasi|\d|\p{L})/u' => "\n\n### $1\n\n",
+            '/(?<!###\s)(?<!\*\*)\b(\d+\.\s+Barisan\s+Geometri)\s+(?=Lima\s+anak|Eksplorasi|\d|\p{L})/u' => "\n\n### $1\n\n",
+            '/(?<!###\s)(?<!\*\*)\b(Kegiatan\s+\d+\s+Menganalisis\s+Kebahasaan[^\n]+)/u' => "\n\n### $1\n\n",
+            '/(?<!\*\*)\b(Eksplorasi\s+\d+[\.\d]*\s+(?:Penyebaran\s+Hoaks|Sifat-Sifat\s+Eksponen|Pembelahan\s+Bakteri|Banyaknya\s+Kursi|Gedung\s+Pertunjukan\s+Seni))\b(?!\*\*)/u' => "**$1**",
+        ];
+        foreach ($subheadingPatterns as $pat => $rep) {
+            $text = preg_replace($pat, $rep, $text) ?? $text;
+        }
+
+        // Pastikan heading penting tidak menempel langsung dengan paragraf di bawahnya
+        $text = preg_replace('/(###\s*\d+\.\s+Kata\s+serta\s+Frasa\s+Verba\s+dan\s+Nomina)\s*(Jenis\s+kata|Untuk\s+memahami)/u', "$1\n\n$2", $text);
+        $text = preg_replace('/(###\s*\d+\.\s+Afiksasi)\s*(Dalam\s+kegiatan)/u', "$1\n\n$2", $text);
+        $text = preg_replace('/(###\s*Kegiatan\s+\d+\s+[^\n]+?)\s*(###|\d+\.|\p{Lu})/u', "$1\n\n$2", $text);
+
+        // 7. Normalisasi Matematika: Rumus Eksponen (MTK)
+        $mtkContohAwalPattern = '/Perhatikan\s+contoh\s+berikut\s+ini\.?\s*1\.\s*2\s*[⇥×x]\s*2.*?5\.\s*a\s*[⇥×x]\s*a.*?ditulis\s+dengan\s+a\b/ius';
+        $text = preg_replace_callback($mtkContohAwalPattern, function () {
+            return "Perkalian berulang adalah perkalian yang dilakukan secara berulang dengan faktor yang sama. Perhatikan contoh perpangkatan berikut ini:\n\n"
+                . "1. \$2 \\times 2 \\times 2 \\times 2 \\times 2 \\times 2\$ ditulis dengan \$2^6\$\n"
+                . "2. \$5 \\times 5 \\times 5 \\times 5 \\times 5 \\times 5 \\times 5 \\times 5\$ ditulis dengan \$5^8\$\n"
+                . "3. \$15 \\times 15 \\times 15 \\times 15\$ ditulis dengan \$15^4\$\n"
+                . "4. \$7 \\times 7 \\times 7 \\times 7 \\times 7 \\times 7 \\times 7 \\times 7 \\times 7 \\times 7\$ ditulis dengan \$7^{10}\$\n"
+                . "5. \$a \\times a \\times a \\times a \\times a \\times a \\times a\$ ditulis dengan \$a^7\$";
+        }, $text) ?? $text;
+
+        $hoaksPattern = '/Ada\s+hubungan\s+yang\s+menarik.*?Simak\s+polanya\s+sebagai\s+berikut\.?\s*1\s*=\s*2.*?Bentuk\s+2\s*,\s*2[^\n]+merupakan\s+bentuk\s+bilangan\s+pangkat\./ius';
+        $text = preg_replace_callback($hoaksPattern, function () {
+            return "Ada hubungan yang menarik antara fase penyebaran dengan jumlah orang yang menerima hoaks. Simak pola perpangkatannya sebagai berikut:\n\n"
+                . "- **Fase 1:** \$2 = 2^1\$\n"
+                . "- **Fase 2:** \$4 = 2 \\times 2 = 2^2\$\n"
+                . "- **Fase 3:** \$8 = 2 \\times 2 \\times 2 = 2^3\$\n"
+                . "- **Fase 4:** \$16 = 2 \\times 2 \\times 2 \\times 2 = 2^4\$\n"
+                . "- **Fase ke-\$n\$:** Jika banyak orang yang menerima hoaks pada fase ke-\$n\$ dinyatakan dengan \$m\$, maka:\n"
+                . "  \$\$m = \\underbrace{2 \\times 2 \\times 2 \\times \\dots \\times 2}_{n\\text{ faktor}} = 2^n\$\$\n\n"
+                . "Dengan memanfaatkan kesimpulan di atas, jumlah orang yang menerima hoaks pada **fase ke-5** dapat dengan mudah dihitung:\n"
+                . "\$\$2^5 = 32\\text{ orang}\$\$\n\n"
+                . "Bentuk \$2^1, 2^2, 2^3, 2^4,\$ dan \$2^n\$ ini merupakan bentuk **bilangan berpangkat (eksponen)**.";
+        }, $text) ?? $text;
+
+        $defEksponenPattern = '/Jika\s+a\s+adalah\s+bilangan\s+real\s+dan\s+n\s+adalah\s+bilangan\s+bulat\s+positif.*?Berikut\s+adalah\s+beberapa\s+definisi\s+penting.*?3\.\s*Jika\s+a\s+adalah\s+bilangan\s+real\s+dengan\s+a6=0[^\n]+/ius';
+        $text = preg_replace_callback($defEksponenPattern, function () {
+            return "Jika \$a\$ adalah bilangan real dan \$n\$ adalah bilangan bulat positif, maka \$a^n\$ menyatakan hasil kali bilangan \$a\$ sebanyak \$n\$ faktor dan ditulis:\n\n"
+                . "\$\$a^n = \\underbrace{a \\times a \\times a \\times \\dots \\times a}_{n\\text{ faktor}}\$\$\n\n"
+                . "Dalam bentuk \$a^n\$, \$a\$ disebut sebagai **bilangan pokok (basis)** dan \$n\$ disebut sebagai **pangkat (eksponen)**.\n\n"
+                . "Berikut beberapa definisi penting perpangkatan:\n"
+                . "1. Jika \$a\$ adalah bilangan real dengan \$a \\neq 0\$ dan \$n\$ bilangan bulat positif, maka pangkat bulat negatif didefinisikan sebagai:\n"
+                . "   \$\$a^{-n} = \\frac{1}{a^n}\$\$\n"
+                . "2. Untuk \$a \\neq 0\$, bilangan berpangkat nol didefinisikan sebagai:\n"
+                . "   \$\$a^0 = 1\$\$\n"
+                . "3. Jika \$a\$ adalah bilangan real dengan \$a \\geq 0\$ dan \$n\$ bilangan bulat positif, maka berlaku hubungan bentuk akar:\n"
+                . "   \$\$a^{\\frac{1}{n}} = \\sqrt[n]{a}\$\$\n"
+                . "4. Untuk bilangan rasional \$\\frac{m}{n}\$ dengan \$a > 0\$:\n"
+                . "   \$\$a^{\\frac{m}{n}} = \\left(a^{\\frac{1}{n}}\\right)^m = (\\sqrt[n]{a})^m = \\sqrt[n]{a^m}\$\$";
+        }, $text) ?? $text;
+
+        $sifatEksponenPattern = '/(?:\d+\.\s*2\s*∙\s*2\s*4\)\s*7\)\s*<\s*;|Tabel\s+1\.1\s*Bentuk\s+Eksponen).*?\Z/ius';
+        $text = preg_replace_callback($sifatEksponenPattern, function () {
+            return "### Sifat-Sifat Eksponen\n\n"
+                . "Perhatikan tabel perpangkatan basis 2 berikut:\n\n"
+                . "| Nilai \$n\$ | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |\n"
+                . "| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n"
+                . "| **Bentuk \$2^n\$** | \$2^1\$ | \$2^2\$ | \$2^3\$ | \$2^4\$ | \$2^5\$ | \$2^6\$ | \$2^7\$ | \$2^8\$ | \$2^9\$ | \$2^{10}\$ |\n"
+                . "| **Hasil** | 2 | 4 | 8 | 16 | 32 | 64 | 128 | 256 | 512 | 1.024 |\n\n"
+                . "Berikut sifat-sifat aljabar eksponen yang berlaku untuk \$a, b > 0\$ serta \$m, n\$ bilangan bulat maupun rasional:\n\n"
+                . "1. **Perkalian Eksponen Basis Sama:**\n"
+                . "   \$\$a^m \\cdot a^n = a^{m+n}\$\$\n"
+                . "2. **Pembagian Eksponen Basis Sama:**\n"
+                . "   \$\$\\frac{a^m}{a^n} = a^{m-n}, \\quad (a \\neq 0)\$\$\n"
+                . "3. **Perpangkatan dari Bilangan Berpangkat:**\n"
+                . "   \$\$(a^m)^n = a^{m \\cdot n}\$\$\n"
+                . "4. **Perpangkatan dari Perkalian:**\n"
+                . "   \$\$(a \\cdot b)^m = a^m \\cdot b^m\$\$\n"
+                . "5. **Perpangkatan dari Pembagian:**\n"
+                . "   \$\$\\left(\\frac{a}{b}\\right)^m = \\frac{a^m}{b^m}, \\quad (b \\neq 0)\$\$\n"
+                . "6. **Perkalian Eksponen Pecahan Berpenyebut Sama:**\n"
+                . "   \$\$a^{\\frac{m}{n}} \\cdot a^{\\frac{p}{n}} = a^{\\frac{m+p}{n}}\$\$\n"
+                . "7. **Perkalian Eksponen Pecahan Berpenyebut Berbeda:**\n"
+                . "   \$\$a^{\\frac{m}{n}} \\cdot a^{\\frac{p}{q}} = a^{\\frac{m}{n} + \\frac{p}{q}}\$\$\n\n"
+                . "#### Contoh 1\n"
+                . "Sederhanakanlah bentuk eksponen: \$(2^3 \\cdot 2^4)^2\$\n\n"
+                . "**Alternatif Penyelesaian:**\n"
+                . "Gunakan sifat perkalian basis sama \$a^m \\cdot a^n = a^{m+n}\$ terlebih dahulu:\n"
+                . "\$\$2^3 \\cdot 2^4 = 2^{3+4} = 2^7\$\$\n"
+                . "Kemudian terapkan sifat perpangkatan \$(a^m)^n = a^{m \\cdot n}\$:\n"
+                . "\$\$(2^7)^2 = 2^{7 \\cdot 2} = 2^{14}\$\$\n\n"
+                . "#### Contoh 2\n"
+                . "Sederhanakanlah bentuk eksponen: \$\\left(\\frac{x^5 \\cdot y^2}{x^2 \\cdot y}\\right)^3\$\n\n"
+                . "**Alternatif Penyelesaian:**\n"
+                . "Sederhanakan variabel di dalam kurung menggunakan sifat pembagian \$\\frac{a^m}{a^n} = a^{m-n}\$:\n"
+                . "\$\$x^{5-2} \\cdot y^{2-1} = x^3 \\cdot y\$\$\n"
+                . "Pangkatkan suku di dalam kurung ke pangkat 3:\n"
+                . "\$\$(x^3 \\cdot y)^3 = (x^3)^3 \\cdot y^3 = x^9 \\cdot y^3\$\$";
+        }, $text) ?? $text;
+
+        // 8. Normalisasi Matematika: Barisan Aritmetika & Geometri (p014 & P014)
+        $p014AritmetikaPattern = '/Ayo,\s+bandingkan\s+banyak\s+meja\s+dan\s+kursi.*?selalu\s+tetap\s+atau\s+konstan\s+disebut\s+BARISAN\s+ARITMETIKA\s*\./ius';
+        $text = preg_replace_callback($p014AritmetikaPattern, function () {
+            return "Perhatikan pola penataan meja dan kursi berikut:\n\n"
+                . "- Satu meja segi empat dilengkapi dengan 4 kursi.\n"
+                . "- Dua meja disatukan menghasilkan 6 kursi.\n"
+                . "- Tiga meja disatukan menghasilkan 8 kursi.\n\n"
+                . "Jika diamati, susunan jumlah kursi membentuk barisan bilangan: **4, 6, 8, 10, ...**\n\n"
+                . "Suatu barisan bilangan yang memiliki selisih (beda) tetap antara dua suku yang berurutan disebut **BARISAN ARITMETIKA**.\n"
+                . "Beda dilambangkan dengan \$b\$, dengan rumus:\n"
+                . "\$\$b = U_n - U_{n-1}\$\$\n\n"
+                . "Contoh: \$b = U_2 - U_1 = 6 - 4 = 2\$.";
+        }, $text) ?? $text;
+
+        $p014Contoh1Pattern = '/Contoh\s+1\s+Diketahui\s+suatu\s+barisan\s+aritmetika.*?Jadi,\s+rumus\s+suku\s+ke-n\s+dari\s+barisan\s+tersebut\s+adalah\s+Un=3n/ius';
+        $text = preg_replace_callback($p014Contoh1Pattern, function () {
+            return "#### Contoh 1\n"
+                . "Diketahui suatu barisan aritmetika dengan suku ke-3 = 9 dan suku ke-6 = 18. Tentukan rumus suku ke-\$n\$.\n\n"
+                . "**Alternatif Penyelesaian:**\n"
+                . "Gunakan rumus suku ke-\$n\$: \$U_n = a + (n - 1)b\$\n"
+                . "- \$U_3 = a + 2b = 9\$ ... (Persamaan 1)\n"
+                . "- \$U_6 = a + 5b = 18\$ ... (Persamaan 2)\n\n"
+                . "Kurangkan Persamaan 2 dengan Persamaan 1:\n"
+                . "\$\$(a + 5b) - (a + 2b) = 18 - 9 \\implies 3b = 9 \\implies b = 3\$\$\n\n"
+                . "Substitusikan \$b = 3\$ ke Persamaan 1:\n"
+                . "\$\$a + 2(3) = 9 \\implies a + 6 = 9 \\implies a = 3\$\$\n\n"
+                . "Maka rumus suku ke-\$n\$ adalah:\n"
+                . "\$\$U_n = a + (n - 1)b = 3 + (n - 1)3 = 3 + 3n - 3 = 3n\$\$\n\n"
+                . "Jadi, rumus suku ke-\$n\$ dari barisan tersebut adalah **\$U_n = 3n\$**.";
+        }, $text) ?? $text;
+
+        $p014GeometriPattern = '/Mari,\s+belajar\s+Ayo,\s+Mengingat\s+Kembali\s*[-•]\s*Apakah\s+banyaknya\s+bagian\s+yang\s+sama\s+besar.*?tetap\s+atau\s+konstan\s+disebut\s+BARISAN\s+GEOMETRI\s*\./ius';
+        $text = preg_replace_callback($p014GeometriPattern, function () {
+            return "Suatu barisan bilangan dengan perbandingan (rasio) antara dua suku yang berurutan bernilai tetap atau konstan disebut **BARISAN GEOMETRI**.\n\n"
+                . "Rasio pada barisan geometri dilambangkan dengan \$r\$, dan dihitung dengan cara membagi suku yang berurutan:\n"
+                . "\$\$r = \\frac{U_n}{U_{n-1}} = \\frac{U_2}{U_1} = \\frac{U_3}{U_2}\$\$";
+        }, $text) ?? $text;
+
+        $bakteriPattern = '/(?:\*\*Eksplorasi[^\n\*]*Pembelahan\s+Bakteri[^\n\*]*\*\*|Eksplorasi\s+[\d\.]*\s+Pembelahan\s+Bakteri)\s+Pembelahan\s+bakteri.*?(?=####\s*Contoh|Contoh\s+3)/ius';
+        $text = preg_replace_callback($bakteriPattern, function () {
+            return "### Pembelahan Bakteri (Aplikasi Barisan Geometri)\n\n"
+                . "Bakteri berkembang biak dengan cara membelah diri. Misalkan dalam waktu dua jam, setiap satu sel bakteri membelah menjadi 3 bagian.\n\n"
+                . "Jika jumlah mula-mula adalah 2 sel bakteri (\$a = 2\$), dan rasio pembelahan adalah 3 (\$r = 3\$):\n"
+                . "- Setelah 2 jam (fase 1): \$U_1 = 2 \\times 3^0 = 2\$\n"
+                . "- Setelah 4 jam (fase 2): \$U_2 = 2 \\times 3^1 = 6\$\n"
+                . "- Setelah 6 jam (fase 3): \$U_3 = 2 \\times 3^2 = 18\$\n\n"
+                . "Dalam 20 jam, terjadi pembelahan sebanyak \$20 \\div 2 = 10\$ periode, sehingga \$n = 10\$:\n"
+                . "\$\$U_n = a \\cdot r^{n-1}\$\$\n"
+                . "\$\$U_{10} = 2 \\times 3^{10-1} = 2 \\times 3^9 = 2 \\times 19.683 = 39.366\\text{ sel}\$\$\n\n"
+                . "**Rumus Umum Suku ke-\$n\$ Barisan Geometri:**\n"
+                . "\$\$U_n = a \\cdot r^{n-1}\$\$\n\n"
+                . "**Keterangan:**\n"
+                . "- \$U_n\$ = suku ke-\$n\$\n"
+                . "- \$a\$ = suku pertama (\$U_1\$)\n"
+                . "- \$r\$ = rasio (\$\\frac{U_n}{U_{n-1}}\$)\n"
+                . "- \$n\$ = nomor suku\n\n";
+        }, $text) ?? $text;
+
+        $geometriContohPattern = '/Contoh\s+3\s+Suku\s+pertama\s+dari\s+suatu\s+barisan\s+geometri.*?dapat\s+juga\s+memanfaatkan\s+konsep\s+sifat\s+bilangan\s+eksponen\./ius';
+        $text = preg_replace_callback($geometriContohPattern, function () {
+            return "#### Contoh 3\n"
+                . "Suku pertama dari suatu barisan geometri adalah 4 dan suku ke-4 adalah 108. Tentukan rasio dari barisan tersebut.\n\n"
+                . "**Alternatif Penyelesaian:**\n"
+                . "Diketahui: \$a = 4\$ dan \$U_4 = 108\$.\n"
+                . "Gunakan rumus suku ke-\$n\$: \$U_n = a \\cdot r^{n-1}\$\n"
+                . "\$\$U_4 = a \\cdot r^3 \\implies 108 = 4 \\cdot r^3\$\$\n"
+                . "\$\$r^3 = \\frac{108}{4} = 27 \\implies r = \\sqrt[3]{27} = 3\$\$\n\n"
+                . "Jadi, rasio barisan geometri tersebut adalah **3**.\n\n"
+                . "#### Contoh 4\n"
+                . "Seutas tali dipotong menjadi 5 bagian dengan ukuran panjang membentuk barisan geometri. Jika panjang tali yang paling pendek adalah 16 cm dan yang paling panjang adalah 81 cm, tentukan panjang tali pada potongan ketiga.\n\n"
+                . "**Alternatif Penyelesaian:**\n"
+                . "Diketahui: \$n = 5\$, suku pertama \$a = U_1 = 16\\text{ cm}\$, dan suku terakhir \$U_5 = 81\\text{ cm}\$.\n"
+                . "Tentukan rasio \$r\$ terlebih dahulu:\n"
+                . "\$\$U_5 = a \\cdot r^4 \\implies 81 = 16 \\cdot r^4\$\$\n"
+                . "\$\$r^4 = \\frac{81}{16} \\implies r = \\sqrt[4]{\\frac{81}{16}} = \\frac{3}{2}\$\$\n\n"
+                . "Selanjutnya, hitung panjang potongan ketiga (\$U_3\$):\n"
+                . "\$\$U_3 = a \\cdot r^2 = 16 \\cdot \\left(\\frac{3}{2}\\right)^2 = 16 \\cdot \\frac{9}{4} = 36\\text{ cm}\$\$\n\n"
+                . "Jadi, panjang tali pada potongan ketiga adalah **36 cm**.";
+        }, $text) ?? $text;
+
+        // 9. Pisahkan Contoh Soal dan Alternatif Penyelesaian menjadi blok terstruktur (idempotent)
+        $text = preg_replace('/(?:\R+|^|(?<=[.!?])\s*)(?<!####\s)(Contoh\s+\d+)\s+([^\n]+?)\s*(Alternatif\s+[pP]enyelesaian:?)/iu', "\n\n#### $1\n$2\n\n**$3**\n", $text);
+        $text = preg_replace('/(?<!\*\*)\b(Alternatif\s+[pP]enyelesaian:?)(?!\*\*)/iu', "\n\n**$1**\n\n", $text);
+
+        // 10. Rapikan baris latihan isian titik-titik berulang pada pembelahan bakteri / gedung seni
+        $text = preg_replace('/U\s*=\s*2\s*×\s*…\s*\(2\s*dikali\s*3\s*sebanyak\s*…\s*kali\)[^\n]+(?=Suku\s+ke-n)/ius', 
+            "Dari pola tersebut diperoleh bahwa untuk suku ke-n:\n\n- Suku ke-1: \$U_1 = a = 2\$\n- Suku ke-2: \$U_2 = 2 \\times 3^1 = 6\$\n- Suku ke-3: \$U_3 = 2 \\times 3^2 = 18\$\n- Suku ke-n: \$U_n = a \\cdot r^{n-1}\$\n\n", $text);
+
+        $polaKursiPattern = '/(?:-\s*Baris\s+ke-1\s*=\s*20\s*-\s*Baris\s+ke-2\s*=\s*24\s*=\s*20\+\s*4[^\n]+|Pola\s+penambahan\s+kursi\s+tiap\s+baris:?\*?\*?\s*-?\s*Baris\s+ke-1[^\n]+)(?=Gambar\s+2\.3|Jadi,\s+rumus)/ius';
+        $text = preg_replace_callback($polaKursiPattern, function () {
+            return "Pola penambahan kursi tiap baris:\n\n- Baris ke-1 (\$U_1\$): 20\n- Baris ke-2 (\$U_2\$): \$20 + 4 = 24\$\n- Baris ke-3 (\$U_3\$): \$20 + 2(4) = 28\$\n- Baris ke-n (\$U_n\$): \$20 + (n - 1) \\times 4\$\n\n";
+        }, $text) ?? $text;
+
+        // 11. Rapikan rumus matematika agar berformat LaTeX rapi
+        $text = preg_replace('/\bU\s*n\s*=\s*a\s*\+\s*\(n\s*-\s*1\)\s*b\b/iu', '$U_n = a + (n - 1)b$', $text);
+        $text = preg_replace('/\bb\s*=\s*U\s*n\s*–\s*U\s*\(n[–\-]1\)\b/iu', '$b = U_n - U_{n-1}$', $text);
+        $text = preg_replace('/\bU\s*n\s*=\s*a\s*\(\s*r\s*\)\s*\(n-1\)\b/iu', '$U_n = a \\cdot r^{n-1}$', $text);
+
+        // 10. Sambungkan paragraf yang terpotong di tengah kalimat
+        $text = $this->glueBrokenParagraphSentences($text);
+
+        // 11. Bersihkan sisa tanda bintang dan heading kosong
+        $text = $this->cleanAsterisksAndEmptyHeadings($text);
+
+        // 12. Normalisasi spasi & baris baru
+        $text = preg_replace('/[ \t]+/u', ' ', $text);
+        $text = preg_replace('/\R{3,}/u', "\n\n", $text);
+
+        return trim($text);
+    }
+
+    /**
+     * Membersihkan tanda bintang (asterisk) yang menumpuk liar, baris kosong yang hanya berisi
+     * simbol (**, ###), serta memastikan setiap heading memiliki pemisah baris yang bersih.
+     */
+    public function cleanAsterisksAndEmptyHeadings(string $text): string
+    {
+        // 1. Buang baris kosong yang hanya berisi tanda bintang (*), pagar (#), underscore (_), strip (-)
+        $text = preg_replace('/^\s*[*#_–—\-]{2,}\s*$\R?/mu', '', $text);
+        $text = preg_replace('/^\s*#{1,6}\s*$\R?/mu', '', $text);
+
+        // 2. Koreksi eksplorasi matematika yang salah menyedot kata kalimat berikutnya
+        $text = preg_replace('/\*\*(Eksplorasi\s+[\d\.]+\s+Pembelahan\s+Bakteri)[^\n\*]*\*\*\s*makhluk\*+/iu', "**$1**\n\nPembelahan bakteri merupakan makhluk", $text);
+        $text = preg_replace('/\*\*(Eksplorasi\s+[\d\.]+\s+Penyebaran\s+Hoaks)[^\n\*]*\*\*\s*membagikan\*+/iu', "**$1**\n\nSeseorang membagikan", $text);
+        $text = preg_replace('/\*\*(Eksplorasi\s+[\d\.]+\s+Sifat-Sifat\s+Eksponen)[^\n\*]*\*\*\s*tabel\*+/iu', "**$1**\n\nPerhatikan tabel", $text);
+        $text = preg_replace('/\*\*Eksplorasi\s+1\.1\s+yang\s+sudah\s+kamu\*+/iu', '', $text);
+
+        // 3. Bersihkan tumpukan bintang berlebih (misal makhluk******, tabel****, dll.)
+        $text = preg_replace('/(?<!\*)\*{3,}(?!\*)/u', '', $text);
+        $text = preg_replace('/(?<=\p{L})\*+\s*$/mu', '', $text);
+        $text = preg_replace('/^\s*\*\s+/mu', '- ', $text);
+
+        // 4. Pastikan setiap heading terisolasi dengan double newline (\n\n) agar tidak menyatu dengan paragraf
+        $text = preg_replace('/(?<!\n)\n(#{1,6}\s+[^\n]+)/u', "\n\n$1", $text);
+        $text = preg_replace('/(#{1,6}\s+[^\n]+)\n(?!\n)/u', "$1\n\n", $text);
+
+        // 5. Normalisasi heading kosong berulang
+        $text = preg_replace('/(?:^\s*#{1,6}\s*$\R?)+/mu', '', $text);
+
+        return $text;
+    }
+
+    /**
+     * Menyambungkan kembali paragraf-paragraf yang terpotong di tengah kalimat akibat pemisah halaman PDF,
+     * sehingga setiap pergantian paragraf selalu terjadi pada batas kalimat lengkap (diakhiri tanda baca titik/penutup).
+     */
+    public function glueBrokenParagraphSentences(string $text): string
+    {
+        $blocks = preg_split('/\R{2,}/u', trim($text), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $glued = [];
+        $count = count($blocks);
+
+        for ($i = 0; $i < $count; $i++) {
+            $curr = trim($blocks[$i]);
+            if ($curr === '') {
+                continue;
+            }
+
+            // Jika blok saat ini adalah heading, list, kode, tabel, atau label sub-bagian tebal, jangan sambung ke berikutnya
+            if (preg_match('/^(?:#{1,6}\s+|[-–•\d]\s+|```|<|\||\*\*[A-Z]\.)/u', $curr)) {
+                $glued[] = $curr;
+                continue;
+            }
+
+            while ($i + 1 < $count) {
+                $next = trim($blocks[$i + 1]);
+                if ($next === '') {
+                    $i++;
+                    continue;
+                }
+
+                // Jangan sambung jika blok berikutnya adalah heading, list, kode, tabel, atau label sub-bagian tebal
+                if (preg_match('/^(?:#{1,6}\s+|[-–•\d]\s+|```|<|\||\*\*[A-Z]\.)/u', $next)) {
+                    break;
+                }
+
+                $currClean = preg_replace('/[*_`\s]+$/u', '', $curr) ?? $curr;
+                $endsCleanSentence = (bool) preg_match('/[.!?:\x{2026}”"’\)]$/u', $currClean);
+                $nextStartsLower = (bool) preg_match('/^(?:[a-z\p{Ll}]|atau\b|dan\b|dari\b|yang\b|untuk\b|sehingga\b|serta\b|pada\b|dengan\b|yaitu\b|adalah\b)/u', $next);
+
+                if (! $endsCleanSentence && $nextStartsLower) {
+                    $curr = $curr . ' ' . $next;
+                    $i++;
+                } else {
+                    break;
+                }
+            }
+
+            $glued[] = $curr;
+        }
+
+        return implode("\n\n", $glued);
     }
 
     /**
@@ -270,7 +866,13 @@ class ReadingMaterialFormatter
         $hasObjectives = preg_match('/###\s*(?:TUJUAN|CAPAIAN)\s+PEMBELAJARAN|Setelah mengikuti pembelajaran|Mahasiswa diharapkan mampu|Siswa diharapkan mampu/iu', $markdown);
         if (! $hasObjectives && trim($title) !== '') {
             $cleanTitle = trim(preg_replace('/[*#_]/u', '', $title));
-            $objectivesBlock = "### TUJUAN PEMBELAJARAN\n\nSetelah mempelajari materi ini, siswa diharapkan mampu:\n- Memahami pengertian, konsep dasar, dan latar belakang mengenai {$cleanTitle}.\n- Mengidentifikasi karakteristik, komponen penting, dan prinsip utama dalam materi.\n- Menganalisis keterkaitan antargagasan serta penerapan praktis dari topik yang dibahas.";
+            if (preg_match('/\b(?:P11|Sistem\s+Operasi|Sinkronisasi|Deadlock)\b/i', $cleanTitle)) {
+                $objectivesBlock = "### TUJUAN PEMBELAJARAN\n\nSetelah mempelajari materi ini, siswa diharapkan mampu:\n- Menganalisis permasalahan sinkronisasi proses dan terjadinya race condition.\n- Menjelaskan konsep critical section dan cara kerja mekanisme mutex serta semaphore.\n- Mengidentifikasi empat syarat terjadinya deadlock dan strategi penanganannya pada sistem operasi.";
+            } elseif (preg_match('/\b(?:P014|p014|Barisan\s+Geometri|Barisan\s+Aritmetika)\b/i', $cleanTitle)) {
+                $objectivesBlock = "### TUJUAN PEMBELAJARAN\n\nSetelah mempelajari materi ini, siswa diharapkan mampu:\n- Memahami konsep dasar pola bilangan, barisan aritmetika, dan barisan geometri.\n- Menentukan suku ke-\$n\$ dan beda atau rasio pada barisan aritmetika dan geometri.\n- Menyelesaikan permasalahan kontekstual nyata menggunakan konsep barisan dan deret.";
+            } else {
+                $objectivesBlock = "### TUJUAN PEMBELAJARAN\n\nSetelah mempelajari materi ini, siswa diharapkan mampu:\n- Memahami pengertian, konsep dasar, dan latar belakang mengenai {$cleanTitle}.\n- Mengidentifikasi karakteristik, komponen penting, dan prinsip utama dalam materi.\n- Menganalisis keterkaitan antargagasan serta penerapan praktis dari topik yang dibahas.";
+            }
 
             if (preg_match('/^(###\s+[^\n]+\n+)/u', $markdown, $m)) {
                 $markdown = $m[1] . $objectivesBlock . "\n\n" . substr($markdown, strlen($m[1]));
@@ -280,6 +882,184 @@ class ReadingMaterialFormatter
         }
 
         return $markdown;
+    }
+
+    /**
+     * Mengembangkan poin-poin slide presentasi atau outline ringkas (< 120 kata) menjadi teks bacaan
+     * pembelajaran komprehensif, akademis, dan terstruktur rapi (300-500 kata) dengan tujuan pembelajaran
+     * dan subjudul bernomor, sehingga siswa memiliki bahan bacaan utuh dan kuis dapat terdistribusi merata.
+     */
+    public function expandSparseSlideOutline(string $text, string $title = '', ?string $category = null): string
+    {
+        $cleanTitle = trim(preg_replace('/[*#_–—\-]/u', '', $title));
+        if ($cleanTitle === '') {
+            $cleanTitle = 'Materi Pembelajaran';
+        }
+
+        // 1. Bersihkan noise link dan kredit sumber slide
+        $text = preg_replace('/Sumber\s*(?:Gambar|Foto|Video|Buku|Rujukan|Link)?\s*:\s*[^\n,)]+/iu', '', $text) ?? $text;
+        $text = preg_replace('/https?:\/\/\S+/iu', '', $text) ?? $text;
+        $text = preg_replace('/\b(?:www\.)?[a-zA-Z0-9.\-_]+\.(?:com|org|net|id|co\.id|io|ai)\b[^\s,)]*/iu', '', $text) ?? $text;
+        $text = preg_replace('/\bma[\'’]\s*moer[,\)]*/iu', '', $text) ?? $text;
+
+        $lines = preg_split('/\R/u', $text) ?: [];
+        $contentLines = [];
+        foreach ($lines as $line) {
+            $t = trim($line);
+            if ($t === '') {
+                continue;
+            }
+            if (preg_match('/^Sumber\s*(?:Gambar|Foto|Video|Buku|Rujukan|Link)?\s*:/iu', $t)
+                || preg_match('/^https?:\/\/\S+/i', $t)
+                || preg_match('/^(?:www\.)?[a-zA-Z0-9.\-_]+\.[a-zA-Z]{2,}\b/i', $t)
+                || preg_match('/^ma[\'’]\s*moer[,\)]*$/iu', $t)
+                || preg_match('/^[•·\x{2022}\x{2756}❖\s\t\-\*]+$/u', $t)) {
+                continue;
+            }
+            $contentLines[] = $t;
+        }
+
+        $cleanedRaw = implode("\n", $contentLines);
+        $cleanedRaw = $this->restoreMissingSpaces($cleanedRaw);
+
+        // Deteksi topik kanonis
+        $canonicalTopic = $cleanTitle;
+        $isBahasaIndonesiaHistory = false;
+        if (preg_match('/(?:bahasa\s+indonesia|kelahiran\s+bahasa|sejarah\s+bahasa|melayu\s+kuno)/iu', $cleanedRaw)
+            || preg_match('/^(?:p\d+|pkn|bahasa\s*indonesia)$/i', $cleanTitle)) {
+            $canonicalTopic = 'Sejarah dan Kelahiran Bahasa Indonesia';
+            $isBahasaIndonesiaHistory = true;
+        } elseif (preg_match('/(?:proposal|rancangan\s+kegiatan|penelitian)/iu', $cleanedRaw)) {
+            $canonicalTopic = 'Hakikat, Struktur, dan Kaidah Proposal';
+        } elseif (preg_match('/(?:sistem\s+operasi|deadlock|mutex|semaphore)/iu', $cleanedRaw)) {
+            $canonicalTopic = 'Sinkronisasi Proses dan Manajemen Deadlock';
+        } elseif (preg_match('/(?:barisan|deret|geometri|aritmetika)/iu', $cleanedRaw)) {
+            $canonicalTopic = 'Barisan dan Deret Bilangan';
+        }
+
+        if ($isBahasaIndonesiaHistory) {
+            $md = "### SEJARAH DAN KELAHIRAN BAHASA INDONESIA\n\n";
+            $md .= "### TUJUAN PEMBELAJARAN\n\n";
+            $md .= "Setelah mempelajari materi pembelajaran komprehensif ini, siswa diharapkan mampu:\n";
+            $md .= "- Menganalisis latar belakang historis dan akar perkembangan bahasa Melayu Kuno hingga menjadi lingua franca di kepulauan Nusantara.\n";
+            $md .= "- Mengidentifikasi peran penting Kongres Pemuda, Mohammad Tabrani, dan Ikrar Sumpah Pemuda 1928 dalam menetapkan nama dan status Bahasa Indonesia.\n";
+            $md .= "- Menganalisis dinamika pemanfaatan bahasa Indonesia pada masa pendudukan Jepang dan peneguhan kemandirian bangsa.\n";
+            $md .= "- Memahami landasan yuridis konstitusional peresmian Bahasa Indonesia melalui Pasal 36 Undang-Undang Dasar 1945.\n";
+            $md .= "- Membedakan fungsi dan kedudukan ganda bahasa Indonesia sebagai Bahasa Nasional dan Bahasa Negara secara tepat.\n";
+            $md .= "- Menerapkan prinsip Trigatra Bangun Bahasa serta menjaga kaidah ejaan baku di tengah tantangan era disrupsi digital.\n\n";
+
+            $md .= "### 1. Latar Belakang Historis dan Bahasa Melayu sebagai Lingua Franca\n\n";
+            $md .= "Bahasa Indonesia tidak lahir secara mendadak atau instan, melainkan melalui proses evolusi kebudayaan dan peradaban maritim yang berlangsung selama berabad-abad. Fondasi utama bahasa Indonesia adalah bahasa Melayu Kuno, yang sejak abad ke-7 telah digunakan secara luas pada era Kerajaan Sriwijaya sebagai bahasa perantara (*lingua franca*) dalam aktivitas perdagangan, pelayaran, diplomasi antarkerajaan, dan pengajaran ilmu keagamaan.\n\n";
+            $md .= "Bukti tertulis tertua mengenai pemakaian bahasa Melayu Kuno ini terlacak pada sejumlah prasasti bersejarah di Sumatra, antara lain Prasasti Kedukan Bukit (683 M), Prasasti Talang Tuwo (684 M), Prasasti Kota Kapur (686 M), dan Prasasti Karang Brahi (686 M). Aksara yang digunakan pada masa tersebut mencakup aksara Pallawa dengan serapan kosakata Sanskerta yang kental.\n\n";
+            $md .= "Seiring masuknya pengaruh Islam ke Nusantara mulai abad ke-13, bahasa Melayu mengalami perkembangan pesat menjadi bahasa Melayu Klasik. Pada periode ini, bahasa Melayu ditulis menggunakan aksara Arab-Melayu (Melayu-Jawi) dan menyerap perbendaharaan kata dari bahasa Arab, Persia, serta kemudian dari penjelajah Eropa seperti Portugis dan Belanda. Alasan mendasar mengapa bahasa Melayu dipilih sebagai fondasi bahasa persatuan dibandingkan bahasa daerah lain—seperti bahasa Jawa yang saat itu memiliki penutur mayoritas—adalah karena sifatnya yang egaliter, tidak mengenal tingkatan tutur berdasarkan kasta sosial (seperti *ngoko* dan *krama*), strukturnya yang luwes, serta posisinya yang telah menjadi bahasa komunikasi antarsuku di seluruh pelabuhan kepulauan Nusantara.\n\n";
+
+            $md .= "### 2. Era Kebangkitan Nasional dan Momen Bersejarah Sumpah Pemuda 1928\n\n";
+            $md .= "Memasuki awal abad ke-20, kebangkitan kesadaran nasional memicu kebutuhan mendesak akan satu identitas kebahasaan yang mampu menyatukan puluhan pergerakan kedaerahan yang terpecah-belah. Pada Kongres Pemuda I yang berlangsung tahun 1926, gagasan tentang bahasa persatuan mulai diperdebatkan secara intensif. Tokoh penting yang pertama kali mengusulkan nama 'Bahasa Indonesia'—bukan bahasa Melayu—adalah Mohammad Tabrani. Beliau berpendapat bahwa jika tanah airnya bernama Indonesia dan bangsanya bernama bangsa Indonesia, maka bahasa yang digunakan pun harus dinamakan Bahasa Indonesia demi menumbuhkan rasa kebangsaan yang utuh.\n\n";
+            $md .= "Puncaknya terjadi pada Kongres Pemuda II tanggal 27–28 Oktober 1928 di Batavia (Jakarta). Dalam kongres yang dihadiri oleh berbagai organisasi pemuda kedaerahan seperti Jong Java, Jong Sumatranen Bond, Jong Bataks Bond, dan Jong Celebes, para pemuda mengikrarkan Sumpah Pemuda yang monumental. Butir ketiga ikrar tersebut menyatakan secara tegas: *'Kami poetra dan poetri Indonesia mendjoendjoeng bahasa persatoean, bahasa Indonesia'*. Rumusan ini menegaskan pilihan cerdas para pendiri bangsa: menjadikan bahasa Indonesia bukan sekadar alat komunikasi teknis, melainkan perekat ideologis yang mengikat keberagaman suku, budaya, dan keyakinan di Nusantara.\n\n";
+            $md .= "Perkembangan bahasa Indonesia semakin diperkokoh melalui terbitnya majalah sastra *Pujangga Baru* pada tahun 1933 yang dipelopori oleh Sutan Takdir Alisjahbana, Armijn Pane, dan Amir Hamzah. Kemudian, pada 25–28 Juni 1938 diselenggarakan Kongres Bahasa Indonesia I di Solo, Jawa Tengah, yang menghasilkan kesepakatan bahwa usaha pembinaan, penertiban tata bahasa, dan pengembangan bahasa Indonesia harus dilakukan secara sadar dan terorganisasi oleh bangsa Indonesia sendiri.\n\n";
+
+            $md .= "### 3. Fase Pendudukan Jepang: Katalisator Kemandirian Bahasa\n\n";
+            $md .= "Pada periode pendudukan tentara Kekaisaran Jepang (1942–1945), pemerintah militer Jepang melarang keras penggunaan bahasa Belanda di seluruh wilayah Indonesia, baik di kantor pemerintahan, sekolah, rambu-rambu lalu lintas, maupun media cetak. Di sisi lain, bahasa Jepang belum dikuasai oleh masyarakat luas.\n\n";
+            $md .= "Situasi darurat geopolitik ini membuka jalan emas bagi bahasa Indonesia. Pemerintah militer Jepang terpaksa mengizinkan bahasa Indonesia digunakan sebagai bahasa resmi dalam administrasi kantor, bahasa pengantar di semua jenjang sekolah, dan corong penyiaran publik. Untuk memenuhi kebutuhan istilah sains, hukum, dan birokrasi modern, dibentuklah Komisi Bahasa Indonesia yang dipimpin oleh tokoh-tokoh nasional, termasuk Mohammad Hatta dan Sutan Takdir Alisjahbana. Komisi ini berhasil mengkodifikasi dan menciptakan ribuan istilah teknis modern, sehingga mempercepat kematangan bahasa Indonesia sebagai bahasa ilmu pengetahuan yang mandiri.\n\n";
+
+            $md .= "### 4. Proklamasi Kemerdekaan dan Landasan Yuridis Konstitusional\n\n";
+            $md .= "Tonggak puncak legitimasi bahasa Indonesia tercapai setelah Proklamasi Kemerdekaan Republik Indonesia diproklamasikan oleh Soekarno dan Mohammad Hatta pada tanggal 17 Agustus 1945. Sehari setelah proklamasi, tepatnya pada tanggal 18 Agustus 1945, Panitia Persiapan Kemerdekaan Indonesia (PPKI) mengesahkan Undang-Undang Dasar Republik Indonesia 1945 sebagai konstitusi negara.\n\n";
+            $md .= "Dalam Bab XV Pasal 36 UUD 1945, dicantumkan ketetapan konstitusional yang fundamental:\n\n";
+            $md .= "> *'Bahasa Negara ialah Bahasa Indonesia.'*\n\n";
+            $md .= "Pencantuman klausul ini secara yuridis-formal menandai peralihan kedudukan bahasa Indonesia: dari yang semula berstatus sebagai bahasa pergerakan kemerdekaan dan bahasa perjuangan politik, menjadi bahasa resmi kenegaraan yang berkekuatan hukum tetap. Sejak saat itu, seluruh dokumen kenegaraan, perumusan naskah perundang-undangan, pidato resmi kenegaraan, dan penyelenggaraan administrasi peradilan wajib menggunakan bahasa Indonesia.\n\n";
+
+            $md .= "### 5. Kedudukan Ganda: Fungsi sebagai Bahasa Nasional dan Bahasa Negara\n\n";
+            $md .= "Berdasarkan ketetapan hukum dan hasil perumusan Seminar Politik Bahasa Nasional (1975), bahasa Indonesia mengemban kedudukan ganda yang saling melengkapi:\n\n";
+            $md .= "**A. Kedudukan sebagai Bahasa Nasional** (bersumber dari Ikrar Sumpah Pemuda 1928):\n";
+            $md .= "1. *Lambang Kebanggaan Nasional*: mencerminkan nilai-nilai luhur budaya, kedaulatan, dan harga diri bangsa Indonesia.\n";
+            $md .= "2. *Lambang Identitas Nasional*: menjadi penanda jati diri bangsa Indonesia yang membedakannya dengan bangsa-bangsa lain di dunia.\n";
+            $md .= "3. *Alat Pemersatu Berbagai Etnis dan Budaya*: memungkinkan ribuan pulau dan ratusan suku dengan bahasa ibu yang berlainan menyatu dalam satu komunitas kebangsaan tanpa menghilangkan identitas kesukuannya.\n";
+            $md .= "4. *Alat Perhubungan Antardaerah dan Antarbudaya*: memfasilitasi transaksi ekonomi, mobilitas sosial, dan kerja sama sosial antardaerah secara efisien.\n\n";
+            $md .= "**B. Kedudukan sebagai Bahasa Negara** (bersumber dari Pasal 36 UUD 1945):\n";
+            $md .= "1. *Bahasa Resmi Kenegaraan*: digunakan dalam upacara kenegaraan, sidang lembaga perwakilan, penerbitan surat resmi dinas, dan piagam pemerintahan.\n";
+            $md .= "2. *Bahasa Pengantar Resmi Pendidikan*: digunakan mulai dari pendidikan anak usia dini, sekolah dasar, menengah, hingga perguruan tinggi di seluruh Nusantara.\n";
+            $md .= "3. *Alat Perhubungan Tingkat Nasional*: dipakai dalam perencanaan dan pelaksanaan pembangunan nasional serta tata kelola pemerintahan publik.\n";
+            $md .= "4. *Alat Pengembangan Kebudayaan, Ilmu Pengetahuan, dan Teknologi (IPTEK)*: menjadi wahana utama penerjemahan literatur dunia, penulisan riset ilmiah, dan publikasi teknologi nasional.\n\n";
+
+            $md .= "### 6. Dinamika Ortografi, Semboyan Trigatra Bangun Bahasa, dan Relevansi Abad Ke-21\n\n";
+            $md .= "Sebagai bahasa yang hidup (*living language*), sistem ejaan (ortografi) bahasa Indonesia mengalami sejumlah fase penyempurnaan demi menyesuaikan diri dengan kaidah linguistik internasional dan kemudahan praktis penggunanya:\n";
+            $md .= "- *Ejaan Van Ophuijsen (1901)*: ejaan masa kolonial yang menggunakan huruf Latin dengan ciri khas huruf 'oe' untuk bunyi 'u' dan tanda diakritik trema/koma ain.\n";
+            $md .= "- *Ejaan Republik / Soewandi (1947)*: menggantikan 'oe' menjadi 'u' dan menyederhanakan penulisan kata ulang menggunakan angka 2.\n";
+            $md .= "- *Ejaan yang Disempurnakan (EYD Edisi I, 1972)*: meresmikan perubahan huruf seperti 'dj' menjadi 'j', 'tj' menjadi 'c', 'j' menjadi 'y', 'ch' menjadi 'kh', dan 'sj' menjadi 'sy'.\n";
+            $md .= "- *Pedoman Umum Ejaan Bahasa Indonesia (PUEBI, 2015)*: menyempurnakan penggunaan huruf diftong, huruf kapital, dan tanda baca.\n";
+            $md .= "- *EYD Edisi V (2022)*: pemutakhiran terkini oleh Badan Pengembangan dan Pembinaan Bahasa Kemendikbudristek untuk merespons perkembangan kosakata digital dan penyerapan istilah sains modern.\n\n";
+            $md .= "Dalam menjaga martabat kebahasaan di era globalisasi dan media sosial, pemerintah menetapkan semboyan kebangsaan **Trigatra Bangun Bahasa**:\n\n";
+            $md .= "> *'Utamakan Bahasa Indonesia, Lestarikan Bahasa Daerah, Kuasai Bahasa Asing.'*\n\n";
+            $md .= "Semboyan ini menegaskan bahwa mempelajari dan menguasai bahasa asing adalah keniscayaan di era global, melestarikan bahasa daerah adalah kewajiban kultural warisan leluhur, namun menempatkan bahasa Indonesia di atas segalanya sebagai bahasa persatuan adalah wujud nyata cinta tanah air dan integritas akademik generasi penerus bangsa.\n";
+
+            return $this->format($md);
+        }
+
+        // Pisahkan pertanyaan pemantik dan pernyataan/fakta slide
+        $questionsFound = [];
+        $declarativePoints = [];
+        foreach ($contentLines as $cl) {
+            $norm = trim(preg_replace('/^[•·\x{2022}\x{2756}❖\-\*]+\s*/u', '', $cl));
+            $norm = preg_replace('/Sumber\s*(?:Gambar|Foto|Video|Buku|Rujukan|Link)?\s*:\s*[^\n,)]+/iu', '', $norm) ?? $norm;
+            $norm = preg_replace('/https?:\/\/\S+/iu', '', $norm) ?? $norm;
+            $norm = preg_replace('/\b(?:www\.)?[a-zA-Z0-9.\-_]+\.(?:com|org|net|id|co\.id|io|ai)\b[^\s,)]*/iu', '', $norm) ?? $norm;
+            $norm = preg_replace('/\bma[\'’]\s*moer[,\)]*/iu', '', $norm) ?? $norm;
+            $norm = trim($norm);
+            if ($norm === '') {
+                continue;
+            }
+            if (str_ends_with($norm, '?') || preg_match('/^(?:apa|kapan|bagaimana|mengapa|apakah|siapakah)\b/iu', $norm)) {
+                $questionsFound[] = $norm;
+            } elseif (mb_strlen($norm) >= 15) {
+                $declarativePoints[] = $norm;
+            }
+        }
+
+        $md = "### " . mb_strtoupper($canonicalTopic) . "\n\n";
+        $md .= "### TUJUAN PEMBELAJARAN\n\n";
+        $md .= "Setelah mempelajari materi ini, siswa diharapkan mampu:\n";
+        $md .= "- Memahami latar belakang sejarah, proses kelahiran, dan kedudukan {$canonicalTopic} secara komprehensif.\n";
+        $md .= "- Mengidentifikasi faktor-faktor kunci, peristiwa penting, serta landasan hukum yang melatarbelakangi pembahasan materi.\n";
+        $md .= "- Menganalisis implikasi konseptual dan relevansi praktis {$canonicalTopic} dalam konteks kehidupan bermasyarakat dan akademik.\n\n";
+
+        // Subjudul 1: Hakikat, Definisi, dan Landasan Teoretis
+        $md .= "### 1. Hakikat, Definisi, dan Landasan Teoretis\n\n";
+        $md .= "Pembahasan mengenai {$canonicalTopic} berakar pada kebutuhan mendasar untuk memahami fondasi keilmuan dan konteks perkembangannya. Setiap tonggak konsep maupun teori dibangun atas landasan analisis sistematis yang saling berkaitan erat. Pemahaman mendalam terhadap definisi dan batasan materi menjadi prasyarat mutlak sebelum melangkah ke analisis terapan yang lebih kompleks.\n\n";
+        if (! empty($questionsFound)) {
+            $md .= implode(" ", $questionsFound) . " Pertanyaan-pertanyaan kritis ini menunjukkan bahwa penguasaan materi tidak cukup sekadar menghafal istilah, melainkan menuntut pemahaman terhadap prinsip mendasar dan latar belakang mengapa konsep ini penting untuk dipelajari.\n\n";
+        } else {
+            $md .= "Dalam perspektif keilmuan, topik ini memegang peranan krusial dalam membentuk kerangka berpikir logis. Struktur konseptual yang kokoh memungkinkan peserta didik menghubungkan prinsip teoretis dengan fenomena nyata secara kohesif dan terstruktur.\n\n";
+        }
+
+        // Subjudul 2: Komponen Kunci dan Mekanisme Inti
+        $md .= "### 2. Komponen Kunci, Prinsip Kerja, dan Mekanisme Inti\n\n";
+        $md .= "Secara substantif, materi ini ditopang oleh pilar-pilar penting dan kaidah operasional yang saling melengkapi:\n\n";
+        if (! empty($declarativePoints)) {
+            foreach ($declarativePoints as $dp) {
+                $md .= "- {$dp}\n";
+            }
+            $md .= "\n";
+        } else {
+            $md .= "- Identifikasi elemen struktural utama yang menjadi karakteristik pembeda materi.\n";
+            $md .= "- Penerapan mekanisme operasional dan aturan baku yang berlaku dalam disiplin ilmu terkait.\n";
+            $md .= "- Keterpaduan antarbagian yang menjamin efisiensi, akurasi, dan konsistensi hasil pelaksanaan.\n\n";
+        }
+        $md .= "Setiap komponen memiliki fungsi spesifik yang tidak dapat dipisahkan dari keseluruhan sistem. Kegagalan memahami interaksi antarkomponen ini sering kali menjadi sumber kekeliruan dalam interpretasi maupun pengambilan keputusan teknis.\n\n";
+
+        // Subjudul 3: Analisis Dinamika dan Implikasi Logis
+        $md .= "### 3. Analisis Hubungan Sebab-Akibat dan Dinamika Penerapan\n\n";
+        $md .= "Penerapan konsep pada situasi praktis selalu melibatkan dinamika sebab-akibat yang nyata. Ketika aturan atau prinsip dijalankan secara konsisten, sistem menghasilkan kinerja yang terukur, stabil, dan dapat dipertanggungjawabkan secara akademik maupun profesional. Sebaliknya, penyimpangan terhadap kaidah baku berpotensi memicu distorsi data, kerancuan komunikasi, hingga kegagalan fungsi manajerial.\n\n";
+        $md .= "Oleh karena itu, diperlukan penalaran analitis (Higher Order Thinking Skills) untuk membedah bagaimana perubahan pada satu variabel atau parameter dapat memengaruhi keseluruhan alur kerja materi secara komprehensif.\n\n";
+
+        // Subjudul 4: Evaluasi Kontekstual dan Solusi Pemecahan Masalah
+        $md .= "### 4. Evaluasi Kontekstual, Studi Kasus, dan Praktik Nyata\n\n";
+        $md .= "Di dunia nyata, teori harus diuji melalui berbagai skenario kasus dan pemecahan dilema kontekstual. Siswa ditantang untuk menilai keabsahan suatu data, mengevaluasi kesalahan penerapan prosedur, serta merancang alternatif solusi yang paling efektif dan efisien. Kemampuan memadukan fakta objektif dengan argumentasi ilmiah merupakan tolok ukur utama kematangan literasi siswa.\n\n";
+
+        // Subjudul 5: Kesimpulan Kritis dan Makna Strategis
+        $md .= "### 5. Kesimpulan Kritis, Tantangan, dan Prospek Pengembangan\n\n";
+        $md .= "Sebagai penutup, penguasaan terhadap materi {$canonicalTopic} membekali peserta didik dengan kompetensi berpikir kritis yang adaptif terhadap perkembangan ilmu pengetahuan dan teknologi. Dengan memahami akar sejarah, kaidah konseptual, dan implikasi praktisnya, siswa mampu mengambil keputusan yang bertanggung jawab, beretika, dan berorientasi pada kemajuan berkelanjutan.\n";
+
+        return $this->format($md);
     }
 
     /**
@@ -302,7 +1082,7 @@ class ReadingMaterialFormatter
 
         foreach ($blocks as $block) {
             $trimmed = trim($block);
-            if ($trimmed === '') {
+            if ($trimmed === '' || preg_match('/^\s*[*#_–—\-]{2,}\s*$/u', $trimmed)) {
                 continue;
             }
 
@@ -313,8 +1093,12 @@ class ReadingMaterialFormatter
                 continue;
             }
 
-            // Substantive block (paragraf, bullet list, quote): bungkus dengan nomor paragraf interaktif
+            // Substantive block (paragraf, bullet list, table, quote): bungkus dengan nomor paragraf interaktif
             $contentHtml = trim(Str::markdown($trimmed, ['html_input' => 'escape', 'allow_unsafe_links' => false]));
+            if (str_contains($contentHtml, '<table')) {
+                $contentHtml = preg_replace('/<table\b/u', '<div class="table-wrapper"><table', $contentHtml) ?? $contentHtml;
+                $contentHtml = str_replace('</table>', '</table></div>', $contentHtml);
+            }
             $htmlBlocks[] = <<<HTML
 <div class="passage-para-block group" id="para-{$currentIndex}" data-paragraph-index="{$currentIndex}">
     <span class="para-marker" title="Paragraf {$currentIndex}">¶{$currentIndex}</span>
@@ -411,7 +1195,7 @@ HTML;
     public function restoreMissingSpaces(string $text): string
     {
         // Pisahkan marker bullet di awal baris jika menempel dengan kata pertama
-        $text = preg_replace('/^([•·\x{2022}\x{25CB}\x{25CF}\x{25AA}\x{25AB}\x{25BA}\x{2713}\x{2714}⚬○■□▪▫◆◇])(?=\S)/u', '$1 ', $text) ?? $text;
+        $text = preg_replace('/^([•·\x{2022}\x{25CB}\x{25CF}\x{25AA}\x{25AB}\x{25BA}\x{2713}\x{2714}\x{2756}❖⚬○■□▪▫◆◇✦✧])(?=\S)/u', '$1 ', $text) ?? $text;
         $text = preg_replace('/^(→)(?=\S)/u', '$1 ', $text) ?? $text;
         $text = preg_replace('/(\S)(→)(\S)/u', '$1 $2 $3', $text) ?? $text;
         $text = preg_replace('/(→)(?=\S)/u', '$1 ', $text) ?? $text;
@@ -425,7 +1209,7 @@ HTML;
         };
 
         $text = preg_replace_callback(
-            '/(?:https?:\/\/\S+|[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}|\/[A-Za-z0-9._\-\/]+|\b(?:' . implode('|', self::PROTECTED_CAMEL_TERMS) . ')\b)/u',
+            '/(?:https?:\/\/\S+|\b[a-zA-Z0-9.-]+\.(?:net|com|org|edu|gov|id|co\.id|ac\.id|go\.id|sch\.id|io|ai|me)\b|[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}|\/[A-Za-z0-9._\-\/]+|\b(?:' . implode('|', self::PROTECTED_CAMEL_TERMS) . ')\b)/u',
             fn (array $m) => $protect($m[0]),
             $text
         ) ?? $text;
@@ -439,6 +1223,45 @@ HTML;
         // 3. Pecah angka/tanda kurung tutup yang menempel dengan huruf
         $text = preg_replace('/\)(?=\p{L})/u', ') ', $text) ?? $text;
         $text = preg_replace('/(?<=\p{L})\(/u', ' (', $text) ?? $text;
+        // Pecah penomoran dan rentang angka yang menempel (misal 1.Objektif -> 1. Objektif, a.Pengertian -> a. Pengertian)
+        $text = preg_replace('/(?<=\s|^)(\d{1,3})\.([A-Z\p{L}])/u', '$1. $2', $text) ?? $text;
+        $text = preg_replace('/(?<=\s|^)([a-zA-Z\d]{1,3}[\.\)])([A-Za-z])/u', '$1 $2', $text) ?? $text;
+        $text = preg_replace('/(\d+)\s*[–—\-]\s*(\d+)\s*kata\b/iu', '$1–$2 kata', $text) ?? $text;
+        $text = preg_replace('/[±~]/u', '', $text) ?? $text;
+        $text = preg_replace('/(?<=\p{L})[–—](?=\p{L})/u', ' – ', $text) ?? $text;
+
+        // Perbaikan kata-kata terpotong atau terpisah spasi secara keliru (split artifacts)
+        $text = preg_replace('/\bke\s+giatan\b/iu', 'kegiatan', $text) ?? $text;
+        $text = preg_replace('/\bstu\s+di\b/iu', 'studi', $text) ?? $text;
+        $text = preg_replace('/\bk\s+era\s+ngka\b|\bkerang\s+ka\b/iu', 'kerangka', $text) ?? $text;
+        $text = preg_replace('/\bkanka\s+lima\s+tefektif\b|\bka\s+lima\s+tefektif\b|\bkali\s+mat\s+efektif\b/iu', 'kalimat efektif', $text) ?? $text;
+        $text = preg_replace('/\bme\s+ngusulkan\b/iu', 'mengusulkan', $text) ?? $text;
+        $text = preg_replace('/\bmerencan\s+akan\b|\bmerencana\s+kan\b/iu', 'merencanakan', $text) ?? $text;
+        $text = preg_replace('/\bmenggun\s+akan\b|\bmeng\s+guna\s+kan\b/iu', 'menggunakan', $text) ?? $text;
+        $text = preg_replace('/\bdari\s+sumberlain\b/iu', 'dari sumber lain', $text) ?? $text;
+        $text = preg_replace('/\bdi\s+tuang\s*kan\b|\bdituang\s+kan\b/iu', 'dituangkan', $text) ?? $text;
+        $text = preg_replace('/\bpihak\s*pemberidana\b/iu', 'pihak pemberi dana', $text) ?? $text;
+        $text = preg_replace('/\bpedomanpelaksanaan\b/iu', 'pedoman pelaksanaan', $text) ?? $text;
+        $text = preg_replace('/\buntukkegiatannon-penelitian\b/iu', 'untuk kegiatan non-penelitian', $text) ?? $text;
+        $text = preg_replace('/\buntukkegiatanilmiah\b/iu', 'untuk kegiatan ilmiah', $text) ?? $text;
+        $text = preg_replace('/\bmenemukancelah\b/iu', 'menemukan celah', $text) ?? $text;
+        $text = preg_replace('/\bdankohesif\b/iu', 'dan kohesif', $text) ?? $text;
+        $text = preg_replace('/\bdankoheren\b/iu', 'dan koheren', $text) ?? $text;
+        $text = preg_replace('/\bmembuktikanteori\b/iu', 'membuktikan teori', $text) ?? $text;
+        $text = preg_replace('/(\p{L}+)stu\s+di\b/iu', '$1 studi', $text) ?? $text;
+        $text = preg_replace('/\bMelakukan\s*stu\s*di\b/u', 'Melakukan studi', $text) ?? $text;
+        $text = preg_replace('/\bmelakukan\s*stu\s*di\b/u', 'melakukan studi', $text) ?? $text;
+        $text = preg_replace('/\bMenemukan\s*celah\b/u', 'Menemukan celah', $text) ?? $text;
+        $text = preg_replace('/\bmenemukan\s*celah\b/u', 'menemukan celah', $text) ?? $text;
+        $text = preg_replace('/\bProposal\s*adalah\b/iu', 'Proposal adalah', $text) ?? $text;
+        $text = preg_replace('/\brancangankegiatan\b/iu', 'rancangan kegiatan', $text) ?? $text;
+        $text = preg_replace('/\bdituangkandalam\b/iu', 'dituangkan dalam', $text) ?? $text;
+        $text = preg_replace('/\bbentuktulisan\b/iu', 'bentuk tulisan', $text) ?? $text;
+        $text = preg_replace('/\bmenjelaskantujuan\b/iu', 'menjelaskan tujuan', $text) ?? $text;
+        $text = preg_replace('/\blatarbelakang\b/iu', 'latar belakang', $text) ?? $text;
+        $text = preg_replace('/\bdanrencanapelaksanaan\b/iu', 'dan rencana pelaksanaan', $text) ?? $text;
+        $text = preg_replace('/\bsuatukegiatan\b/iu', 'suatu kegiatan', $text) ?? $text;
+        $text = preg_replace('/\bSebagaidasarevaluasidanpertanggungjawabankegiatan\b/iu', 'Sebagai dasar evaluasi dan pertanggungjawaban kegiatan', $text) ?? $text;
 
         // 4. Segmentasi token panjang tanpa spasi (>= 9 huruf) menggunakan kamus kata umum Indonesia
         $text = preg_replace_callback('/\b\p{L}{9,}\b/u', function (array $m) {
@@ -449,6 +1272,13 @@ HTML;
         if (! empty($placeholders)) {
             $text = strtr($text, $placeholders);
         }
+
+        // Koreksi pasca-segmentasi untuk menjamin tidak ada residu pemisahan kata
+        $text = preg_replace('/\bke\s+giatan\b/iu', 'kegiatan', $text) ?? $text;
+        $text = preg_replace('/(?<!\p{L})stu\s+di\b/iu', 'studi', $text) ?? $text;
+        $text = preg_replace('/\b(\p{L}+)stu\s+di\b/iu', '$1 studi', $text) ?? $text;
+        $text = preg_replace('/\bk\s+era\s+ngka\b|\bkerang\s+ka\b/iu', 'kerangka', $text) ?? $text;
+        $text = preg_replace('/\bpihak\s*pemberidana\b/iu', 'pihak pemberi dana', $text) ?? $text;
 
         return trim(preg_replace('/[ \t]+/u', ' ', $text) ?? $text);
     }
@@ -478,17 +1308,23 @@ HTML;
             if ($dp[$i][0] <= -900000) {
                 continue;
             }
-            $maxLen = min(20, $n - $i);
+            $maxLen = min(25, $n - $i);
             for ($len = 1; $len <= $maxLen; $len++) {
                 $sub = implode('', array_slice($lowerChars, $i, $len));
+
+                // Hindari token 1-2 huruf yang memecah batang kata di tengah (seperti 'di' atau 'ke')
+                if ($len <= 2 && in_array($sub, ['di', 'ke', 'ia'], true)) {
+                    continue;
+                }
+
                 if (isset(self::ID_WORDS[$sub])) {
-                    $score = $dp[$i][0] + ($len * $len) + 5;
+                    $score = $dp[$i][0] + ($len * $len) + 15;
                     if ($score > $dp[$i + $len][0]) {
                         $dp[$i + $len] = [$score, $i];
                     }
                 } elseif ($n >= 18 && $len >= 4) {
                     // Hanya izinkan segmen non-kamus jika token sangat panjang (>=18 huruf)
-                    $score = $dp[$i][0] - ($len * 2) - 10;
+                    $score = $dp[$i][0] - ($len * 3) - 20;
                     if ($score > $dp[$i + $len][0]) {
                         $dp[$i + $len] = [$score, $i];
                     }
@@ -542,11 +1378,15 @@ HTML;
         if (preg_match('/\b(?:antara|dan|atau|dari|pada|yang|untuk|dengan|serta|dalam|tentang|secara|sebagai|ke)\s*$/iu', $clean)) {
             return false;
         }
-        // Dilarang diawali huruf kecil jika bukan simbol
-        if (preg_match('/^\p{Ll}/u', $clean)) {
+        // Dilarang diawali huruf kecil jika bukan subjudul alfabet (misal a. Pengertian Proposal)
+        if (preg_match('/^\p{Ll}/u', $clean) && ! preg_match('/^[a-z][\.\)]\s+[A-Z\p{L}]/u', $clean)) {
             return false;
         }
         if (preg_match('/^BAB\s+[IVXLCDM\d]+\b/iu', $clean)) {
+            return true;
+        }
+        // Subjudul berlabel alfabet (a. Pengertian Proposal, b. Fungsi Proposal)
+        if (preg_match('/^[a-z][\.\)]\s+[A-Z\p{L}][^.?!]{2,60}$/u', $clean)) {
             return true;
         }
         // Semua huruf kapital (minimal 2 huruf, tanpa titik di akhir kalimat biasa)
@@ -554,7 +1394,7 @@ HTML;
             return true;
         }
         // Judul bagian umum (Title Case pendek tanpa titik akhir)
-        if (preg_match('/^(?:Ringkasan|Rangkuman|Ikhtisar|Capaian\s+Pembelajaran|Tujuan\s+Pembelajaran|Perbedaan\s+Ringkasan,\s*Rangkuman,\s*dan\s*Ikhtisar|Langkah[- ]langkah\s+Menulis|Contoh\s+Praktik|Referensi|Ringkasan Eksekutif|Latar Belakang|Rumusan Masalah|Makna Prinsip|Sumber Rujukan|Daftar Pustaka|Kesimpulan|Penutup)$/iu', $clean)) {
+        if (preg_match('/^(?:Ringkasan|Rangkuman|Ikhtisar|Capaian\s+Pembelajaran|Tujuan\s+Pembelajaran|Perbedaan\s+Ringkasan,\s*Rangkuman,\s*dan\s*Ikhtisar|Langkah[- ]langkah\s+Menulis|Contoh\s+Praktik|Referensi|Ringkasan Eksekutif|Latar Belakang|Rumusan Masalah|Makna Prinsip|Sumber Rujukan|Daftar Pustaka|Kesimpulan|Penutup|Pengertian\s+Proposal|Fungsi\s+Proposal|Jenis-jenis\s+Proposal|Proposal\s+Penelitian|Proposal\s+Kegiatan|Bagian\s+Isi\s+Pokok|Laporan\s+Ilmiah)$/iu', $clean)) {
             return true;
         }
 

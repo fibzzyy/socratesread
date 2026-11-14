@@ -35,12 +35,12 @@
 
             {{-- Profile Details Bar --}}
             <div class="px-6 pb-6 sm:px-8 sm:pb-8 pt-0">
-                <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-5">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
                     {{-- Avatar & Name Group --}}
-                    <div class="flex flex-col sm:flex-row sm:items-end gap-5">
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
                         {{-- Only the avatar has negative top margin to overlap the banner cleanly --}}
-                        <div class="-mt-14 sm:-mt-16 relative shrink-0">
-                            <div class="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl overflow-hidden ring-4 ring-white shadow-lg bg-slate-100 text-slate-400 flex items-center justify-center">
+                        <div class="-mt-12 sm:-mt-14 relative shrink-0">
+                            <div class="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl overflow-hidden ring-4 ring-white shadow-lg bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center font-bold text-2xl sm:text-3xl">
                                 @if ($user->avatarUrl())
                                     <img src="{{ $user->avatarUrl() }}" alt="Foto profil {{ $user->name }}" class="w-full h-full object-cover">
                                 @else
@@ -50,7 +50,7 @@
                         </div>
 
                         {{-- Name, Role Badge, and Email (Sits 100% on the white card, perfectly legible) --}}
-                        <div class="student-profile-name pt-1 sm:pb-1">
+                        <div class="student-profile-name">
                             <div class="flex items-center gap-2.5 flex-wrap">
                                 <h2 id="student-name" class="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight m-0 leading-tight">{{ $user->name }}</h2>
                                 <span class="student-role-badge inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200/80 shadow-2xs">
@@ -63,8 +63,8 @@
                     </div>
 
                     {{-- Action Button --}}
-                    <div class="sm:pb-1 flex items-center gap-2.5">
-                        <a href="{{ route('settings.profile') }}" class="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 hover:text-slate-900 rounded-xl transition-colors no-underline">
+                    <div class="flex items-center gap-2.5 self-start sm:self-center">
+                        <a href="{{ route('settings.profile') }}" class="inline-flex items-center gap-2 px-4 py-2.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 hover:text-slate-900 rounded-xl transition-colors no-underline">
                             <x-icon name="settings" class="w-4 h-4 text-slate-500" />
                             <span>Pengaturan Akun</span>
                         </a>

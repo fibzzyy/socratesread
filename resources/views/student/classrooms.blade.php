@@ -32,7 +32,7 @@
             <div class="my-class-join-copy">
                 <h2 id="join-class-heading">Gabung kelas baru.<br><span>Belajar bersama guru.</span></h2>
 
-                <form method="POST" action="{{ route('classrooms.join') }}" class="my-class-join-form">
+                <form id="join-class-form" method="POST" action="{{ route('classrooms.join') }}" class="my-class-join-form">
                     @csrf
                     <label for="join_code">Kode gabung kelas (8 karakter)</label>
                     <div class="my-class-join-controls">
@@ -45,6 +45,17 @@
                             <span>Gabung kelas</span>
                             <x-icon name="arrow-right" />
                         </button>
+                    </div>
+                    <button type="button" class="mt-3 inline-flex min-h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50" data-open-qr-scanner>
+                        <x-icon name="qr-code" class="size-4" />
+                        <span>Scan QR kelas</span>
+                    </button>
+                    <div class="mt-3 hidden max-w-sm rounded-xl border border-slate-200 bg-white p-3" data-qr-scanner-panel>
+                        <video class="hidden aspect-video w-full rounded-lg bg-slate-950 object-cover" data-qr-scanner-video playsinline muted aria-label="Kamera untuk memindai QR kelas"></video>
+                        <div class="mt-2 flex items-center justify-between gap-3">
+                            <p class="text-xs leading-5 text-slate-500" data-qr-scanner-status aria-live="polite">Arahkan kamera ke QR kelas.</p>
+                            <button type="button" class="shrink-0 text-sm text-slate-600 hover:text-slate-900" data-close-qr-scanner>Tutup</button>
+                        </div>
                     </div>
                     @error('join_code')
                         <span id="join-code-error" class="my-class-error" role="alert">{{ $message }}</span>
@@ -71,7 +82,7 @@
             </article>
             <article class="my-class-stat">
                 <span class="my-class-stat-icon my-class-stat-blue"><x-icon name="trophy" /></span>
-                <div><p>Total Tantangan Selesai</p><div class="my-class-stat-value"><strong>{{ $completedChallenges }}</strong></div><small>Challenge Socrates &amp; Tantangan Guru</small></div>
+                <div><p>Total Tantangan Selesai</p><div class="my-class-stat-value"><strong>{{ $completedChallenges }}</strong></div><small>Tantangan Socrates &amp; Tantangan Guru</small></div>
             </article>
             <article class="my-class-stat">
                 <span class="my-class-stat-icon my-class-stat-blue"><x-icon name="library" /></span>
@@ -123,6 +134,13 @@
             const codeInput = document.getElementById('join_code');
             const counter = document.getElementById('join-code-count');
             if (!codeInput || !counter) return;
+            const form = document.getElementById('join-class-form');
+            const scannerButton = document.querySelector('[data-open-qr-scanner]');
+            const scannerPanel = document.querySelector('[data-qr-scanner-panel]');
+            const scannerVideo = document.querySelector('[data-qr-scanner-video]');
+            const scannerStatus = document.querySelector('[data-qr-scanner-status]');
+            let cameraStream = null;
+            let scanning = false;
 
             const updateCounter = () => {
                 codeInput.value = codeInput.value.toUpperCase().slice(0, 8);
@@ -131,6 +149,69 @@
 
             codeInput.addEventListener('input', updateCounter);
             updateCounter();
+
+            const stopScanner = () => {
+                scanning = false;
+                cameraStream?.getTracks().forEach((track) => track.stop());
+                cameraStream = null;
+                if (scannerVideo) scannerVideo.srcObject = null;
+                if (scannerPanel) scannerPanel.classList.add('hidden');
+            };
+
+            document.querySelector('[data-close-qr-scanner]')?.addEventListener('click', stopScanner);
+            scannerButton?.addEventListener('click', async () => {
+                if (!('BarcodeDetector' in window) || !navigator.mediaDevices?.getUserMedia) {
+                    scannerPanel?.classList.remove('hidden');
+                    if (scannerStatus) scannerStatus.textContent = 'Pemindaian kamera tidak tersedia di browser ini. Pindai dengan kamera ponsel, lalu buka tautan kelas.';
+                    return;
+                }
+
+                try {
+                    const detector = new BarcodeDetector({ formats: ['qr_code'] });
+                    cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+                    scannerVideo.srcObject = cameraStream;
+                    scannerVideo.classList.remove('hidden');
+                    scannerPanel.classList.remove('hidden');
+                    scannerStatus.textContent = 'Arahkan kamera ke QR kelas.';
+                    await scannerVideo.play();
+                    scanning = true;
+
+                    const scanFrame = async () => {
+                        if (!scanning) return;
+                        try {
+                            const [result] = await detector.detect(scannerVideo);
+                            if (result?.rawValue) {
+                                const scannedUrl = new URL(result.rawValue, window.location.origin);
+                                const code = scannedUrl.searchParams.get('join_code') || result.rawValue.trim();
+                                if (scannedUrl.origin !== window.location.origin || !/^[a-z0-9]{8}$/i.test(code)) {
+                                    scannerStatus.textContent = 'QR ini bukan tautan kelas SocratesRead yang valid.';
+                                    requestAnimationFrame(scanFrame);
+                                    return;
+                                }
+
+                                stopScanner();
+                                window.location.assign(`/classrooms?join_code=${encodeURIComponent(code.toUpperCase())}&scan=1`);
+                                return;
+                            }
+                        } catch {
+                            scannerStatus.textContent = 'Kamera belum dapat membaca QR. Coba atur jarak dan pencahayaan.';
+                        }
+                        requestAnimationFrame(scanFrame);
+                    };
+
+                    requestAnimationFrame(scanFrame);
+                } catch {
+                    stopScanner();
+                    scannerPanel?.classList.remove('hidden');
+                    if (scannerStatus) scannerStatus.textContent = 'Kamera tidak dapat dibuka. Izinkan akses kamera atau gunakan kamera ponsel untuk memindai QR.';
+                }
+            });
+
+            const scanJoin = new URLSearchParams(window.location.search).get('scan') === '1';
+            const hasJoinError = @json($errors->has('join_code'));
+            if (scanJoin && !hasJoinError && /^[a-z0-9]{8}$/i.test(codeInput.value)) {
+                form?.requestSubmit();
+            }
         })();
     </script>
 @endsection

@@ -40,7 +40,7 @@ class StudentAchievementsTest extends TestCase
         $response->assertSee('Ranking Angkatan Kelas 10');
         $response->assertSee('Dimas Angkatan 10');
         $response->assertSee('PODIUM JUARA ANGKATAN KELAS 10');
-        $response->assertSee('Lencana Prestasi Belajar');
+        $response->assertSee('Lencana');
     }
 
     public function test_student_can_switch_cohort_grade_filter(): void

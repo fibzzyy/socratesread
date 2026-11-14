@@ -3,7 +3,7 @@
 @section('title', 'Tantangan Guru: ' . $document->title)
 
 @section('breadcrumb_items')
-    <span>/</span><a href="{{ route('quiz.index') }}" class="hover:text-blue-600">Challenge Socrates</a><span>/</span><strong>Tantangan Guru</strong>
+    <span>/</span><a href="{{ route('quiz.index') }}" class="hover:text-blue-600">Tantangan Socrates</a><span>/</span><strong>Tantangan Guru</strong>
 @endsection
 
 @section('content')
@@ -44,7 +44,7 @@
             <div class="flex flex-wrap items-center justify-center gap-3 pt-2">
                 <a href="{{ route('quiz.index') }}" class="outline-button">
                     <x-icon name="arrow-left" class="w-4 h-4" />
-                    <span>Kembali ke Challenge Socrates</span>
+                    <span>Kembali ke Tantangan Socrates</span>
                 </a>
                 <a href="{{ route('reading', ['document' => $document->id]) }}" class="challenge-button">
                     <x-icon name="book-open-text" class="w-4 h-4" />
@@ -210,13 +210,13 @@
                     @else
                         {{-- Review Soal Esai: Desain Bersih & Elegan Mirip Gemini NotebookLM --}}
                         <div class="space-y-4">
-                            <!-- 1. Box Jawaban Anda (NotebookLM Style + Highlight Kata Kunci Benar) -->
+                            <!-- 1. Box Jawaban Analisis Siswa (NotebookLM Style + Highlight Kata Kunci Benar) -->
                             @php($highlightService = app(\App\Services\Evaluation\AnswerHighlightService::class))
                             @php($savedSpans = is_array($ans['matched_spans'] ?? null) ? $ans['matched_spans'] : [])
                             @php($highlightSpans = (! in_array($status, ['salah', 'kosong'], true) && mb_strlen($studentAnswerText) >= 12) ? (! empty($savedSpans) ? $savedSpans : $highlightService->extractMatchedSpans($studentAnswerText, $modelAns ?: $refExcerpt, $document)) : [])
                             @php($highlightedAnswerHtml = $highlightService->formatHighlightedHtml($studentAnswerText ?: '(Tidak diisi)', $highlightSpans, ! in_array($status, ['salah', 'kosong'], true)))
                             <div class="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200/90 text-xs">
-                                <span class="text-xs font-bold text-slate-500 block mb-2">Jawaban Anda</span>
+                                <span class="text-xs font-bold text-slate-500 block mb-2 uppercase tracking-wider">Jawaban Analisis Anda:</span>
                                 <p class="text-slate-700 text-xs sm:text-sm leading-relaxed whitespace-pre-line font-normal {{ $status === 'kosong' ? 'italic text-slate-400' : '' }}">{!! $highlightedAnswerHtml !!}</p>
                             </div>
 
@@ -310,7 +310,7 @@
         <div class="flex flex-wrap items-center justify-between gap-3">
             <a href="{{ route('quiz.index') }}" class="outline-button">
                 <x-icon name="arrow-left" class="w-4 h-4" />
-                <span>Kembali ke Challenge Socrates</span>
+                <span>Kembali ke Tantangan Socrates</span>
             </a>
             <div class="flex items-center gap-2">
                 <a href="{{ route('progress') }}" class="outline-button !border-purple-200 !text-purple-700 bg-purple-50/50 hover:bg-purple-100/70">
@@ -318,7 +318,7 @@
                     <span>Lihat Progress</span>
                 </a>
                 <a href="{{ route('quiz.index') }}" class="challenge-button">
-                    <span>Lanjut ke Challenge Socrates</span>
+                    <span>Lanjut ke Tantangan Socrates</span>
                     <x-icon name="arrow-right" class="w-4 h-4" />
                 </a>
             </div>
@@ -428,9 +428,14 @@
                                           rows="5"
                                           data-essay-input="{{ $idx + 1 }}"
                                           @disabled((bool) $preEvaluated)
-                                          class="w-full rounded-xl border border-slate-200 p-3.5 text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition disabled:bg-slate-50 disabled:text-slate-600"
+                                          class="w-full rounded-xl border border-slate-200 p-3.5 text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition disabled:bg-slate-50 disabled:text-slate-600 {{ $preEvaluated ? 'hidden' : '' }}"
                                           placeholder="Jelaskan pendapat atau alasan Anda dengan kata-kata sendiri...">{{ $preEvaluated['student_answer'] ?? '' }}</textarea>
-                                <p class="text-[11px] text-slate-400">Klik <strong>Periksa Jawaban</strong> untuk langsung melihat penilaian & ulasan AI, atau lanjutkan hingga akhir untuk mengumpulkan semuanya.</p>
+
+                                <div data-essay-analyzed-box="{{ $q->id }}" class="w-full min-h-[110px] rounded-xl border border-slate-200/90 bg-slate-50/70 p-3.5 text-xs sm:text-sm text-slate-800 leading-relaxed whitespace-pre-line transition {{ $preEvaluated ? '' : 'hidden' }}">
+                                    {!! $preEvaluated['highlighted_answer_html'] ?? e($preEvaluated['student_answer'] ?? '') !!}
+                                </div>
+
+                                <p data-essay-hint="{{ $q->id }}" class="text-[11px] text-slate-400 {{ $preEvaluated ? 'hidden' : '' }}">Klik <strong>Periksa Jawaban</strong> untuk langsung melihat penilaian & ulasan AI, atau lanjutkan hingga akhir untuk mengumpulkan semuanya.</p>
                             </div>
                         @endif
 
@@ -447,19 +452,13 @@
                         </div>
 
                         {{-- Area Feedback Langsung Gaya Gemini NotebookLM --}}
-                        <div data-instant-feedback="{{ $q->id }}" class="mt-5 space-y-3.5 {{ $preEvaluated ? '' : 'hidden' }}">
+                        <div data-instant-feedback="{{ $q->id }}" class="mt-4 space-y-3.5 {{ $preEvaluated ? '' : 'hidden' }}">
                             @if ($preEvaluated)
                                 @php($pStatus = $preEvaluated['evaluation_status'] ?? 'salah')
                                 @php($pTheme = $pStatus === 'salah' ? 'border-rose-400 bg-rose-50/50 text-rose-950' : ($pStatus === 'hampir_benar' ? 'border-amber-400 bg-amber-50/50 text-amber-950' : 'border-emerald-400 bg-emerald-50/50 text-emerald-950'))
                                 @php($pIconTheme = $pStatus === 'salah' ? 'text-rose-600' : ($pStatus === 'hampir_benar' ? 'text-amber-600' : 'text-emerald-600'))
                                 @php($pBadgeTheme = $pStatus === 'salah' ? 'bg-rose-100 text-rose-800' : ($pStatus === 'hampir_benar' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'))
-                                @php($pLabel = $pStatus === 'benar' ? 'Benar.' : ($pStatus === 'hampir_benar' ? 'Hampir benar.' : 'Belum tepat.'))
-                                @if ($q->type === 'essay')
-                                    <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200/90 text-xs">
-                                        <span class="text-xs font-bold text-slate-500 block mb-1.5">Jawaban Anda</span>
-                                        <p class="text-slate-700 text-xs sm:text-sm leading-relaxed whitespace-pre-line">{!! $preEvaluated['highlighted_answer_html'] ?? e($preEvaluated['student_answer'] ?? '') !!}</p>
-                                    </div>
-                                @endif
+                                @php($pLabel = $pStatus === 'benar' ? '✓ Benar.' : ($pStatus === 'hampir_benar' ? '! Hampir benar.' : '✕ Belum tepat.'))
                                 <div class="p-4 sm:p-5 rounded-2xl border {{ $pTheme }} shadow-2xs space-y-2.5">
                                     <div class="flex items-center justify-between gap-2">
                                         <span class="text-xs sm:text-sm font-bold {{ $pIconTheme }}">{{ $pLabel }}</span>
@@ -651,20 +650,19 @@
                     );
 
                     if (isEssay) {
-                        const ansBox = document.createElement('div');
-                        ansBox.className = 'p-4 rounded-2xl bg-slate-50 border border-slate-200/90 text-xs';
-                        const ansLabel = document.createElement('span');
-                        ansLabel.className = 'text-xs font-bold text-slate-500 block mb-1.5';
-                        ansLabel.textContent = 'Jawaban Anda';
-                        const ansBody = document.createElement('p');
-                        ansBody.className = 'text-slate-700 text-xs sm:text-sm leading-relaxed whitespace-pre-line';
-                        if (data.highlighted_answer_html) {
-                            ansBody.innerHTML = data.highlighted_answer_html;
-                        } else {
-                            ansBody.textContent = data.student_answer || '';
+                        const textarea = card.querySelector(`textarea[name="answers[${challengeId}]"]`) || card.querySelector('textarea');
+                        const analyzedBox = card.querySelector(`[data-essay-analyzed-box="${challengeId}"]`);
+                        const hint = card.querySelector(`[data-essay-hint="${challengeId}"]`);
+                        if (textarea) textarea.classList.add('hidden');
+                        if (hint) hint.classList.add('hidden');
+                        if (analyzedBox) {
+                            if (data.highlighted_answer_html) {
+                                analyzedBox.innerHTML = data.highlighted_answer_html;
+                            } else {
+                                analyzedBox.textContent = data.student_answer || (textarea ? textarea.value : '');
+                            }
+                            analyzedBox.classList.remove('hidden');
                         }
-                        ansBox.append(ansLabel, ansBody);
-                        container.appendChild(ansBox);
                     }
 
                     const evalBox = document.createElement('div');
@@ -805,7 +803,10 @@
                             }
 
                             card.dataset.checked = 'true';
-                            card.querySelectorAll('textarea, input[type="radio"]').forEach((el) => {
+                            card.querySelectorAll('textarea').forEach((el) => {
+                                el.readOnly = true;
+                            });
+                            card.querySelectorAll('input[type="radio"]').forEach((el) => {
                                 el.disabled = true;
                             });
                             if (actionRow) actionRow.classList.add('hidden');
