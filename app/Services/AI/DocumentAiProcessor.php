@@ -333,7 +333,7 @@ INSTRUCTIONS;
                 'question' => $q['prompt'],
                 'context' => null,
                 'rubric' => $q['hint'],
-                'reference_excerpt' => $q['reference_excerpt'] ?? $q['hint'],
+                'reference_excerpt' => $this->compactReferenceExcerpt((string) ($q['reference_excerpt'] ?? $q['hint'])),
                 'difficulty' => $diff,
                 'difficulty_weight' => TeacherChallenge::weightForDifficulty($diff),
             ];
@@ -378,7 +378,7 @@ Format output WAJIB HANYA berupa JSON array valid:
     "difficulty": "easy",
     "question": "Pertanyaan esai analitis mendalam yang menguji alasan mendasar atau logika aturan konsep tanpa awalan 'Berdasarkan teks...'",
     "rubric": "Kunci jawaban model yang komprehensif, akurat, dan substantif (2-4 kalimat) yang benar-benar menjawab tuntas seluruh aspek pertanyaan sesuai fakta materi.",
-    "reference_excerpt": "Kutipan kalimat asli dari teks bacaan yang menjadi rujukan bukti langsung kunci jawaban."
+    "reference_excerpt": "Kutipan 1 kalimat asli terpenting dari materi bacaan (15-25 kata) yang membuktikan kebenaran kunci jawaban secara langsung dan ringkas."
   }
 ]
 
@@ -396,7 +396,7 @@ ATURAN WAJIB:
    - "rubric" adalah KUNCI JAWABAN YANG BENAR dan lengkap. DILARANG hanya menulis judul buku, nama pengarang, atau instruksi guru ("Menjelaskan pengertian...").
    - Kunci jawaban harus menguraikan penjelasan yang benar, logis, dan tuntas sesuai isi materi.
 4. DILARANG memakai frasa pembuka klise seperti "Berdasarkan teks materi...", "Menurut bacaan...", dsb.
-5. "reference_excerpt" WAJIB berupa kutipan kalimat asli materi yang membuktikan kebenaran kunci jawaban.
+5. "reference_excerpt" WAJIB berupa kutipan ringkas 1 kalimat asli materi (15–25 kata) yang membuktikan kebenaran kunci jawaban secara presisi.
 6. Keluarkan HANYA JSON array tanpa markdown/komentar lain.
 7. ATURAN WAJIB SOAL BERBASIS KASUS / CERITA / PARAGRAF:
    - DILARANG MERUJUK BUTA seperti "pada teks di atas" tanpa menyertakan kutipannya.
@@ -1354,7 +1354,7 @@ INSTRUCTIONS;
                 'question' => $q['prompt'],
                 'context' => null,
                 'rubric' => $q['hint'],
-                'reference_excerpt' => $q['reference_excerpt'] ?? $q['hint'],
+                'reference_excerpt' => $this->compactReferenceExcerpt((string) ($q['reference_excerpt'] ?? $q['hint'])),
                 'difficulty' => $diff,
                 'difficulty_weight' => TeacherChallenge::weightForDifficulty($diff),
             ];
@@ -2116,7 +2116,7 @@ INSTRUCTIONS;
 
         return [
             'recommended_answer' => $recommendedAnswer,
-            'reference_excerpt' => $excerpt,
+            'reference_excerpt' => $this->compactReferenceExcerpt($excerpt),
             'difficulty' => $difficulty,
             'difficulty_weight' => TeacherChallenge::weightForDifficulty($difficulty),
         ];
@@ -3729,7 +3729,7 @@ INSTRUCTIONS;
     private function extractSubstantiveSentences(string $body, string $title): array
     {
         $rawLines = preg_split('/\R/u', $body) ?: [];
-        $lineBoilerplate = '/^(?:setelah mengikuti|tujuan pembelajaran|capaian pembelajaran|kompetensi|mahasiswa diharapkan|siswa diharapkan|peserta didik|daftar pustaka|sumber rujukan|terima kasih|thank you|halaman|page\s*\d+|lembar kerja|latar belakang|ringkasan eksekutif|rumusan masalah|proposal perancangan|menjelaskan pengertian|mengidentifikasi\s+(?:kedudukan|perbedaan)|menyusun\s+(?:strategi|ringkasan|rangkuman)|menunjukkan\s+(?:sikap|kemampuan)|matematika\s+untuk\s+sma|bahasa\s+indonesia\s+untuk\s+sma|buku\s+siswa\s+kelas|bab\s+\d+|world\s+our\s+world|data\s+source|cc\s+by)/iu';
+        $lineBoilerplate = '/^(?:setelah mengikuti|tujuan pembelajaran|capaian pembelajaran|kompetensi|mahasiswa diharapkan|siswa diharapkan|peserta didik|daftar pustaka|sumber rujukan|terima kasih|thank you|halaman|page\s*\d+|lembar kerja|latar belakang|ringkasan eksekutif|rumusan masalah|proposal perancangan|menjelaskan pengertian|mengidentifikasi\s+(?:kedudukan|perbedaan)|menyusun\s+(?:strategi|ringkasan|rangkuman)|menunjukkan\s+(?:sikap|kemampuan)|matematika\s+untuk\s+sma|bahasa\s+indonesia\s+untuk\s+sma|buku\s+siswa\s+kelas|bab\s+\d+|world\s+our\s+world|data\s+source|cc\s+by|ayo,?\s*(?:bereksplorasi|berpikir|berdiskusi|mengingat|mencoba)|berkumpullah\s+dengan|siapkan\s+kertas|lipatlah\s+kertas|diskusikanlah\s+dengan|tuliskan\s+hasil\s+diskusi|kerjakan\s+(?:kegiatan|latihan|tugas)|jawablah\s+pertanyaan|perhatikan\s+(?:gambar|tabel|contoh)|alternatif\s+penyelesaian|latihan\s+[\d\.]+|tugas\s+\d+)/iu';
         $biblioPattern = '/(?:^|\s)[\-\•]?\s*[A-Z][\p{L}\-]+,\s*[A-Z][\p{L}\.\s,dkk]*\(\d{4}\)/u';
         $publisherPattern = '/\b(?:Raja\s+Grafindo\s+Persada|Balai\s+Pustaka|Nusa\s+Indah|Angkasa|Gramedia|Erlangga|Kemdikbud|Rineka\s+Cipta|Pusat\s+Pembinaan|Remaja\s+Rosdakarya|Kencana|Alfabeta|Pustaka\s+Pelajar|Bumi\s+Aksara)\b/iu';
         $titleLower = mb_strtolower(trim($title));
@@ -4723,7 +4723,7 @@ INSTRUCTIONS;
     ): array {
         $cleanQ = trim($question);
         $cleanKey = trim($answerKey);
-        $cleanRef = trim($referenceExcerpt);
+        $cleanRef = $this->compactReferenceExcerpt($referenceExcerpt);
 
         if ($this->isQuestionAnsweredByKey($cleanQ, $cleanKey, $cleanRef)) {
             return [
@@ -4743,7 +4743,7 @@ INSTRUCTIONS;
 
         $repaired = $this->recommendHeuristicAnswerForQuestion($body, $title, $cleanQ);
         $repairedKey = trim((string) ($repaired['recommended_answer'] ?? ''));
-        $repairedRef = trim((string) ($repaired['reference_excerpt'] ?? ''));
+        $repairedRef = $this->compactReferenceExcerpt((string) ($repaired['reference_excerpt'] ?? ''));
 
         if ($repairedKey !== '' && $this->isQuestionAnsweredByKey($cleanQ, $repairedKey, $repairedRef)) {
             return [
@@ -4758,6 +4758,38 @@ INSTRUCTIONS;
             'reference_excerpt' => $cleanRef !== '' ? $cleanRef : $repairedRef,
             'is_valid' => $cleanKey !== '',
         ];
+    }
+
+    /**
+     * Memadatkan rujukan bukti teks (reference_excerpt) menjadi 1 kalimat inti yang ringkas (15–25 kata).
+     */
+    public function compactReferenceExcerpt(string $excerpt): string
+    {
+        $clean = trim($excerpt);
+        if ($clean === '') {
+            return '';
+        }
+
+        // Pisahkan per kalimat
+        $sentences = preg_split('/(?<=[.!?])\s+/u', $clean) ?: [$clean];
+        $first = trim($sentences[0]);
+
+        // Jika kalimat pertama memiliki panjang ideal (15-25 kata atau 40-200 karakter), gunakan kalimat pertama
+        if (mb_strlen($first) >= 20 && mb_strlen($first) <= 220) {
+            return rtrim($first, '.') . '.';
+        }
+
+        // Jika terlalu panjang (> 200 karakter), potong di batas kata yang rapi
+        if (mb_strlen($clean) > 200) {
+            $truncated = mb_substr($clean, 0, 190);
+            $lastSpace = mb_strrpos($truncated, ' ');
+            if ($lastSpace !== false && $lastSpace > 80) {
+                $truncated = mb_substr($truncated, 0, $lastSpace);
+            }
+            return rtrim($truncated, " ,;:-.") . '...';
+        }
+
+        return $clean;
     }
 
     /**

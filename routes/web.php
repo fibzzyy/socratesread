@@ -97,6 +97,7 @@ Route::middleware(['auth', 'role:teacher'])->prefix('teacher')->name('teacher.')
     Route::get('/documents', [DocumentController::class, 'index'])->name('documents');
     Route::post('/documents', [DocumentController::class, 'store'])->middleware('throttle:5,1')->name('documents.store');
     Route::patch('/documents/{document}/quiz-duration', [DocumentController::class, 'updateQuizDuration'])->whereNumber('document')->name('documents.quiz_duration');
+    Route::patch('/documents/{document}/body', [DocumentController::class, 'updateBody'])->whereNumber('document')->name('documents.update_body');
     Route::delete('/documents/{document}', [DocumentController::class, 'destroy'])->whereNumber('document')->name('documents.destroy');
     Route::get('/documents/{document}/challenges', [TeacherChallengeController::class, 'index'])->whereNumber('document')->name('documents.challenges.index');
     Route::get('/documents/{document}/challenges/suggestions', [TeacherChallengeController::class, 'suggestions'])->whereNumber('document')->name('documents.challenges.suggestions');

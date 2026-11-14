@@ -267,6 +267,34 @@ class DocumentController extends Controller
         return back()->with('status', "Pengaturan kuis Socrates untuk bacaan \"{$document->title}\" berhasil diperbarui.");
     }
 
+    public function updateBody(Request $request, Document $document): RedirectResponse|JsonResponse
+    {
+        abort_unless($document->uploaded_by === auth()->id(), 403);
+
+        $validated = $request->validate([
+            'body' => ['required', 'string', 'min:30'],
+        ]);
+
+        $formatter = app(ReadingMaterialFormatter::class);
+        $cleanedBody = $formatter->format($validated['body'], $document->title);
+
+        $document->update([
+            'body' => $cleanedBody,
+        ]);
+
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Teks bacaan berhasil diperbarui.',
+                'body' => $cleanedBody,
+                'formatted_body_html' => $formatter->toHtml($cleanedBody),
+                'chars' => mb_strlen($cleanedBody),
+            ]);
+        }
+
+        return back()->with('status', "Teks bacaan \"{$document->title}\" berhasil diperbarui.");
+    }
+
     public function destroy(Document $document): RedirectResponse
     {
         abort_unless($document->uploaded_by === auth()->id(), 404);

@@ -163,7 +163,10 @@ class ReadingMaterialFormatter
                 || preg_match('/^(?:Bab|Eksponen\s*\d*|\d+\s*Bab|Barisan\s+dan\s+Deret)$/iu', $tNoZero)
                 || preg_match('/^[-–—\s]*\d+\s*$/u', $tNoZero)
                 || preg_match('/^(?:ISBN|Kementerian|Republik\s+Indonesia|Hak\s+Cipta|Diterbitkan\s+oleh)\b/iu', $tNoZero)
-                || preg_match('/^(?:Peta\s+Materi|Ayo,?\s+Bereksplorasi|Ayo,?\s+Berpikir|Ayo,?\s+Berdiskusi|Jawablah\s+pertanyaan\s+berikut\s+dengan\s+berdiskusi)\b/iu', $tNoZero)) {
+                || preg_match('/^(?:Peta\s+Materi|Ayo,?\s+Bereksplorasi|Ayo,?\s+Berpikir|Ayo,?\s+Berdiskusi|Jawablah\s+pertanyaan\s+berikut\s+dengan\s+berdiskusi)\b/iu', $tNoZero)
+                || preg_match('/^(?:Kelas\s+[X\d]+.*MAK\d*|\d{1,3}\s*(?:Bahasa\s+Indonesia|Matematika)|Sumber\s+foto:.*)$/iu', $tNoZero)
+                || preg_match('/^\d+\.\s+Berkumpullah\s+dengan\s+kelompokmu/iu', $tNoZero)
+                || preg_match('/^(?:Tulislah\s+hasil\s+analisis|Selanjutnya,?\s+lakukan\s+analisis|Selanjutnya,?\s+lanjutkan\s+dengan\s+mencari)\s+.*buku\s+kerja/iu', $tNoZero)) {
                 continue;
             }
 
@@ -176,6 +179,11 @@ class ReadingMaterialFormatter
 
             // Perbaiki kata yang menempel pada PDF (tetap lindungi URL, email, directive Apache)
             $line = $this->restoreMissingSpaces($trimmed);
+
+            // Bersihkan sisa margin footer / header yang menempel di ujung baris kalimat
+            $line = preg_replace('/\s*(?:Kelas\s+[X\d]+(?:\s*[A-Z\/]+)*\s*\d*|\d{1,3}\s*(?:Bahasa\s+Indonesia|Matematika))\s*$/iu', '', $line);
+            $line = preg_replace('/\s*Sumber\s+foto:\s*https?:\/\/\S+/iu', '', $line);
+            $line = preg_replace('/(?:\s*[_\.]{3,}\s*){2,}/u', ' … ', $line);
 
             // Deteksi daftar bernomor (1. ..., 2. ...)
             if (preg_match($orderedMarker, $line, $m)) {
@@ -295,7 +303,32 @@ class ReadingMaterialFormatter
             $markdown = trim($rawText);
         }
 
+        $markdown = $this->cleanClassroomHomework($markdown);
+
         return $this->ensurePedagogicalStructure($markdown, $title);
+    }
+
+    /**
+     * Memangkas instruksi penugasan PR buku cetak dan tabel latihan kosong di akhir bacaan
+     * agar teks bacaan terfokus pada konten instruksional pembelajaran mandiri siswa.
+     */
+    public function cleanClassroomHomework(string $markdown): string
+    {
+        // 1. Bersihkan margin footer / header buku yang menempel
+        $markdown = preg_replace('/\s*(?:Kelas\s+[X\d]+(?:\s*(?:SMA|MA|SMK|MAK|\/))+\s*\d*|\d{1,3}\s*(?:Bahasa\s+Indonesia|Matematika))\s*(?=\R|$)/iu', '', $markdown);
+        $markdown = preg_replace('/\b(?:Kelas\s+[X\d]+(?:\s*(?:SMA|MA|SMK|MAK|\/))+\s*\d*|\d{1,3}\s*(?:Bahasa\s+Indonesia|Matematika))\b/iu', '', $markdown);
+        $markdown = preg_replace('/\s*Sumber\s+foto:\s*https?:\/\/\S+/iu', '', $markdown);
+
+        // 2. Pangkas penugasan tugas PR / lembar kerja latihan kosong di akhir bacaan
+        $markdown = preg_replace('/(?:\R+|^)(?:###\s*)?Latihan\s+[\d\.]+.*?\Z/ius', '', $markdown);
+        $markdown = preg_replace('/(?:\s*Tugas\s+2\s+Analisislah\s+afiksasi\s+yang\s+terjadi.*?\Z)/ius', '', $markdown);
+        $markdown = preg_replace('/(?:\s+Tugas|\R+Tugas)[\s\d\:\.]*\R+1\.\s+Simpulkanlah.*?(?=\R+\d+\.\s+[A-Z]|\Z)/ius', '', $markdown);
+        $markdown = preg_replace('/(?:\R+|^)Tugas\s*\R+1\.\s+Simpulkanlah\s+fungsi\s+teks.*?(?=\R+\d+\.\s+[A-Z]|\Z)/ius', '', $markdown);
+        $markdown = preg_replace('/\R+Tugas\s+1\s+Selanjutnya,?\s+lakukan\s+analisis.*?(?=\R+\d+\.\s+[A-Z]|\Z)/ius', "\n\n", $markdown);
+
+        $markdown = preg_replace('/\.{2,}(?=\s*$)/u', '.', $markdown);
+
+        return trim($markdown);
     }
 
     /**

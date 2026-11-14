@@ -204,7 +204,7 @@
                             <span data-doc-challenge-pill-text>{{ $document->teacher_challenges_count }} Tantangan Guru</span>
                         </span>
                     </div>
-                    <span>{{ $document->category }} · <span class="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700">{{ $document->targetGradeLabel() }}</span> · {{ number_format(mb_strlen($document->body)) }} karakter · {{ $document->created_at->locale('id')->translatedFormat('d M Y') }}</span>
+                    <span>{{ $document->category }} · <span class="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700">{{ $document->targetGradeLabel() }}</span> · <span data-doc-chars-id="{{ $document->id }}">{{ number_format(mb_strlen($document->body)) }} karakter</span> · {{ $document->created_at->locale('id')->translatedFormat('d M Y') }}</span>
                 </div>
                 <div class="flex items-center gap-2 flex-wrap">
                     <button type="button" class="inline-flex items-center gap-1.5 rounded-lg border border-purple-300 bg-purple-50 px-2.5 py-1.5 text-xs font-bold text-purple-900 hover:bg-purple-100 transition shadow-2xs" data-challenge-btn data-doc-id="{{ $document->id }}" data-doc-title="{{ $document->title }}" data-get-url="{{ route('teacher.documents.challenges.index', $document) }}" data-store-url="{{ route('teacher.documents.challenges.store', $document) }}" data-suggestions-url="{{ route('teacher.documents.challenges.suggestions', $document) }}" data-analyze-url="{{ route('teacher.documents.challenges.analyze', $document) }}" data-recommend-answer-url="{{ route('teacher.documents.challenges.recommend_answer', $document) }}" title="Kelola Tantangan Guru (Esai & PG)">
@@ -337,8 +337,29 @@
                         </div>
 
                         <div>
-                            <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">ISI TEKS PEMBELAJARAN SISWA</p>
+                            <div class="flex items-center justify-between mb-2">
+                                <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">ISI TEKS PEMBELAJARAN SISWA</p>
+                                <button type="button" id="btnToggleEditBody" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 transition shadow-2xs">
+                                    <x-icon name="edit-3" class="w-3.5 h-3.5 text-blue-600"/>
+                                    <span id="labelToggleEditBody">Edit Teks Bacaan</span>
+                                </button>
+                            </div>
                             <div id="modalDocBody" class="passage-markdown prose prose-sm max-w-none text-xs text-slate-700 leading-relaxed space-y-3 font-normal"></div>
+                            
+                            <!-- Editor Mode Form -->
+                            <div id="modalDocBodyEditWrapper" class="hidden space-y-2 mt-2">
+                                <textarea id="modalDocBodyTextarea" rows="14" class="w-full rounded-xl border border-slate-300 p-3 text-xs font-mono text-slate-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 leading-relaxed" placeholder="Edit teks bacaan kurasi..."></textarea>
+                                <div class="flex items-center justify-between pt-1">
+                                    <span class="text-[11px] text-slate-400 font-mono" id="modalDocBodyCharCount">0 karakter</span>
+                                    <div class="flex items-center gap-2">
+                                        <button type="button" id="btnCancelEditBody" class="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-100 transition">Batal</button>
+                                        <button type="button" id="btnSaveEditBody" class="px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-2xs">
+                                            <x-icon name="check" class="w-3.5 h-3.5"/>
+                                            <span id="labelSaveEditBody">Simpan Perubahan Teks</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -551,6 +572,119 @@
 
             if (!modal) return;
 
+            let currentEditingDocId = null;
+            let currentRawBody = '';
+            const toggleEditBtn = document.getElementById('btnToggleEditBody');
+            const cancelEditBtn = document.getElementById('btnCancelEditBody');
+            const saveEditBtn = document.getElementById('btnSaveEditBody');
+            const editWrapper = document.getElementById('modalDocBodyEditWrapper');
+            const textarea = document.getElementById('modalDocBodyTextarea');
+            const charCountEl = document.getElementById('modalDocBodyCharCount');
+            const labelSave = document.getElementById('labelSaveEditBody');
+
+            const updateBodyCharCount = (text) => {
+                if (charCountEl) charCountEl.textContent = `${(text || '').length.toLocaleString()} karakter`;
+            };
+
+            textarea?.addEventListener('input', () => {
+                updateBodyCharCount(textarea.value);
+            });
+
+            toggleEditBtn?.addEventListener('click', () => {
+                const bodyEl = document.getElementById('modalDocBody');
+                const isEditing = !editWrapper.classList.contains('hidden');
+                if (isEditing) {
+                    editWrapper.classList.add('hidden');
+                    bodyEl?.classList.remove('hidden');
+                } else {
+                    textarea.value = currentRawBody;
+                    updateBodyCharCount(currentRawBody);
+                    bodyEl?.classList.add('hidden');
+                    editWrapper.classList.remove('hidden');
+                    textarea.focus();
+                }
+            });
+
+            cancelEditBtn?.addEventListener('click', () => {
+                const bodyEl = document.getElementById('modalDocBody');
+                editWrapper?.classList.add('hidden');
+                bodyEl?.classList.remove('hidden');
+            });
+
+            saveEditBtn?.addEventListener('click', async () => {
+                if (!currentEditingDocId) return;
+                const newBody = textarea.value.trim();
+                if (newBody.length < 30) {
+                    if (window.SocratesUI?.toast) {
+                        window.SocratesUI.toast('Teks bacaan minimal berisi 30 karakter.', 'warning');
+                    }
+                    return;
+                }
+
+                saveEditBtn.disabled = true;
+                if (labelSave) labelSave.textContent = 'Menyimpan...';
+
+                try {
+                    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                    const res = await fetch(`/teacher/documents/${currentEditingDocId}/body`, {
+                        method: 'PATCH',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': token || '',
+                        },
+                        body: JSON.stringify({ body: newBody }),
+                    });
+
+                    const json = await res.json();
+                    if (res.ok && json.success) {
+                        currentRawBody = json.body;
+                        const bodyEl = document.getElementById('modalDocBody');
+                        if (bodyEl) {
+                            bodyEl.innerHTML = json.formatted_body_html;
+                            bodyEl.classList.remove('hidden');
+                        }
+                        editWrapper?.classList.add('hidden');
+
+                        const scriptEl = document.getElementById('doc-preview-data-' + currentEditingDocId);
+                        if (scriptEl) {
+                            try {
+                                const parsed = JSON.parse(scriptEl.textContent);
+                                parsed.body = json.body;
+                                parsed.formattedBodyHtml = json.formatted_body_html;
+                                scriptEl.textContent = JSON.stringify(parsed);
+                            } catch (e) {}
+                        }
+
+                        const charBadge = document.querySelector(`[data-doc-chars-id="${currentEditingDocId}"]`);
+                        if (charBadge && json.chars) {
+                            charBadge.textContent = `${json.chars.toLocaleString()} karakter`;
+                        }
+
+                        setTimeout(() => renderKaTeXIn(modal), 40);
+
+                        if (labelSave) labelSave.textContent = 'Tersimpan ✓';
+                        setTimeout(() => {
+                            if (labelSave) labelSave.textContent = 'Simpan Perubahan Teks';
+                            saveEditBtn.disabled = false;
+                        }, 1200);
+                    } else {
+                        if (window.SocratesUI?.toast) {
+                            window.SocratesUI.toast(json.message || 'Gagal menyimpan perubahan teks bacaan.', 'error');
+                        }
+                        saveEditBtn.disabled = false;
+                        if (labelSave) labelSave.textContent = 'Simpan Perubahan Teks';
+                    }
+                } catch (err) {
+                    console.error('Save body error', err);
+                    if (window.SocratesUI?.toast) {
+                        window.SocratesUI.toast('Terjadi kesalahan koneksi saat menyimpan teks bacaan.', 'error');
+                    }
+                    saveEditBtn.disabled = false;
+                    if (labelSave) labelSave.textContent = 'Simpan Perubahan Teks';
+                }
+            });
+
             const renderKaTeXIn = (container) => {
                 if (typeof window.renderMathInElement === 'function' && container) {
                     try {
@@ -629,19 +763,28 @@
                 document.getElementById('modalDocExcerpt').innerHTML = formatInlineMarkdown(excerpt);
 
                 // Render structured body in Preview Drawer
+                currentEditingDocId = docId;
+                currentRawBody = body;
+                if (editWrapper) editWrapper.classList.add('hidden');
+                if (textarea) textarea.value = body;
+                updateBodyCharCount(body);
+
                 const bodyEl = document.getElementById('modalDocBody');
-                bodyEl.innerHTML = '';
+                if (bodyEl) {
+                    bodyEl.classList.remove('hidden');
+                    bodyEl.innerHTML = '';
+                }
                 if (data.formattedBodyHtml) {
-                    bodyEl.innerHTML = data.formattedBodyHtml;
+                    if (bodyEl) bodyEl.innerHTML = data.formattedBodyHtml;
                 } else {
                     const paragraphs = body.split(/\r?\n\r?\n/).filter(p => p.trim() !== '');
                     if (paragraphs.length === 0) {
-                        bodyEl.innerHTML = `<p>${formatInlineMarkdown(body)}</p>`;
+                        if (bodyEl) bodyEl.innerHTML = `<p>${formatInlineMarkdown(body)}</p>`;
                     } else {
                         paragraphs.forEach(p => {
                             const pEl = document.createElement('p');
                             pEl.innerHTML = formatInlineMarkdown(p.trim());
-                            bodyEl.appendChild(pEl);
+                            if (bodyEl) bodyEl.appendChild(pEl);
                         });
                     }
                 }
