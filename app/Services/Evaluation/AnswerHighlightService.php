@@ -33,7 +33,7 @@ class AnswerHighlightService
         // 1. Validasi spans dari LLM (pastikan benar-benar substring asli jawaban siswa & bukan keseluruhan teks)
         $validLlmSpans = [];
         foreach ($preferredSpans as $span) {
-            $cleanSpan = trim((string) $span, " \t\n\r\0\x0B\"'“”");
+            $cleanSpan = preg_replace('/^[\s"“”\']+|[\s"“”\']+$/u', '', (string) $span) ?? trim((string) $span);
             $spanWords = preg_split('/\s+/u', $cleanSpan, -1, PREG_SPLIT_NO_EMPTY) ?: [];
             if (count($spanWords) < 2 || mb_strlen($cleanSpan) < 10) {
                 continue;

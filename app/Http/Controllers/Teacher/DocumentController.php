@@ -73,8 +73,16 @@ class DocumentController extends Controller
         DocumentAiProcessor $aiProcessor
     ): RedirectResponse
     {
+        $pageStart = null;
+        $pageEnd = null;
+        if ($request->input('page_scope') === 'range') {
+            $pageStart = $request->filled('page_start') ? (int) $request->input('page_start') : null;
+            $pageEnd = $request->filled('page_end') ? (int) $request->input('page_end') : null;
+        }
+        $lastHeading = $request->filled('last_subtopic_heading') ? trim($request->string('last_subtopic_heading')->toString()) : null;
+
         try {
-            $extracted = $extractor->extract($request->file('file'));
+            $extracted = $extractor->extract($request->file('file'), $pageStart, $pageEnd, $lastHeading);
         } catch (Throwable $exception) {
             Log::warning('PDF document extraction failed.', [
                 'exception' => class_basename($exception),
@@ -95,15 +103,44 @@ class DocumentController extends Controller
         }
 
         try {
-            @set_time_limit(180);
+            @set_time_limit(300);
             $title = trim($request->string('title')->toString());
             $category = trim($request->string('category')->toString());
 
-            $processed = $aiProcessor->process($extracted['text'], $title, $category);
+            $sourceText = $request->filled('curated_body')
+                ? trim($request->string('curated_body')->toString())
+                : $extracted['text'];
 
-            DB::transaction(function () use ($request, $title, $category, $processed, $filePath): void {
-                preg_match_all('/[\p{L}\p{N}]+/u', $processed['cleaned_body'], $words);
-                $wordCount = count($words[0]);
+            $processed = $aiProcessor->process($sourceText, $title, $category);
+            $enableTeacherChallenges = $request->has('has_teacher_challenges_toggle')
+                ? $request->boolean('enable_teacher_challenges')
+                : ($request->has('enable_teacher_challenges') ? $request->boolean('enable_teacher_challenges') : true);
+
+            $cleanedBody = ! empty($processed['cleaned_body']) ? (string) $processed['cleaned_body'] : $sourceText;
+            $excerpt = ! empty($processed['excerpt']) ? (string) $processed['excerpt'] : mb_substr(strip_tags($cleanedBody), 0, 200);
+
+            $questions = ! empty($processed['questions']) && is_array($processed['questions'])
+                ? $processed['questions']
+                : $aiProcessor->generateHeuristicSocraticQuestions($cleanedBody, $title, $category);
+
+            $quizQuestions = ! empty($processed['quiz_questions']) && is_array($processed['quiz_questions'])
+                ? $processed['quiz_questions']
+                : $aiProcessor->generateHeuristicQuizQuestions($cleanedBody, $title, $category, 10);
+
+            DB::transaction(function () use (
+                $request,
+                $title,
+                $category,
+                $cleanedBody,
+                $excerpt,
+                $questions,
+                $quizQuestions,
+                $processed,
+                $filePath,
+                $enableTeacherChallenges,
+                $aiProcessor
+            ): void {
+                $wordCount = preg_match_all('/[\p{L}\p{N}]+/u', $cleanedBody, $words) ? count($words[0]) : 1;
                 $estimatedMinutes = min(60, max(1, (int) ceil($wordCount / 200)));
                 $quizMinutes = max(1, min(180, (int) ($request->input('quiz_duration_minutes') ?: 15)));
                 $quizCount = max(5, min(100, (int) ($request->input('quiz_question_count') ?: 10)));
@@ -112,8 +149,8 @@ class DocumentController extends Controller
                     'title' => $title,
                     'category' => $category,
                     'target_grade' => $request->input('target_grade') ?: 'all',
-                    'excerpt' => $processed['excerpt'],
-                    'body' => $processed['cleaned_body'],
+                    'excerpt' => $excerpt,
+                    'body' => $cleanedBody,
                     'source_file_path' => $filePath,
                     'uploaded_by' => $request->user()->id,
                     'estimated_minutes' => $estimatedMinutes,
@@ -122,56 +159,71 @@ class DocumentController extends Controller
                     'is_published' => true,
                 ]);
 
-                foreach ($processed['questions'] as $q) {
+                foreach ($questions as $idx => $q) {
                     $document->questions()->create([
-                        'sequence' => $q['sequence'],
-                        'skill' => $q['skill'],
-                        'prompt' => $q['prompt'],
-                        'context' => $q['context'],
-                        'hint' => $q['hint'],
+                        'sequence' => $q['sequence'] ?? ($idx + 1),
+                        'skill' => ! empty($q['skill']) ? (string) $q['skill'] : 'Pemahaman Konsep',
+                        'prompt' => ! empty($q['prompt']) ? (string) $q['prompt'] : "Jelaskan konsep utama materi \"{$title}\"!",
+                        'context' => $q['context'] ?? null,
+                        'hint' => ! empty($q['hint']) ? (string) $q['hint'] : 'Uraikan jawaban berdasarkan teks materi bacaan.',
                     ]);
                 }
 
-                $teacherChallengeItems = $processed['teacher_challenges']
-                    ?? $aiProcessor->generateTeacherChallengeSuggestions($processed['cleaned_body'], $title, $category);
+                if ($enableTeacherChallenges) {
+                    $teacherChallengeItems = ! empty($processed['teacher_challenges']) && is_array($processed['teacher_challenges'])
+                        ? $processed['teacher_challenges']
+                        : $aiProcessor->generateTeacherChallengeSuggestions($cleanedBody, $title, $category);
 
-                foreach ($teacherChallengeItems as $tcIdx => $tc) {
-                    $difficulty = $tc['difficulty'] ?? 'medium';
-                    $document->teacherChallenges()->create([
-                        'sequence' => $tcIdx + 1,
-                        'type' => $tc['type'] ?? 'essay',
-                        'question' => $tc['question'],
-                        'context' => null,
-                        'rubric' => ! empty($tc['rubric']) ? $tc['rubric'] : 'Analisis pemahaman mendalam, bukti dari teks, dan penalaran logis.',
-                        'reference_excerpt' => ! empty($tc['reference_excerpt']) ? $tc['reference_excerpt'] : null,
-                        'difficulty' => $difficulty,
-                        'difficulty_weight' => $tc['difficulty_weight'] ?? \App\Models\TeacherChallenge::weightForDifficulty($difficulty),
-                    ]);
-                }
-
-                if (! empty($processed['quiz_questions'])) {
-                    foreach ($processed['quiz_questions'] as $qq) {
-                        $document->quizQuestions()->create([
-                            'sequence' => $qq['sequence'],
-                            'question' => $qq['question'],
-                            'options' => $qq['options'],
-                            'correct_answer' => $qq['correct_answer'],
-                            'explanation' => $qq['explanation'] ?? null,
+                    foreach ($teacherChallengeItems as $tcIdx => $tc) {
+                        $difficulty = $tc['difficulty'] ?? 'medium';
+                        $document->teacherChallenges()->create([
+                            'sequence' => $tcIdx + 1,
+                            'type' => $tc['type'] ?? 'essay',
+                            'question' => ! empty($tc['question']) ? (string) $tc['question'] : "Analisis gagasan kritis pada materi \"{$title}\"!",
+                            'context' => null,
+                            'rubric' => ! empty($tc['rubric']) ? (string) $tc['rubric'] : 'Analisis pemahaman mendalam, bukti dari teks, dan penalaran logis.',
+                            'reference_excerpt' => ! empty($tc['reference_excerpt']) ? (string) $tc['reference_excerpt'] : null,
+                            'difficulty' => $difficulty,
+                            'difficulty_weight' => $tc['difficulty_weight'] ?? \App\Models\TeacherChallenge::weightForDifficulty($difficulty),
                         ]);
                     }
+                }
+
+                foreach ($quizQuestions as $idx => $qq) {
+                    $options = is_array($qq['options'] ?? null) && count($qq['options']) >= 2 ? $qq['options'] : [
+                        ['key' => 'A', 'text' => 'Pernyataan benar sesuai konsep materi'],
+                        ['key' => 'B', 'text' => 'Pernyataan pelengkap konteks pembahasan'],
+                        ['key' => 'C', 'text' => 'Pernyataan kontras dari simpulan materi'],
+                        ['key' => 'D', 'text' => 'Pernyataan yang bertentangan dengan materi'],
+                    ];
+                    $document->quizQuestions()->create([
+                        'sequence' => $qq['sequence'] ?? ($idx + 1),
+                        'question' => ! empty($qq['question']) ? (string) $qq['question'] : "Pertanyaan pemahaman konsep materi \"{$title}\"",
+                        'options' => $options,
+                        'correct_answer' => ! empty($qq['correct_answer']) ? (string) $qq['correct_answer'] : 'A',
+                        'explanation' => ! empty($qq['explanation']) ? (string) $qq['explanation'] : 'Pembahasan berdasarkan fakta dan konsep utama materi bacaan.',
+                    ]);
                 }
             });
         } catch (Throwable $exception) {
             Storage::disk('local')->delete($filePath);
             Log::error('PDF document could not be saved.', [
                 'exception' => class_basename($exception),
+                'message' => $exception->getMessage(),
+                'file' => $exception->getFile(),
+                'line' => $exception->getLine(),
+                'trace' => $exception->getTraceAsString(),
                 'user_id' => $request->user()->id,
             ]);
 
             return back()->withErrors(['file' => 'Dokumen belum berhasil disimpan. Silakan coba lagi.'])->withInput();
         }
 
-        return redirect()->route('teacher.documents')->with('status', 'PDF berhasil diproses dengan AI: teks telah dirapikan, 10 soal Pilihan Ganda (Kuis Timer & Latihan) serta 5 pertanyaan Esai Sokratik telah dibuat otomatis.');
+        $statusMsg = $enableTeacherChallenges
+            ? 'PDF berhasil diproses dengan AI: materi pertemuan telah dirapikan, 10 butir Kuis Socrates serta 5 soal Tantangan Guru telah disiapkan.'
+            : 'PDF berhasil diproses dengan AI: materi pertemuan telah dirapikan dan 10 butir Kuis Socrates telah disiapkan (Tantangan Guru dinonaktifkan).';
+
+        return redirect()->route('teacher.documents')->with('status', $statusMsg);
     }
 
     public function updateQuizDuration(Request $request, Document $document): RedirectResponse|JsonResponse

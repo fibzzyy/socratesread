@@ -53,6 +53,9 @@ class OpenRouterResponsesProvider implements LanguageModel
         if (isset($options['max_output_tokens'])) {
             $chatPayload['max_tokens'] = (int) $options['max_output_tokens'];
         }
+        if (isset($options['reasoning']) && is_array($options['reasoning'])) {
+            $chatPayload['reasoning'] = $options['reasoning'];
+        }
 
         $maxAttempts = 2;
         $lastException = null;
@@ -62,7 +65,7 @@ class OpenRouterResponsesProvider implements LanguageModel
                 $http = Http::acceptJson()
                     ->asJson()
                     ->withToken($apiKey)
-                    ->connectTimeout(10)
+                    ->connectTimeout(25)
                     ->timeout($timeout);
 
                 if (defined('CURLOPT_IPRESOLVE') && defined('CURL_IPRESOLVE_V4')) {
@@ -73,6 +76,13 @@ class OpenRouterResponsesProvider implements LanguageModel
 
                 if ($chatResponse->successful()) {
                     $content = $chatResponse->json('choices.0.message.content');
+                    if (! is_string($content) || trim($content) === '') {
+                        $reasoning = $chatResponse->json('choices.0.message.reasoning');
+                        if (is_string($reasoning) && trim($reasoning) !== '') {
+                            $content = $reasoning;
+                        }
+                    }
+
                     if (is_string($content) && trim($content) !== '') {
                         return trim($content);
                     }

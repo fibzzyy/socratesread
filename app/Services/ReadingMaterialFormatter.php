@@ -144,6 +144,23 @@ class ReadingMaterialFormatter
                 continue;
             }
 
+            // Buang baris metadata cover teracak / berspasi per huruf (misal: /IQIRXIVMER..., 1EXIQEXMOE...)
+            $tNoZero = str_replace("\0", '', $trimmed);
+            if (preg_match('#^/(?:IQIR|IFYH|6ITY|1EXI|4IRY)#i', $tNoZero)
+                || preg_match('/^(?:6ITY|1EXI|4IRY|6MWI|8IOR)/i', $tNoZero)
+                || preg_match('/^(?:[\/\p{L}\p{N}%&_()\-]\s+){5,}/u', $tNoZero)
+                || preg_match('/^[-–—\s]*\d+\s*&\s*\d+/u', $tNoZero)) {
+                continue;
+            }
+
+            // Buang running header/footer buku cetak
+            if (preg_match('/^(?:Matematika|Bahasa\s+Indonesia|Buku\s+Siswa)\s+untuk\s+SMA.*Kelas\s+[X\d]+/iu', $tNoZero)
+                || preg_match('/^Bab\s+\d+\s*\|\s*/iu', $tNoZero)
+                || preg_match('/^(?:World\s+Our\s+World|Data\s+source:\s*United\s+Nations|CC\s+BY\b)/iu', $tNoZero)
+                || preg_match('/^(?:Bab|Eksponen\s*\d*)$/iu', $tNoZero)) {
+                continue;
+            }
+
             // Baris perintah terminal (#mkdir ..., #cd ..., #service ...)
             if (preg_match('/^#[a-z0-9_\/\.\-]/i', $trimmed)) {
                 $flushParagraph();

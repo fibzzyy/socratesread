@@ -59,9 +59,87 @@
                     @error('quiz_duration_minutes')<small class="upload-field-error">{{ $message }}</small>@enderror
                 </div>
             </div>
-            <div class="upload-field-group"><label for="document-file">File PDF</label><input id="document-file" name="file" class="upload-file-input" type="file" accept="application/pdf,.pdf" required><small class="upload-help">Maksimal 50 MB tanpa batasan karakter. Pastikan PDF memiliki teks yang dapat dipilih (bukan hasil scan foto tanpa OCR).</small>@error('file')<small class="upload-field-error">{{ $message }}</small>@enderror</div>
+            <div class="upload-field-group">
+                <label for="document-file">File PDF</label>
+                <input id="document-file" name="file" class="upload-file-input" type="file" accept="application/pdf,.pdf" required>
+                <small class="upload-help">Maksimal 50 MB tanpa batasan karakter. Pastikan PDF memiliki teks yang dapat dipilih (bukan hasil scan foto tanpa OCR).</small>
+                @error('file')<small class="upload-field-error">{{ $message }}</small>@enderror
+            </div>
+
+            <!-- Cakupan Halaman & Batas Submateri (Opsi 1) -->
+            <div class="rounded-xl border border-blue-100 bg-blue-50/40 p-3.5 space-y-3">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-blue-900 flex items-center gap-1.5">
+                        <x-icon name="book-open" class="w-4 h-4 text-blue-600"/>
+                        Cakupan Halaman & Batas Submateri Pertemuan
+                    </span>
+                    <span class="text-[11px] text-blue-700 bg-blue-100/70 px-2 py-0.5 rounded-full font-medium">Pengaturan Cerdas</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                    <!-- Pilihan Mode Halaman -->
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-semibold text-slate-700">Mode Pembagian Halaman</label>
+                        <div class="flex items-center gap-3">
+                            <label class="inline-flex items-center gap-1.5 text-xs text-slate-700 cursor-pointer">
+                                <input type="radio" name="page_scope" value="all" checked class="text-blue-600 focus:ring-blue-500" id="scope-all">
+                                <span>Seluruh Halaman (Modul/Slide)</span>
+                            </label>
+                            <label class="inline-flex items-center gap-1.5 text-xs text-slate-700 cursor-pointer">
+                                <input type="radio" name="page_scope" value="range" class="text-blue-600 focus:ring-blue-500" id="scope-range">
+                                <span>Pilih Rentang Halaman (Buku Tebal)</span>
+                            </label>
+                        </div>
+                        <small class="text-[11px] text-slate-500 block">
+                            Pilih "Rentang Halaman" jika materi hanya bab tertentu. Masukkan nomor lembar sesuai urutan di aplikasi PDF (misal di Chrome/Adobe), bukan nomor cetak pojok buku.
+                        </small>
+                    </div>
+
+                    <!-- Input Rentang Halaman (Tersembunyi bila Seluruh Halaman) -->
+                    <div id="page-range-inputs" class="hidden flex items-center gap-2">
+                        <div class="flex-1">
+                            <label for="page_start" class="text-[11px] font-semibold text-slate-600 block mb-1">Dari Halaman</label>
+                            <input type="number" id="page_start" name="page_start" min="1" placeholder="Contoh: 1" class="upload-field bg-white py-1.5 text-xs">
+                        </div>
+                        <span class="text-slate-400 font-bold mt-5">-</span>
+                        <div class="flex-1">
+                            <label for="page_end" class="text-[11px] font-semibold text-slate-600 block mb-1">Sampai Halaman</label>
+                            <input type="number" id="page_end" name="page_end" min="1" placeholder="Contoh: 25" class="upload-field bg-white py-1.5 text-xs">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Input Batas Submateri Terakhir -->
+                <div class="pt-2 border-t border-blue-100/60">
+                    <label for="last_subtopic_heading" class="text-xs font-semibold text-slate-700 flex items-center gap-1">
+                        Batas Submateri Terakhir yang Diajarkan Hari Ini (Opsional)
+                    </label>
+                    <input id="last_subtopic_heading" name="last_subtopic_heading" type="text" maxlength="160" class="upload-field bg-white text-xs mt-1" placeholder="Contoh: 2.4 Kaidah Kebahasaan (materi 2.5 ke bawah otomatis diabaikan)">
+                    <small class="text-[11px] text-slate-500 block mt-1">
+                        Gunakan ini jika waktu kelas habis di tengah halaman. Sistem otomatis memotong materi setelah submateri ini agar soal kuis 100% adil dan sesuai apa yang diajarkan.
+                    </small>
+                </div>
+            </div>
+
+            <!-- Sakelar Tantangan Guru -->
+            <input type="hidden" name="has_teacher_challenges_toggle" value="1">
+            <div class="rounded-xl border border-purple-100 bg-purple-50/40 p-3 flex items-center justify-between">
+                <div class="flex items-start gap-2.5">
+                    <input type="checkbox" id="enable_teacher_challenges" name="enable_teacher_challenges" value="1" checked class="mt-0.5 rounded text-purple-600 focus:ring-purple-500 cursor-pointer">
+                    <div>
+                        <label for="enable_teacher_challenges" class="text-xs font-bold text-purple-900 cursor-pointer block">
+                            Aktifkan 5 Soal Esai Tantangan Guru untuk Materi Ini
+                        </label>
+                        <p class="text-[11px] text-purple-700">
+                            Jika dinonaktifkan, siswa hanya akan membaca materi dan mengerjakan Kuis Socrates (10 Pilihan Ganda). Anda tetap bisa mengaktifkan atau membuat soal esai kapan saja nanti.
+                        </p>
+                    </div>
+                </div>
+                <span class="rounded bg-purple-100 text-purple-800 text-[10px] font-bold px-2 py-0.5 whitespace-nowrap">Esai Analitis</span>
+            </div>
+
             <div class="teacher-upload-footer">
-                <p><x-icon name="sparkles"/> AI otomatis merapikan paragraf materi & merumuskan 3 tantangan Sokratik (HOTS).</p>
+                <p><x-icon name="sparkles"/> AI otomatis merapikan teks materi, menyusun 10 Kuis Socrates & 5 Tantangan Guru (HOTS).</p>
                 <button class="challenge-button" type="submit">
                     <span>Proses dengan AI</span>
                     <x-icon name="arrow-right"/>
@@ -1615,6 +1693,20 @@
                     btnSaveAllChallenges.innerHTML = prevLabel;
                 }
             });
+
+            // Toggle input rentang halaman
+            const scopeAll = document.getElementById('scope-all');
+            const scopeRange = document.getElementById('scope-range');
+            const rangeInputs = document.getElementById('page-range-inputs');
+            const toggleRangeInputs = () => {
+                if (scopeRange && scopeRange.checked) {
+                    rangeInputs?.classList.remove('hidden');
+                } else {
+                    rangeInputs?.classList.add('hidden');
+                }
+            };
+            scopeAll?.addEventListener('change', toggleRangeInputs);
+            scopeRange?.addEventListener('change', toggleRangeInputs);
         })();
     </script>
 @endsection

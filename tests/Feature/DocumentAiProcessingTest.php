@@ -200,4 +200,54 @@ TEXT;
         $this->assertTrue($repaired['is_valid']);
         $this->assertStringContainsString('Pasal 32', $repaired['answer_key'] . ' ' . $repaired['reference_excerpt']);
     }
+
+    public function test_math_exponents_domain_and_rejection_of_berikut_stopword(): void
+    {
+        $mockModel = Mockery::mock(LanguageModel::class);
+        $mockModel->shouldReceive('isConfigured')->andReturn(false);
+        $processor = new DocumentAiProcessor($mockModel);
+
+        $mathMaterial = <<<'TEXT'
+Definisi Eksponen
+Jika a adalah bilangan real dan n adalah bilangan bulat positif, maka a^n menyatakan hasil kali bilangan a sebanyak n faktor dan didefinisikan sebagai perkalian berulang. Bilangan berpangkat atau disebut juga eksponen didefinisikan sebagai berikut.
+Sifat-sifat eksponen: a^m . a^n = a^{m+n} dan a^m / a^n = a^{m-n}.
+Fungsi eksponensial f(x) = 3^x menggambarkan penularan virus dan penyebaran hoaks di mana setiap orang menulari 3 orang pada fase berikutnya.
+TEXT;
+
+        $quiz = $processor->generateHeuristicQuizQuestions($mathMaterial, 'MTK', 'Matematika', 10);
+        $this->assertCount(10, $quiz);
+
+        foreach ($quiz as $q) {
+            foreach ($q['options'] as $opt) {
+                $this->assertNotSame('Berikut', trim($opt['text']));
+                $this->assertNotSame('Sebagai berikut', trim($opt['text']));
+            }
+        }
+
+        $challenges = $processor->generateHeuristicTeacherChallengeSuggestions($mathMaterial, 'MTK', 'Matematika');
+        $this->assertCount(5, $challenges);
+        $this->assertStringContainsString('a^n', $challenges[0]['question']);
+        $this->assertStringContainsString('a^m', $challenges[1]['question']);
+    }
+
+    public function test_multibyte_ellipsis_and_safe_utf8_regex_compilation(): void
+    {
+        $mockModel = Mockery::mock(LanguageModel::class);
+        $mockModel->shouldReceive('isConfigured')->andReturn(false);
+        $processor = new DocumentAiProcessor($mockModel);
+
+        $mathWithEllipsis = <<<'TEXT'
+Pola barisan bilangan: 4, 6, 8, 10, …
+Jika diamati lebih teliti, suku berikutnya bertambah 2 secara teratur.
+Rumus suku ke-n barisan aritmetika adalah U_n = a + (n - 1)b.
+Pada baris ke-4: U_4 = 20 + (… × 4) = 36 kursi.
+Jadi, pada baris ke-5 diperoleh jumlah kursi bertambah sesuai pola.
+TEXT;
+
+        $quiz = $processor->generateHeuristicQuizQuestions($mathWithEllipsis, 'Barisan', 'Matematika', 10);
+        $this->assertCount(10, $quiz);
+
+        $challenges = $processor->generateHeuristicTeacherChallengeSuggestions($mathWithEllipsis, 'Barisan', 'Matematika');
+        $this->assertCount(5, $challenges);
+    }
 }

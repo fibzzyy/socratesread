@@ -126,9 +126,11 @@ class DocumentAiProcessor
      */
     protected function processWithAi(string $formattedBody, string $title, ?string $category = null): ?array
     {
-        $sampleText = $this->buildFullCoverageContext($formattedBody, 18000);
+        $sampleText = $this->buildFullCoverageContext($formattedBody, 9000);
 
         $instructions = <<<INSTRUCTIONS
+PENTING: LANGSUNG mulai output dengan karakter '{' tanpa salam, kata pengantar, analisis, atau monolog pembuka. Jawab HANYA dalam format JSON valid.
+
 Kamu adalah Kurator Literasi & Asesor Berpikir Kritis Taksonomi Bloom SocratesRead AI (setara standar tinggi Challenge Socrates).
 Tugasmu adalah membaca KESELURUHAN isi materi bacaan (dari paragraf awal hingga penutup) lalu menyusun intisari materi, tepat 5 soal esai penalaran kritis analitis HOTS (Bloom C3–C5), serta 10 butir soal kuis pilihan ganda berbasis skenario/studi kasus nyata.
 
@@ -153,7 +155,7 @@ Format output WAJIB HANYA berupa JSON valid tanpa teks lain:
       "c": "Pilihan C (ringkas, satu kategori, masuk akal)",
       "d": "Pilihan D (ringkas, satu kategori, masuk akal)",
       "k": "A",
-      "e": "Penjelasan lengkap MENGAPA pilihan tersebut benar berdasarkan fakta/prinsip materi."
+      "e": "Penjelasan lengkap ringkas 1-2 kalimat MENGAPA pilihan tersebut benar berdasarkan fakta materi."
     }
   ]
 }
@@ -168,6 +170,10 @@ ATURAN KETAT:
    - DILARANG menyalin kalimat mentah dari materi ke soal atau opsi pilihan.
    - Keempat opsi (a, b, c, d) wajib berada dalam satu kelompok kategori yang seimbang, masuk akal, dan menggunakan Bahasa Indonesia baku yang wajar (DILARANG potongan kata rusak/tabel).
 3. Kunci 'k' adalah tepat satu huruf: A, B, C, atau D.
+4. ATURAN WAJIB SOAL BERBASIS KASUS / CERITA / PARAGRAF:
+   - DILARANG KERAS menggunakan kata rujukan buta seperti "pada teks di atas", "dalam cerita di atas", atau "pada bacaan ini" tanpa menyertakan teksnya.
+   - Jika pertanyaan menganalisis penggalan teks, cerita, draf yang salah, atau kasus tertentu: KUTIPAN TEKS TERSEBUT WAJIB DISERTAKAN LANGSUNG di dalam kalimat pertanyaan (misal: 'Perhatikan cuplikan berikut: "[kutipan]". Berdasarkan cuplikan tersebut, analisislah...') atau dituliskan lengkap pada field "c" (context) agar soal berdiri sendiri (self-contained) dan jelas bagi siswa.
+   - Jika materi Matematika / Sains, gunakan notasi rumus LaTeX standar ($...$) agar sistem merender simbol matematika secara rapi.
 INSTRUCTIONS;
 
         $messages = [
@@ -179,7 +185,7 @@ INSTRUCTIONS;
 
         $rawResponse = $this->languageModel->respond($messages, $instructions, [
             'temperature' => 0.15,
-            'max_output_tokens' => 2800,
+            'max_output_tokens' => 3800,
             'timeout' => 90,
         ]);
 
@@ -221,6 +227,16 @@ INSTRUCTIONS;
                     $formattedBody,
                     $title
                 );
+
+                // Jika pertanyaan memiliki rujukan buta "di atas", sertakan cuplikan teks rujukan secara mandiri
+                if (preg_match('/\b(?:teks(?:\s+laporan\s+hasil\s+observasi)?\s+di\s+atas|cerita\s+di\s+atas|bacaan\s+di\s+atas)\b/iu', $prompt) && ! str_contains($prompt, '"')) {
+                    $refExcerpt = trim((string) ($validatedEssay['reference_excerpt'] ?? ''));
+                    if ($refExcerpt !== '' && mb_strlen($refExcerpt) >= 30) {
+                        $prompt = "Perhatikan cuplikan teks berikut:\n\"" . mb_substr($refExcerpt, 0, 220) . "...\"\n\n" . preg_replace('/\b(?:di atas)\b/iu', 'tersebut', $prompt);
+                    } else {
+                        $prompt = preg_replace('/\b(?:di atas)\b/iu', 'pada materi bacaan ini', $prompt) ?? $prompt;
+                    }
+                }
 
                 $questions[] = [
                     'sequence' => $seq,
@@ -350,7 +366,7 @@ INSTRUCTIONS;
         if ($this->languageModel->isConfigured()) {
             @set_time_limit(180);
             try {
-                $sampleText = $this->buildFullCoverageContext($formattedBody, 18000);
+                $sampleText = $this->buildFullCoverageContext($formattedBody, 9000);
                 $instructions = <<<INSTRUCTIONS
 Kamu adalah Perancang Soal Berpikir Kritis Taksonomi Bloom (C3–C5) SocratesRead AI (setara standar tinggi Challenge Socrates).
 Tugasmu: baca KESELURUHAN isi materi dari awal hingga akhir, lalu buat tepat 5 rekomendasi soal ESAI penalaran kritis tinggi (Higher-Order Thinking Skills / HOTS) yang menguji pemahaman mendalam, perbandingan konsep, evaluasi aturan/konsekuensi, dan pemecahan kasus nyata.
@@ -382,6 +398,10 @@ ATURAN WAJIB:
 4. DILARANG memakai frasa pembuka klise seperti "Berdasarkan teks materi...", "Menurut bacaan...", dsb.
 5. "reference_excerpt" WAJIB berupa kutipan kalimat asli materi yang membuktikan kebenaran kunci jawaban.
 6. Keluarkan HANYA JSON array tanpa markdown/komentar lain.
+7. ATURAN WAJIB SOAL BERBASIS KASUS / CERITA / PARAGRAF:
+   - DILARANG MERUJUK BUTA seperti "pada teks di atas" tanpa menyertakan kutipannya.
+   - Jika pertanyaan menganalisis penggalan cerita, draf yang salah, atau studi kasus: KUTIPAN KASUS/TEKS WAJIB DICANTUMKAN LANGSUNG di dalam kalimat pertanyaan atau di dalam field "context" agar soal mandiri dan jelas bagi siswa.
+   - Jika materi Matematika / Sains, gunakan format rumus LaTeX baku ($...$) agar sistem merender simbol matematika secara rapi.
 INSTRUCTIONS;
 
                 $messages = [
@@ -413,6 +433,16 @@ INSTRUCTIONS;
                             $formattedBody,
                             $title
                         );
+
+                        // Bersihkan rujukan buta "di atas" dengan menyertakan cuplikan teks langsung
+                        if (preg_match('/\b(?:teks(?:\s+laporan\s+hasil\s+observasi)?\s+di\s+atas|cerita\s+di\s+atas|bacaan\s+di\s+atas)\b/iu', $q) && ! str_contains($q, '"')) {
+                            $refExcerpt = trim((string) ($validated['reference_excerpt'] ?? ''));
+                            if ($refExcerpt !== '' && mb_strlen($refExcerpt) >= 30) {
+                                $q = "Perhatikan cuplikan teks berikut:\n\"" . mb_substr($refExcerpt, 0, 220) . "...\"\n\n" . preg_replace('/\b(?:di atas)\b/iu', 'tersebut', $q);
+                            } else {
+                                $q = preg_replace('/\b(?:di atas)\b/iu', 'pada materi bacaan ini', $q) ?? $q;
+                            }
+                        }
                         $diff = strtolower(trim((string) ($item['difficulty'] ?? 'medium')));
                         if (! in_array($diff, ['easy', 'medium', 'hard'], true)) {
                             $diff = 'medium';
@@ -926,7 +956,7 @@ INSTRUCTIONS;
             }
             $plain = trim(preg_replace('/[*_`]/u', '', strip_tags($trimRaw)) ?? '');
             $plain = trim(preg_replace('/^(?:[\-\•\*]|\d+[\.\)])\s+/u', '', $plain) ?? '');
-            $plain = trim($plain, "\"“”' ");
+            $plain = preg_replace('/^[\s"“”\']+|[\s"“”\']+$/u', '', $plain) ?? trim($plain);
 
             if ($plain === '' || mb_strlen($plain) < 35) {
                 continue;
@@ -1054,6 +1084,117 @@ INSTRUCTIONS;
                 'difficulty' => $item['difficulty'],
                 'difficulty_weight' => TeacherChallenge::weightForDifficulty($item['difficulty']),
             ], $ktiChallenges);
+        }
+
+        // Domain 4: Teks Laporan Hasil Observasi / Wayang / Museum (LHO / BS)
+        if (
+            str_contains($bodyLower, 'laporan hasil observasi')
+            || str_contains($titleLower, 'laporan hasil observasi')
+            || str_contains($bodyLower, 'wayang purwa')
+            || (str_contains($bodyLower, 'observasi') && str_contains($bodyLower, 'wayang'))
+            || (str_contains($titleLower, 'bs') && str_contains($bodyLower, 'observasi'))
+        ) {
+            $lhoChallenges = [
+                [
+                    'bloom' => 'C3',
+                    'difficulty' => 'easy',
+                    'question' => 'Bagaimana cara menentukan objek observasi dan menyusun jadwal observasi secara sistematis sebelum menulis teks laporan hasil observasi, serta mengapa tahap persiapan ini krusial bagi keakuratan data?',
+                    'rubric' => 'Tahap persiapan diawali dengan menetapkan objek observasi yang jelas dan spesifik, kemudian menyusun jadwal pengamatan yang terstruktur mencakup waktu, lokasi, dan instrumen pencatatan data. Persiapan ini krusial agar pengamat fokus pada indikator faktual di lapangan, menghindari data yang terlewat atau bias, serta menjamin keabsahan dan keakuratan data sebelum dituangkan ke dalam teks laporan.',
+                    'reference_excerpt' => 'Sebelum menyusun teks laporan hasil observasi, kamu harus menentukan objek yang akan kamu observasi, menyusun jadwal observasi, melakukan observasi, mencatat data dan hasil observasi.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'difficulty' => 'medium',
+                    'question' => 'Bandingkan struktur dan fungsi antara "Pernyataan Umum (Klasifikasi)" dengan "Deskripsi Bagian" dalam teks laporan hasil observasi: bagaimana keterkaitan logis keduanya membangun pemahaman pembaca?',
+                    'rubric' => 'Pernyataan umum berfungsi membuka laporan dengan memberikan definisi, kategori luas, atau pengenalan awal objek yang diamati. Selanjutnya, deskripsi bagian menguraikan secara rinci aspek fisik, jenis-jenis, maupun karakteristik khusus objek tersebut secara faktual. Keterkaitan logis dari umum ke khusus ini membantu pembaca memahami hierarki konsep secara teratur dan sistematis.',
+                    'reference_excerpt' => 'Menyajikan Laporan Hasil Observasi: Mengidentifikasi isi teks laporan hasil observasi, struktur pernyataan umum, deskripsi bagian, dan deskripsi manfaat.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'difficulty' => 'medium',
+                    'question' => 'Analisis mengapa penetapan wayang oleh UNESCO sebagai "Masterpiece of Oral and Intangible Heritage of Humanity" menuntut tanggung jawab pelestarian aktif, bukan sekadar kebanggaan simbolis semata!',
+                    'rubric' => 'Pengakuan UNESCO membuktikan bahwa wayang memiliki nilai adiluhung dalam seni bertutur, filsafat moral, dan warisan budaya dunia yang tak ternilai. Tanggung jawab pelestarian aktif menuntut regenerasi seniman/dalang, inovasi media pertunjukan (seperti wayang motekar dan wayang suket), serta pengenalan literasi budaya kepada generasi muda agar nilai-nilai kearifan lokal tetap hidup dan tidak punah tergerus arus modernisasi.',
+                    'reference_excerpt' => 'UNESCO menetapkan wayang sebagai pertunjukan bayangan boneka tersohor dari Indonesia, sebuah warisan mahakarya dunia yang tak ternilai dalam seni bertutur.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'difficulty' => 'hard',
+                    'question' => 'Evaluasi dampak negatif yang terjadi apabila sebuah teks laporan hasil observasi dicemari oleh opini emosional atau data yang tidak dapat diverifikasi kebenarannya!',
+                    'rubric' => 'Penyusupan opini emosional atau data spekulatif merusak esensi objektivitas laporan observasi, sehingga pembaca tersesat oleh informasi yang bias dan tidak valid. Laporan tersebut kehilangan kredibilitas ilmiahnya, gagal menjadi rujukan pengetahuan yang andal, dan berpotensi memicu kesimpulan yang keliru dalam pengambilan keputusan akademis maupun praktis.',
+                    'reference_excerpt' => 'Laporan hasil observasi harus menyajikan data dan fakta objektif yang dapat dipertanggungjawabkan kebenarannya secara faktual.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'difficulty' => 'hard',
+                    'question' => 'Di era digital saat informasi beredar cepat tanpa filter, evaluasi bagaimana keterampilan menganalisis dan menyusun teks laporan hasil observasi membentuk nalar kritis siswa dalam menyaring hoaks!',
+                    'rubric' => 'Keterampilan menyusun laporan observasi melatih siswa untuk selalu menuntut bukti empiris, memverifikasi sumber data primer di lapangan, serta memisahkan antara fakta nyata dengan klaim subjektif. Sikap skeptis terukur dan disiplin verifikasi inilah yang menjadi perisai mental utama siswa agar tidak mudah terprovokasi atau mempercayai hoaks dan disinformasi di media digital.',
+                    'reference_excerpt' => 'Menunjukkan kemampuan berpikir kritis dan selektif dalam mengambil informasi penting dari bacaan atau sebuah cerita.',
+                ],
+            ];
+
+            return array_map(fn ($item) => [
+                'type' => 'essay',
+                'question' => $item['question'],
+                'context' => null,
+                'rubric' => $item['rubric'],
+                'reference_excerpt' => $item['reference_excerpt'],
+                'difficulty' => $item['difficulty'],
+                'difficulty_weight' => TeacherChallenge::weightForDifficulty($item['difficulty']),
+            ], $lhoChallenges);
+        }
+
+        // Domain 5: Matematika — Eksponen & Sifat-Sifat Perpangkatan
+        if (
+            (str_contains($bodyLower, 'eksponen') || str_contains($titleLower, 'eksponen') || str_contains($titleLower, 'mtk') || (isset($category) && str_contains(mb_strtolower($category), 'matematika')))
+            && (str_contains($bodyLower, 'pangkat') || str_contains($bodyLower, 'perkalian berulang') || str_contains($bodyLower, 'sifat-sifat eksponen') || str_contains($bodyLower, 'fungsi eksponensial'))
+        ) {
+            $mtkChallenges = [
+                [
+                    'bloom' => 'C3',
+                    'difficulty' => 'easy',
+                    'question' => 'Jelaskan prinsip dasar definisi bilangan berpangkat $a^n$ ($a$ bilangan real dan $n$ bilangan bulat positif), serta analisis mengapa syarat $a \neq 0$ mutlak diperlukan ketika mendefinisikan pangkat nol ($a^0 = 1$) dan pangkat negatif ($a^{-n} = \frac{1}{a^n}$)!',
+                    'rubric' => 'Eksponen $a^n$ didefinisikan sebagai perkalian berulang bilangan real $a$ sebanyak $n$ faktor ($a \times a \times \dots \times a$). Syarat $a \neq 0$ mutlak diperlukan karena operasi pembagian dengan nol tidak terdefinisi dalam matematika; jika $a = 0$, bentuk $a^0$ berasal dari $0^n / 0^n = 0/0$ yang merupakan bentuk tak tentu, dan bentuk $a^{-n} = 1/0^n = 1/0$ yang menghasilkan nilai tak terdefinisi.',
+                    'reference_excerpt' => 'Jika a adalah bilangan real dan n adalah bilangan bulat positif, maka a^n menyatakan hasil kali bilangan a sebanyak n faktor dan ditulis dengan a^n. Syarat basis a bukan nol pada pangkat nol dan negatif.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'difficulty' => 'medium',
+                    'question' => 'Buktikan secara runtut menggunakan konsep perkalian berulang mengapa sifat perkalian eksponen menghasilkan penjumlahan pangkat ($a^m \cdot a^n = a^{m+n}$) dan sifat pembagian menghasilkan pengurangan pangkat ($\frac{a^m}{a^n} = a^{m-n}$ untuk $a \neq 0$ dan $m > n$)!',
+                    'rubric' => '$a^m$ berarti perkalian $a$ sebanyak $m$ faktor dan $a^n$ sebanyak $n$ faktor. Jika dikalikan, seluruh faktor digabungkan sehingga diperoleh total $(m + n)$ buah faktor $a$, terbukti $a^m \cdot a^n = a^{m+n}$. Pada pembagian $a^m / a^n$, terdapat $m$ faktor $a$ pada pembilang dan $n$ faktor $a$ pada penyebut; sebanyak $n$ faktor saling membagi bernilai 1, menyisakan $(m - n)$ buah faktor $a$ pada pembilang, terbukti $a^m / a^n = a^{m-n}$.',
+                    'reference_excerpt' => 'Sifat-sifat eksponen: a^m . a^n = a^{m+n} dan a^m / a^n = a^{m-n}. Buktikan sifat eksponen dan amati bentuk perkalian berulang.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'difficulty' => 'medium',
+                    'question' => 'Dalam studi kasus penularan virus atau penyebaran pesan hoaks di materi (misal tiap orang membagikan ke 3 orang pada fase berikutnya), analisis mengapa fenomena tersebut dimodelkan sebagai fungsi eksponensial $f(x) = 3^x$ dan bukan fungsi linier $f(x) = 3x$, serta bagaimana diagram pohon menggambarkan mekanisme penggandaan tersebut!',
+                    'rubric' => 'Fenomena tersebut dimodelkan sebagai fungsi eksponensial $f(x) = 3^x$ karena setiap orang yang menerima pesan atau tertular bertindak sebagai agen baru yang melipatgandakan sebaran ke 3 orang berikutnya secara multiplikatif (fase 1: 3, fase 2: 9, fase 3: 27, fase 4: 81), bukan penambahan konstan 3 orang per fase seperti fungsi linier $f(x) = 3x$. Diagram pohon menggambarkan percabangan di mana setiap simpul melahirkan 3 cabang baru, sehingga total percabangan di tingkat ke-$x$ adalah perkalian berulang $3 \times 3 \times \dots \times 3 = 3^x$.',
+                    'reference_excerpt' => 'Penyebaran virus, peredaran video yang viral, dan pertumbuhan penduduk dunia memiliki satu kesamaan yaitu setiap fenomena dapat dijelaskan oleh pertumbuhan eksponen. Diagram pohon untuk ilustrasi penyebaran pesan.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'difficulty' => 'hard',
+                    'question' => 'Perhatikan bentuk aljabar eksponen: $\left(\frac{2^4 \cdot 3^6}{2^3 \cdot 3^2}\right)^3$. Uraikan langkah penyelesaian paling efisien dengan menerapkan sifat-sifat eksponen, serta evaluasi kesalahan konseptual apa yang paling sering dilakukan siswa saat menyelesaikan bentuk pecahan berpangkat seperti ini!',
+                    'rubric' => 'Langkah paling efisien adalah menyederhanakan basis yang sama di dalam kurung terlebih dahulu dengan sifat pembagian eksponen: $2^{4-3} \cdot 3^{6-2} = 2^1 \cdot 3^4 = 2 \cdot 81 = 162$. Kemudian terapkan sifat pemangkatan $(a \cdot b)^n = a^n \cdot b^n$: $(2^1)^3 \cdot (3^4)^3 = 2^3 \cdot 3^{12} = 8 \cdot 531.441 = 4.251.528$. Kesalahan konseptual yang sering dilakukan siswa adalah mengoperasikan pangkat antar basis yang berbeda (misalnya memaksakan operasi antara 2 dan 3), atau lupa mendistribusikan pangkat luar ke seluruh faktor di pembilang dan penyebut.',
+                    'reference_excerpt' => 'Sederhanakan bentuk eksponen (2^4 . 3^6) / (2^3 . 3^2) dipangkatkan 3. Perhatikan operasi basis yang sejenis dan sifat perpangkatan.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'difficulty' => 'hard',
+                    'question' => 'Berdasarkan pemodelan eksponensial penyebaran informasi yang dipelajari pada materi, evaluasi bagaimana pemahaman matematis mengenai laju pertumbuhan eksponen dapat membentuk nalar kritis generasi muda dalam menyaring informasi dan memutus rantai penyebaran hoaks di media sosial!',
+                    'rubric' => 'Pemahaman eksponensial membuka kesadaran matematis bahwa tindakan satu orang membagikan informasi palsu tanpa verifikasi akan berlipat ganda secara geometris ke ribuan hingga jutaan pengguna lain hanya dalam beberapa fase sebaran ($3^x$ atau $10^x$). Nalar kritis yang terbentuk mendorong siswa untuk bertanggung jawab secara digital dengan menahan diri tidak langsung membagikan pesan (sharing), melakukan cek fakta terhadap sumber primer, dan secara aktif memutus rantai eksponensial disinformasi sejak fase awal di lingkungannya.',
+                    'reference_excerpt' => 'Kamu akan mencoba menganalisis data penyebaran hoaks secara mandiri. Percobaan ini akan membantumu memahami konsep eksponen. Daya tarik sebuah konten di media sosial dapat membuat penyebaran konten melonjak dengan cepat.',
+                ],
+            ];
+
+            return array_map(fn ($item) => [
+                'type' => 'essay',
+                'question' => $item['question'],
+                'context' => null,
+                'rubric' => $item['rubric'],
+                'reference_excerpt' => $item['reference_excerpt'],
+                'difficulty' => $item['difficulty'],
+                'difficulty_weight' => TeacherChallenge::weightForDifficulty($item['difficulty']),
+            ], $mtkChallenges);
         }
 
         return null;
@@ -1225,11 +1366,12 @@ INSTRUCTIONS;
                         "Analisis mengapa pembahasan tentang \"{$subj}\" krusial dipahami sebelum melangkah ke bagian materi berikutnya!",
                     ]);
             } else {
+                $cleanTopic = (mb_strlen($cleanTitle) <= 4 || strtoupper($cleanTitle) === $cleanTitle) ? 'materi bacaan ini' : "materi \"{$cleanTitle}\"";
                 $q1Prompt = $isSocratic
-                    ? "Menurut penalaran Anda, mengapa gagasan pokok pada pembukaan materi \"{$title}\" krusial untuk dipahami?"
+                    ? "Menurut penalaran Anda, mengapa gagasan pokok pada pembukaan {$cleanTopic} krusial untuk dipahami?"
                     : $pickVariation($title . '|q1g', [
-                        "Analisis prinsip mendasar yang diuraikan pada pembahasan awal materi \"{$cleanTitle}\", dan mengapa pemahaman konsep tersebut krusial sebelum menerapkannya!",
-                        "Mengapa kaidah pokok yang dipaparkan dalam materi \"{$cleanTitle}\" harus dipahami secara menyeluruh dan tidak boleh diterapkan secara parsial?",
+                        "Analisis prinsip mendasar yang diuraikan pada pembahasan awal {$cleanTopic}, dan mengapa pemahaman konsep tersebut krusial sebelum menerapkannya!",
+                        "Mengapa kaidah pokok yang dipaparkan dalam {$cleanTopic} harus dipahami secara menyeluruh dan tidak boleh diterapkan secara parsial?",
                     ]);
             }
             $q1Answer = $this->paraphraseAnswerFromSource($q1Ref, $q1Role, $title, $q1Prompt, $q1Subject);
@@ -2560,6 +2702,217 @@ INSTRUCTIONS;
             $items = $ktiPool;
         }
 
+        // Domain 4: Teks Laporan Hasil Observasi / Wayang / Museum (BS)
+        if (
+            str_contains($bodyLower, 'laporan hasil observasi')
+            || str_contains($titleLower, 'laporan hasil observasi')
+            || str_contains($bodyLower, 'wayang purwa')
+            || (str_contains($bodyLower, 'observasi') && str_contains($bodyLower, 'wayang'))
+            || (str_contains($titleLower, 'bs') && str_contains($bodyLower, 'observasi'))
+        ) {
+            $lhoPool = [
+                [
+                    'bloom' => 'C1',
+                    'question' => 'Sebuah siswa ingin menulis laporan hasil observasi tentang wayang golek. Berdasarkan materi, bahan utama yang digunakan untuk membuat wayang golek adalah?',
+                    'correct' => 'Boneka kayu',
+                    'distractors' => ['Kulit kerbau', 'Kain batik', 'Rumput suket'],
+                    'explanation' => 'Wayang golek adalah jenis wayang yang menggunakan boneka kayu sebagai pemeran tokohnya.',
+                ],
+                [
+                    'bloom' => 'C2',
+                    'question' => 'Apa yang menjadi tujuan utama pembuatan teks laporan hasil observasi?',
+                    'correct' => 'Menyajikan informasi faktual berdasarkan pengamatan langsung secara objektif',
+                    'distractors' => [
+                        'Menulis cerita fiksi imajinatif untuk hiburan semata',
+                        'Menyampaikan opini pribadi tanpa didukung data lapangan',
+                        'Mempromosikan suatu produk komersial kepada khalayak umum',
+                    ],
+                    'explanation' => 'Teks laporan hasil observasi bertujuan menyajikan fakta dan klasifikasi objek berdasarkan pengamatan lapangan secara objektif dan sistematis.',
+                ],
+                [
+                    'bloom' => 'C2',
+                    'question' => 'Mengapa wayang purwa diperkirakan memiliki umur paling tua di antara jenis wayang lainnya?',
+                    'correct' => 'Karena kata "purwa" berasal dari bahasa Jawa yang berarti awal atau permulaan',
+                    'distractors' => [
+                        'Karena dibuat dari bahan plastik sintetis modern',
+                        'Karena proses pembuatannya sederhana tanpa aturan seni',
+                        'Karena hanya dipentaskan untuk upacara keagamaan modern',
+                    ],
+                    'explanation' => 'Wayang purwa dianggap paling tua karena penamaannya berasal dari kata "purwa" (bahasa Jawa) yang bermakna permulaan atau awal.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Apa perbedaan mendasar antara wayang wong (wayang orang) dengan wayang kulit purwa?',
+                    'correct' => 'Wayang wong diperankan langsung oleh aktor manusia, sedangkan wayang kulit dimainkan dalang menggunakan bayangan kelir',
+                    'distractors' => [
+                        'Wayang wong menggunakan boneka kayu, wayang kulit menggunakan kain mori',
+                        'Wayang wong tidak diiringi gamelan, wayang kulit diiringi musik modern',
+                        'Wayang wong hanya ada di luar negeri, wayang kulit asli nusantara',
+                    ],
+                    'explanation' => 'Wayang wong atau wayang orang diperankan langsung oleh manusia yang mengenakan kostum wayang, berbeda dengan wayang kulit yang mengandalkan bayangan boneka kulit.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Wayang suket dan wayang motekar merupakan inovasi dalam seni pertunjukan wayang. Apa fungsi inovasi tersebut bagi pelestarian budaya?',
+                    'correct' => 'Mengembangkan variasi media agar seni wayang tetap relevan dan menarik bagi generasi muda',
+                    'distractors' => [
+                        'Membatasi pertunjukan wayang hanya untuk kalangan bangsawan',
+                        'Menghapus kaidah dan pakem wayang tradisional secara total',
+                        'Menggantikan seluruh peran dalang dengan teknologi kecerdasan buatan',
+                    ],
+                    'explanation' => 'Pengembangan varian baru seperti wayang suket (rumput) dan motekar (animasi bayang) membuktikan kedinamisan budaya tradisional agar tetap digemari generasi baru.',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Pada teks laporan hasil observasi, bagian "Deskripsi Manfaat" berfungsi untuk...',
+                    'correct' => 'Menyajikan rincian kegunaan atau nilai fungsi dari objek yang diobservasi dalam kehidupan nyata',
+                    'distractors' => [
+                        'Menceritakan asal-usul legenda tokoh wayang secara mitologis',
+                        'Menuliskan biodata lengkap pengamat dan tim observasi',
+                        'Memuat daftar pustaka dan indeks buku rujukan',
+                    ],
+                    'explanation' => 'Bagian deskripsi manfaat menguraikan secara spesifik fungsi atau faedah objek yang diteliti bagi masyarakat dan lingkungan.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Diakui oleh UNESCO pada 7 November 2003, wayang ditetapkan sebagai "Masterpiece of Oral and Intangible Heritage of Humanity". Apa makna pengakuan dunia tersebut?',
+                    'correct' => 'Pengakuan internasional bahwa wayang adalah mahakarya warisan budaya bertutur takbenda milik peradaban dunia dari Indonesia',
+                    'distractors' => [
+                        'Larangan bagi bangsa Indonesia untuk mementaskan wayang di luar negeri',
+                        'Perintah untuk mengubah bahasa pengantar wayang menjadi bahasa internasional',
+                        'Penyerahan hak milik seni wayang kepada organisasi internasional',
+                    ],
+                    'explanation' => 'Gelar Masterpiece dari UNESCO mengukuhkan nilai adiluhung seni wayang Indonesia sebagai warisan luhur kemanusiaan yang diakui secara global.',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Sebelum menyusun draf laporan hasil observasi, langkah sistematis pertama yang wajib dilakukan oleh seorang pengamat adalah...',
+                    'correct' => 'Menentukan objek yang diobservasi, menyusun jadwal observasi, dan mengumpulkan data faktual di lapangan',
+                    'distractors' => [
+                        'Langsung menulis kesimpulan tanpa mengamati objek',
+                        'Mencari kritik negatif masyarakat terhadap objek observasi',
+                        'Mempublikasikan draf laporan ke media sosial terlebih dahulu',
+                    ],
+                    'explanation' => 'Prosedur observasi ilmiah menuntut persiapan matang: menetapkan objek amatan, mengatur jadwal, dan mengumpulkan catatan data empiris secara cermat.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Manakah ciri kebahasaan yang paling tepat dan dominan dalam sebuah teks laporan hasil observasi ilmiah?',
+                    'correct' => 'Menggunakan kalimat definisi, kata baku, istilah teknis sesuai bidang, dan kalimat deskripsi faktual',
+                    'distractors' => [
+                        'Menggunakan bahasa kiasan, majas hiperbola, dan ungkapan emosional subjektif',
+                        'Menggunakan kalimat perintah ajakan persuasif seperti naskah iklan promosi',
+                        'Menggunakan ragam bahasa percakapan sehari-hari yang santai dan tidak baku',
+                    ],
+                    'explanation' => 'Ciri kebahasaan laporan hasil observasi berfokus pada ketepatan makna: kalimat definisi (adalah, merupakan), verba relasional, dan istilah ilmiah yang lugas.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'question' => 'Dalam analisis teks laporan hasil observasi, apa yang membedakan antara "fakta hasil observasi" dengan "opini penulis"?',
+                    'correct' => 'Fakta dapat diverifikasi kebenarannya berdasarkan data empiris lapangan, sedangkan opini merupakan pandangan atau penilaian pribadi',
+                    'distractors' => [
+                        'Fakta selalu berbentuk angka statistik, sedangkan opini selalu berbentuk kalimat panjang',
+                        'Fakta tidak memerlukan bukti nyata, sedangkan opini wajib disahkan oleh pihak berwenang',
+                        'Tidak ada perbedaan antara fakta dan opini dalam laporan hasil observasi',
+                    ],
+                    'explanation' => 'Fakta bertumpu pada kenyataan obyektif lapangan yang dapat diuji ulang, sedangkan opini mencerminkan penafsiran atau perasaan subjektif penulis.',
+                ],
+            ];
+            $items = $lhoPool;
+        }
+
+        // Domain 5: Matematika — Eksponen, Sifat Perpangkatan, & Fungsi Eksponensial
+        if (
+            (str_contains($bodyLower, 'eksponen') || str_contains($titleLower, 'eksponen') || str_contains($titleLower, 'mtk') || (isset($category) && str_contains(mb_strtolower($category), 'matematika')))
+            && (str_contains($bodyLower, 'pangkat') || str_contains($bodyLower, 'perkalian berulang') || str_contains($bodyLower, 'sifat-sifat eksponen') || str_contains($bodyLower, 'akar') || str_contains($bodyLower, 'fungsi eksponensial'))
+        ) {
+            $mtkPool = [
+                [
+                    'bloom' => 'C1',
+                    'question' => 'Jika $a$ adalah bilangan real dan $n$ adalah bilangan bulat positif, bagaimana bilangan berpangkat (eksponen) $a^n$ didefinisikan secara matematis?',
+                    'correct' => 'Perkalian berulang bilangan real $a$ sebanyak $n$ faktor ($a \times a \times \dots \times a$)',
+                    'distractors' => [
+                        'Penjumlahan berulang bilangan $a$ sebanyak $n$ kali ($a + a + \dots + a$)',
+                        'Perkalian antara bilangan dasar $a$ dengan bilangan pangkat $n$ ($a \times n$)',
+                        'Pembagian berulang bilangan dasar $a$ oleh bilangan eksponen $n$',
+                    ],
+                    'explanation' => 'Secara formal, eksponen $a^n$ menyatakan hasil kali bilangan real $a$ sebanyak $n$ faktor.',
+                ],
+                [
+                    'bloom' => 'C2',
+                    'question' => 'Berdasarkan sifat-sifat eksponen, bentuk paling sederhana dari perkalian bilangan berpangkat dengan basis yang sama $a^m \cdot a^n$ adalah...',
+                    'correct' => '$a^{m+n}$',
+                    'distractors' => ['$a^{m \cdot n}$', '$a^{m - n}$', '$(a \cdot a)^{m+n}$'],
+                    'explanation' => 'Sifat perkalian eksponen dengan basis sama menyatakan bahwa pangkat dijumlahkan: $a^m \cdot a^n = a^{m+n}$.',
+                ],
+                [
+                    'bloom' => 'C2',
+                    'question' => 'Untuk bilangan real $a \neq 0$ serta $m, n$ bilangan bulat positif, bentuk sederhana dari operasi pembagian eksponen $\frac{a^m}{a^n}$ adalah...',
+                    'correct' => '$a^{m-n}$',
+                    'distractors' => ['$a^{\frac{m}{n}}$', '$a^{m+n}$', '$a^{-(m+n)}$'],
+                    'explanation' => 'Sifat pembagian eksponen dengan basis sama menyatakan bahwa pangkat dikurangkan: $\frac{a^m}{a^n} = a^{m-n}$.',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Bentuk ekuivalen yang paling tepat dari pemangkatan bilangan berpangkat $(a^m)^n$ adalah...',
+                    'correct' => '$a^{m \cdot n}$',
+                    'distractors' => ['$a^{m+n}$', '$a^{m^n}$', '$a^{\frac{m}{n}}$'],
+                    'explanation' => 'Sifat pemangkatan dari eksponen menyatakan bahwa kedua eksponen saling dikalikan: $(a^m)^n = a^{m \cdot n}$.',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Berapakah nilai dari bilangan berpangkat nol $a^0$ untuk setiap bilangan real $a$ dengan syarat $a \neq 0$?',
+                    'correct' => '1',
+                    'distractors' => ['0', '$a$', 'Tidak terdefinisi'],
+                    'explanation' => 'Berdasarkan sifat pembagian $\frac{a^n}{a^n} = a^{n-n} = a^0 = 1$ untuk setiap basis $a \neq 0$.',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Bentuk ekuivalen dari bilangan berpangkat bulat negatif $a^{-n}$ untuk $a \neq 0$ adalah...',
+                    'correct' => '$\frac{1}{a^n}$',
+                    'distractors' => ['$-a^n$', '$-\frac{1}{a^n}$', '$\sqrt[n]{a}$'],
+                    'explanation' => 'Pangkat bulat negatif menyatakan kebalikan pecahan (resiprokal) dari bilangan berpangkat positif: $a^{-n} = \frac{1}{a^n}$.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Bagaimanakah hubungan konseptual antara bilangan berpangkat pecahan $a^{\frac{m}{n}}$ dengan bentuk akar?',
+                    'correct' => '$a^{\frac{m}{n}} = \sqrt[n]{a^m}$ dengan $n$ sebagai indeks akar dan $m$ sebagai pangkat bilangan di dalam akar',
+                    'distractors' => [
+                        '$a^{\frac{m}{n}} = \sqrt[m]{a^n}$ dengan $m$ sebagai indeks akar luar',
+                        '$a^{\frac{m}{n}} = \frac{\sqrt{a^m}}{n}$ sebagai hasil bagi bentuk akar',
+                        '$a^{\frac{m}{n}} = m \cdot \sqrt[n]{a}$ sebagai kelipatan bentuk akar',
+                    ],
+                    'explanation' => 'Eksponen pecahan $a^{\frac{m}{n}}$ terhubung langsung dengan bentuk akar di mana penyebut $n$ menjadi indeks akar: $\sqrt[n]{a^m}$.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Hitunglah nilai paling sederhana dari operasi bentuk aljabar eksponen $\frac{2^5 \cdot 2^3}{2^2}$!',
+                    'correct' => '$2^6 = 64$',
+                    'distractors' => ['$2^8 = 256$', '$2^4 = 16$', '$2^{15} = 32.768$'],
+                    'explanation' => 'Terapkan sifat perkalian dan pembagian: $\frac{2^5 \cdot 2^3}{2^2} = 2^{5+3-2} = 2^6 = 64$.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Dalam pemodelan penyebaran pesan hoaks atau penularan virus dengan rasio lipat tiga ($f(x) = 3^x$), berapakah jumlah penerima pesan pada fase ke-4?',
+                    'correct' => '81 orang',
+                    'distractors' => ['12 orang', '27 orang', '243 orang'],
+                    'explanation' => 'Pada fase ke-4, jumlah penerima dihitung dengan fungsi eksponen $f(4) = 3^4 = 3 \times 3 \times 3 \times 3 = 81$ orang.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'question' => 'Mengapa pola pertumbuhan eksponensial $f(x) = a^x$ (dengan $a > 1$) menghasilkan lonjakan yang jauh lebih drastis pada fase lanjut dibandingkan pola pertumbuhan linier $f(x) = ax$?',
+                    'correct' => 'Karena pada pertumbuhan eksponensial nilai pada setiap tahap berlipat ganda melalui perkalian, sedangkan pertumbuhan linier hanya menambah nilai secara konstan',
+                    'distractors' => [
+                        'Karena fungsi eksponensial selalu memiliki nilai awal yang jauh melampaui fungsi linier',
+                        'Karena fungsi linier mengalami perlambatan laju seiring bertambahnya tahapan waktu',
+                        'Karena fungsi eksponensial hanya dapat dioperasikan pada basis bilangan genap',
+                    ],
+                    'explanation' => 'Pertumbuhan eksponensial bekerja secara multiplikatif (perkalian berulang), sehingga grafiknya melonjak semakin curam dibanding pertumbuhan aditif linier.',
+                ],
+            ];
+            $items = $mtkPool;
+        }
+
         if (empty($items)) {
             return null;
         }
@@ -2762,7 +3115,7 @@ INSTRUCTIONS;
     private function extractSubstantiveSentences(string $body, string $title): array
     {
         $rawLines = preg_split('/\R/u', $body) ?: [];
-        $lineBoilerplate = '/^(?:setelah mengikuti|tujuan pembelajaran|capaian pembelajaran|kompetensi|mahasiswa diharapkan|siswa diharapkan|peserta didik|daftar pustaka|sumber rujukan|terima kasih|thank you|halaman|page\s*\d+|lembar kerja|latar belakang|ringkasan eksekutif|rumusan masalah|proposal perancangan|menjelaskan pengertian|mengidentifikasi\s+(?:kedudukan|perbedaan)|menyusun\s+(?:strategi|ringkasan|rangkuman)|menunjukkan\s+(?:sikap|kemampuan))/iu';
+        $lineBoilerplate = '/^(?:setelah mengikuti|tujuan pembelajaran|capaian pembelajaran|kompetensi|mahasiswa diharapkan|siswa diharapkan|peserta didik|daftar pustaka|sumber rujukan|terima kasih|thank you|halaman|page\s*\d+|lembar kerja|latar belakang|ringkasan eksekutif|rumusan masalah|proposal perancangan|menjelaskan pengertian|mengidentifikasi\s+(?:kedudukan|perbedaan)|menyusun\s+(?:strategi|ringkasan|rangkuman)|menunjukkan\s+(?:sikap|kemampuan)|matematika\s+untuk\s+sma|bahasa\s+indonesia\s+untuk\s+sma|buku\s+siswa\s+kelas|bab\s+\d+|world\s+our\s+world|data\s+source|cc\s+by)/iu';
         $biblioPattern = '/(?:^|\s)[\-\•]?\s*[A-Z][\p{L}\-]+,\s*[A-Z][\p{L}\.\s,dkk]*\(\d{4}\)/u';
         $publisherPattern = '/\b(?:Raja\s+Grafindo\s+Persada|Balai\s+Pustaka|Nusa\s+Indah|Angkasa|Gramedia|Erlangga|Kemdikbud|Rineka\s+Cipta|Pusat\s+Pembinaan|Remaja\s+Rosdakarya|Kencana|Alfabeta|Pustaka\s+Pelajar|Bumi\s+Aksara)\b/iu';
         $titleLower = mb_strtolower(trim($title));
@@ -2791,6 +3144,14 @@ INSTRUCTIONS;
 
             if ($line === '') {
                 $keptLines[] = '';
+                continue;
+            }
+
+            $tNoZero = str_replace("\0", '', $line);
+            if (preg_match('#^/(?:IQIR|IFYH|6ITY|1EXI|4IRY)#i', $tNoZero)
+                || preg_match('/^(?:6ITY|1EXI|4IRY|6MWI|8IOR)/i', $tNoZero)
+                || preg_match('/^(?:[\/\p{L}\p{N}%&_()\-]\s+){5,}/u', $tNoZero)
+                || preg_match('/^[-–—\s]*\d+\s*&\s*\d+/u', $tNoZero)) {
                 continue;
             }
 
@@ -2960,7 +3321,7 @@ INSTRUCTIONS;
                     $s = trim(preg_replace('/\s+\d+\.?$/u', '', $s) ?? '');
                 }
                 $s = preg_replace('/\b([\p{L}\-]{3,25})(?:\s+\1){1,3}\b/iu', '$1', $s) ?? $s;
-                $s = trim($s, "\"“”' ");
+                $s = preg_replace('/^[\s"“”\']+|[\s"“”\']+$/u', '', $s) ?? trim($s);
 
                 if ($s === '' || mb_strlen($s) < 28 || mb_strlen($s) > 540) {
                     continue;
@@ -3018,11 +3379,18 @@ INSTRUCTIONS;
         $seen = [];
 
         $addTerm = function (string $term) use (&$terms, &$seen): void {
-            $clean = trim($term, " \t\n\r\0\x0B.,;:!?\"'()[]{}±~–—");
+            if (! mb_check_encoding($term, 'UTF-8')) {
+                return;
+            }
+            $clean = preg_replace('/^[\s.,;:!?"\'()\[\]{}±~–—“”‘’…]+|[\s.,;:!?"\'()\[\]{}±~–—“”‘’…]+$/u', '', $term) ?? trim($term);
             $clean = preg_replace('/\s+(?:yang|dan|atau|dari|untuk|pada|dengan|dalam|oleh|sebagai|ini|itu|tersebut)$/iu', '', $clean) ?? $clean;
             $clean = preg_replace('/^(?:yang|dan|atau|dari|untuk|pada|dengan|dalam|oleh|sebagai|ini|itu|tersebut)\s+/iu', '', $clean) ?? $clean;
             $clean = trim($clean);
             if (mb_strlen($clean) < 4 || mb_strlen($clean) > 55) {
+                return;
+            }
+            // Istilah kunci kuis wajib mengandung kata huruf yang valid
+            if (! preg_match('/\p{L}{3,}/u', $clean)) {
                 return;
             }
             // TOLAK karakter simbol atau rentang angka (misal ±, %, ~, /, \, [, ])
@@ -3100,13 +3468,17 @@ INSTRUCTIONS;
     {
         $pool = [];
         foreach ($sentences as $s) {
+            // Abaikan kalimat ajakan, instruksi buku, atau meta-teks yang tidak substantif
+            if (preg_match('/\b(?:kamu pasti|apakah kamu|tugasmu|pada pelajaran ini|pelajari lebih dulu|sumber foto|perhatikan gambar|halaman \d+|agar kamu lebih mudah|untuk membekali kemampuan)\b/iu', $s)) {
+                continue;
+            }
             if (preg_match('/^.{8,70}?\s+(?:adalah|merupakan|yaitu|yakni|dirancang\s+(?:untuk|guna)|bertujuan\s+(?:untuk|guna)|diarahkan\s+untuk|berfungsi\s+sebagai|berperan\s+sebagai|mendeteksi|menunjukkan\s+bahwa|bertumpu\s+pada|memerlukan|memiliki\s+makna|artinya)\s+(.+)$/iu', $s, $m)) {
                 $clause = ucfirst(rtrim(trim($m[1]), '.'));
-                if (mb_strlen($clause) >= 15) {
+                if (mb_strlen($clause) >= 15 && mb_strlen($clause) <= 150) {
                     $pool[] = $clause;
                 }
-            } else {
-                $pool[] = rtrim($s, '.');
+            } elseif (preg_match('/^[A-Z][a-z].{15,120}$/u', trim($s)) && ! str_contains($s, '?') && ! str_contains($s, '!') && str_word_count($s) >= 4 && str_word_count($s) <= 20) {
+                $pool[] = rtrim(trim($s), '.');
             }
         }
 
@@ -3130,9 +3502,27 @@ INSTRUCTIONS;
         string $title = ''
     ): array {
         $candidates = [];
+        $isJunkOptionOrSubject = function (string $text): bool {
+            $t = mb_strtolower(trim($text));
+            if ($t === '') return true;
+            if (in_array($t, ['berikut', 'sebagai berikut', 'berikut ini', 'di bawah ini', 'di atas', 'seperti berikut', 'hal ini', 'hal tersebut', 'antara lain', 'adalah', 'merupakan', 'yaitu', 'yakni'], true)) {
+                return true;
+            }
+            if (str_starts_with($t, 'berikut:') || str_starts_with($t, 'sebagai berikut:')) {
+                return true;
+            }
+            if (preg_match('/^(?:matematika\s+untuk|bahasa\s+indonesia\s+untuk|sma\/ma\/smk|buku\s+siswa|bab\s+\d+|kelas\s+[x\d]+|world\s+our\s+world|data\s+source|cc\s+by)/iu', $t)) {
+                return true;
+            }
+            if (mb_strlen($t) < 8 && str_word_count($t) < 2) {
+                return true;
+            }
+            return false;
+        };
+
         $condensedOptionPool = array_values(array_filter(
             array_map(fn ($p) => $this->condenseClauseToOption($p), $predicatePool),
-            fn ($p) => $p !== ''
+            fn ($p) => $p !== '' && ! $isJunkOptionOrSubject($p)
         ));
 
         // Angle 1 (C1 Mengingat): Fakta Pasal Hukum / Besaran Teknis (tanpa menyalin kalimat utuh)
@@ -3168,37 +3558,49 @@ INSTRUCTIONS;
 
         // Angle 2 (C2 Memahami / C4 Menganalisis): Makna, Peran, & Cakupan Unsur
         if (preg_match('/^(.{4,65}?)\s+(adalah|merupakan|yaitu|yakni|didefinisikan sebagai|berfungsi sebagai|berperan sebagai|mencakup|terdiri dari|memiliki makna|artinya)\s+(.+)$/iu', $sentence, $m)) {
-            $subject = trim($m[1], " \t\"'“”‘’");
-            $verb = mb_strtolower(trim($m[2]));
+            $rawSubject = preg_replace('/^[\s"“”‘’\']+|[\s"“”‘’\']+$/u', '', $m[1]) ?? trim($m[1]);
+            $subject = preg_replace('/^(?:salah satu|sebagai contoh|contohnya|pada dasarnya|dalam hal ini|secara umum)\s+/iu', '', $rawSubject) ?? $rawSubject;
             $definition = $this->condenseClauseToOption(ucfirst(rtrim(trim($m[3]), '.')));
+            if (
+                preg_match('/\b(?:karena|sebab|sehingga|walaupun|meskipun)\b/iu', $subject)
+                || preg_match('/^(?:jenis yang|hal yang|bagian yang)\b/iu', $subject)
+                || $isJunkOptionOrSubject($subject)
+                || $isJunkOptionOrSubject($definition)
+            ) {
+                // Lewati subjek yang merupakan klausa relatif, tidak substantif, atau definisi rusak/kata sambung
+            } else {
+                $verb = mb_strtolower(trim($m[2]));
 
-            [$bloom, $qPrompt] = match (true) {
-                str_contains($verb, 'berfungsi'), str_contains($verb, 'berperan') => ['C2', "Jelaskan fungsi atau peran utama dari konsep \"{$subject}\"!"],
-                str_contains($verb, 'mencakup'), str_contains($verb, 'terdiri') => ['C4', "Analisis unsur atau cakupan penting yang membangun \"{$subject}\"!"],
-                str_contains($verb, 'makna'), str_contains($verb, 'artinya') => ['C2', "Jelaskan makna konsep \"{$subject}\" sesuai inti pembahasan!"],
-                default => ['C2', "Jelaskan pengertian paling tepat mengenai \"{$subject}\"!"],
-            };
+                [$bloom, $qPrompt] = match (true) {
+                    str_contains($verb, 'berfungsi'), str_contains($verb, 'berperan') => ['C2', "Jelaskan fungsi atau peran utama dari konsep \"{$subject}\"!"],
+                    str_contains($verb, 'mencakup'), str_contains($verb, 'terdiri') => ['C4', "Analisis unsur atau cakupan penting yang membangun \"{$subject}\"!"],
+                    str_contains($verb, 'makna'), str_contains($verb, 'artinya') => ['C2', "Jelaskan makna konsep \"{$subject}\" sesuai inti pembahasan!"],
+                    default => ['C2', "Jelaskan pengertian paling tepat mengenai \"{$subject}\"!"],
+                };
 
-            $candidates[] = [
-                'bloom_level' => $bloom,
-                'question' => $qPrompt,
-                'correct' => $definition,
-                'distractors' => $condensedOptionPool,
-                'explanation' => "Pembahasan: Konsep \"{$subject}\" dijelaskan sebagai {$definition}. Hal ini menjadi inti pemahaman pada bagian tersebut.",
-            ];
+                $candidates[] = [
+                    'bloom_level' => $bloom,
+                    'question' => $qPrompt,
+                    'correct' => $definition,
+                    'distractors' => $condensedOptionPool,
+                    'explanation' => "Pembahasan: Konsep \"{$subject}\" dijelaskan sebagai {$definition}. Hal ini menjadi inti pemahaman pada bagian tersebut.",
+                ];
+            }
         }
 
         // Angle 3 (C3 Menerapkan): Tujuan & Penerapan Langkah
         if (preg_match('/^(.{15,150}?)\s+(?:dirancang\s+(?:untuk|guna)|bertujuan\s+(?:untuk|guna)|diarahkan\s+untuk|untuk|guna|demi|agar)\s+(.{15,})$/iu', $sentence, $m)) {
             $subjectAction = $this->condenseSentenceToTopic(rtrim(trim($m[1]), ', '), 5);
             $goal = $this->condenseClauseToOption(ucfirst(rtrim(trim($m[2]), '.')));
-            $candidates[] = [
-                'bloom_level' => 'C3',
-                'question' => "Terapkan pemahaman materi: untuk sasaran apa \"{$subjectAction}\" dijalankan?",
-                'correct' => $goal,
-                'distractors' => array_map(fn ($g) => $this->condenseClauseToOption($g), $this->buildGoalDistractors($goal, $allSentences, $predicatePool)),
-                'explanation' => "Pembahasan: Tindakan \"{$subjectAction}\" ditujukan untuk " . lcfirst($goal) . '.',
-            ];
+            if (! $isJunkOptionOrSubject($subjectAction) && ! $isJunkOptionOrSubject($goal)) {
+                $candidates[] = [
+                    'bloom_level' => 'C3',
+                    'question' => "Terapkan pemahaman materi: untuk sasaran apa \"{$subjectAction}\" dijalankan?",
+                    'correct' => $goal,
+                    'distractors' => array_map(fn ($g) => $this->condenseClauseToOption($g), $this->buildGoalDistractors($goal, $allSentences, $predicatePool)),
+                    'explanation' => "Pembahasan: Tindakan \"{$subjectAction}\" ditujukan untuk " . lcfirst($goal) . '.',
+                ];
+            }
         }
 
         // Angle 3b (C4 Menganalisis): Temuan / Mekanisme / Hubungan Kausal
@@ -3207,28 +3609,30 @@ INSTRUCTIONS;
             $connector = mb_strtolower(trim($m[2]));
             $detail = $this->condenseClauseToOption(ucfirst(rtrim(trim($m[3]), '.')));
 
-            $qPrompt = match (true) {
-                str_contains($connector, 'mendeteksi') => "Analisis temuan apa yang berhasil diidentifikasi oleh \"{$subjectPart}\"!",
-                str_contains($connector, 'menunjukkan') => "Analisis simpulan utama yang ditunjukkan oleh \"{$subjectPart}\"!",
-                str_contains($connector, 'bertumpu') => "Analisis prinsip utama yang menjadi tumpuan \"{$subjectPart}\"!",
-                str_contains($connector, 'memerlukan') => "Analisis kebutuhan pokok yang diperlukan oleh \"{$subjectPart}\"!",
-                default => "Analisis alasan mengapa kondisi \"{$subjectPart}\" terjadi dalam materi!",
-            };
+            if (! $isJunkOptionOrSubject($subjectPart) && ! $isJunkOptionOrSubject($detail)) {
+                $qPrompt = match (true) {
+                    str_contains($connector, 'mendeteksi') => "Analisis temuan apa yang berhasil diidentifikasi oleh \"{$subjectPart}\"!",
+                    str_contains($connector, 'menunjukkan') => "Analisis simpulan utama yang ditunjukkan oleh \"{$subjectPart}\"!",
+                    str_contains($connector, 'bertumpu') => "Analisis prinsip utama yang menjadi tumpuan \"{$subjectPart}\"!",
+                    str_contains($connector, 'memerlukan') => "Analisis kebutuhan pokok yang diperlukan oleh \"{$subjectPart}\"!",
+                    default => "Analisis alasan mengapa kondisi \"{$subjectPart}\" terjadi dalam materi!",
+                };
 
-            $candidates[] = [
-                'bloom_level' => 'C4',
-                'question' => $qPrompt,
-                'correct' => $detail,
-                'distractors' => $condensedOptionPool,
-                'explanation' => "Pembahasan: Hubungan kausal/mekanisme dalam materi menjelaskan bahwa: \"{$sentence}\"",
-            ];
+                $candidates[] = [
+                    'bloom_level' => 'C4',
+                    'question' => $qPrompt,
+                    'correct' => $detail,
+                    'distractors' => $condensedOptionPool,
+                    'explanation' => "Pembahasan: Hubungan kausal/mekanisme dalam materi menjelaskan bahwa: \"{$sentence}\"",
+                ];
+            }
         }
 
         // Angle 4 (C5 Mengevaluasi & C3 Menerapkan): Evaluasi Pernyataan Berdasarkan Istilah Kunci (pencarian kata utuh)
         $matchedTerms = [];
         foreach ($termPool as $term) {
-            if ($this->containsWholeWordTerm($sentence, $term) && preg_match('/(?<!\p{L}\p{N})' . preg_quote($term, '/') . '(?!\p{L}\p{N})/iu', $sentence, $tm)) {
-                $matchedTerms[] = $tm[0];
+            if ($this->containsWholeWordTerm($sentence, $term)) {
+                $matchedTerms[] = $term;
             }
         }
         $condensedCoreOption = $this->condenseClauseToOption($sentence);
@@ -3260,7 +3664,7 @@ INSTRUCTIONS;
 
         // Angle 5 (C4 Menganalisis & C5 Mengevaluasi): Peranan Struktural & Evaluasi Prinsip (tanpa pemotongan acak di tengah kalimat)
         if (preg_match('/^(.{4,55}?)\s+(?:berfungsi|berperan|bertujuan|memadukan|menuntut|mengatur|menjamin|melindungi|mencakup|menjadi)\s+(.{12,})$/iu', $sentence, $predMatch)) {
-            $entitySubject = trim($predMatch[1], " \t\"'“”‘’");
+            $entitySubject = preg_replace('/^[\s"“”‘’\']+|[\s"“”‘’\']+$/u', '', $predMatch[1]) ?? trim($predMatch[1]);
             $predicateClause = $this->condenseClauseToOption(ucfirst(rtrim(trim($predMatch[2]), '.')));
             $qAnalisis = "Analisis fungsi atau peranan penting dari \"{$entitySubject}\" menurut materi!";
             if (mb_strlen($predicateClause) >= 12 && ! $this->isQuestionLeakingAnswer($qAnalisis, $predicateClause)) {
@@ -3518,7 +3922,15 @@ INSTRUCTIONS;
             return false;
         }
 
-        return preg_match('/(?<![\p{L}\p{N}])' . preg_quote($cleanNeedle, '/') . '(?![\p{L}\p{N}])/iu', $haystack) === 1;
+        if (! mb_check_encoding($cleanNeedle, 'UTF-8') || ! mb_check_encoding($haystack, 'UTF-8')) {
+            return false;
+        }
+
+        try {
+            return @preg_match('/(?<![\p{L}\p{N}])' . preg_quote($cleanNeedle, '/') . '(?![\p{L}\p{N}])/iu', $haystack) === 1;
+        } catch (Throwable) {
+            return false;
+        }
     }
 
     /**
@@ -3533,9 +3945,23 @@ INSTRUCTIONS;
             return false;
         }
 
+        if (! mb_check_encoding($haystack, 'UTF-8')) {
+            return false;
+        }
+
+        foreach ($cleanWords as $w) {
+            if (! mb_check_encoding($w, 'UTF-8')) {
+                return false;
+            }
+        }
+
         $pattern = implode('\s+', array_map(fn (string $w) => preg_quote($w, '/'), $cleanWords));
 
-        return preg_match('/(?<![\p{L}\p{N}])' . $pattern . '(?![\p{L}\p{N}])/iu', $haystack) === 1;
+        try {
+            return @preg_match('/(?<![\p{L}\p{N}])' . $pattern . '(?![\p{L}\p{N}])/iu', $haystack) === 1;
+        } catch (Throwable) {
+            return false;
+        }
     }
 
     /**
@@ -3552,7 +3978,8 @@ INSTRUCTIONS;
             $clean = trim($subMatch[1]);
         }
 
-        $words = preg_split('/\s+/u', trim($clean, " \t\n\r\0\x0B.,;:!?\"'“”‘’"), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $cleanWords = preg_replace('/^[\s.,;:!?"\'“”‘’]+|[\s.,;:!?"\'“”‘’]+$/u', '', $clean) ?? trim($clean);
+        $words = preg_split('/\s+/u', $cleanWords, -1, PREG_SPLIT_NO_EMPTY) ?: [];
 
         if (count($words) <= $maxWords) {
             return implode(' ', $words);
@@ -3576,7 +4003,7 @@ INSTRUCTIONS;
         $clean = trim(preg_replace('/^(?:Bab\s+[IVXLCDM\d]+[:.]?\s*|[\d]+[.)]\s*|Bagian\s+(?:Awal|Isi|Akhir)[:.]?\s*)+/iu', '', $clean) ?? $clean);
         $clean = preg_replace('/^[&+\-*\/,;:|~_–—\s\)]+|[&+\-*\/,;:|~_–—\s\(]+$/u', '', $clean) ?? $clean;
         $clean = preg_replace('/^(?:dan|atau|serta|yaitu|yakni|adalah|merupakan|bahwa|sehingga|karena|dengan demikian)\s+/iu', '', $clean) ?? $clean;
-        $clean = rtrim(trim($clean, " \t\n\r\0\x0B\"'“”‘’()"), '.');
+        $clean = preg_replace('/^[\s"\'“”‘’()]+|[\s"\'“”‘’().]+$/u', '', $clean) ?? trim($clean);
 
         if ($clean === '') {
             return '';
@@ -3882,15 +4309,46 @@ INSTRUCTIONS;
     private function decodeJsonObject(string $raw): ?array
     {
         $trimmed = trim($raw);
-        if (preg_match('/\{[\s\S]*\}/u', $trimmed, $matches)) {
-            $parsed = json_decode($matches[0], true);
-            if (is_array($parsed)) {
-                return $parsed;
+
+        // 1. Bersihkan markdown fences jika ada
+        $cleanJson = preg_replace('/^```(?:json)?\s*/i', '', $trimmed);
+        $cleanJson = trim((string) preg_replace('/\s*```$/', '', (string) $cleanJson));
+
+        // 2. Cari kurung kurawal pertama (abaikan monolog/intro sebelum JSON)
+        $startPos = mb_strpos($cleanJson, '{');
+        if ($startPos !== false) {
+            $candidate = mb_substr($cleanJson, $startPos);
+
+            // Coba decode jika ada penutup lengkap
+            if (preg_match('/\{[\s\S]*\}/u', $candidate, $matches)) {
+                $parsed = json_decode($matches[0], true);
+                if (is_array($parsed)) {
+                    return $parsed;
+                }
+            }
+
+            // 3. Jika terpotong di akhir (token limit), pulihkan secara cerdas dari kurung kurawal terakhir
+            $lastBrace = mb_strrpos($candidate, '}');
+            $safetyLoop = 0;
+            while ($lastBrace !== false && $lastBrace > 15 && $safetyLoop < 20) {
+                $safetyLoop++;
+                $sub = mb_substr($candidate, 0, $lastBrace + 1);
+
+                $attempt1 = json_decode($sub . ']}', true);
+                if (is_array($attempt1) && (! empty($attempt1['quiz_questions']) || ! empty($attempt1['questions']))) {
+                    return $attempt1;
+                }
+
+                $attempt2 = json_decode($sub . '}', true);
+                if (is_array($attempt2) && (! empty($attempt2['excerpt']) || ! empty($attempt2['questions']))) {
+                    return $attempt2;
+                }
+
+                $lastBrace = mb_strrpos(mb_substr($candidate, 0, $lastBrace), '}');
             }
         }
-        $cleanJson = preg_replace('/^```(?:json)?\s*/i', '', $trimmed);
-        $cleanJson = preg_replace('/\s*```$/', '', (string) $cleanJson);
-        $parsed = json_decode((string) $cleanJson, true);
+
+        $parsed = json_decode($cleanJson, true);
 
         return is_array($parsed) ? $parsed : null;
     }
@@ -3898,15 +4356,35 @@ INSTRUCTIONS;
     private function decodeJsonArray(string $raw): ?array
     {
         $trimmed = trim($raw);
-        if (preg_match('/\[[\s\S]*\]/u', $trimmed, $matches)) {
-            $parsed = json_decode($matches[0], true);
-            if (is_array($parsed)) {
-                return $parsed;
+
+        $cleanJson = preg_replace('/^```(?:json)?\s*/i', '', $trimmed);
+        $cleanJson = trim((string) preg_replace('/\s*```$/', '', (string) $cleanJson));
+
+        $startPos = mb_strpos($cleanJson, '[');
+        if ($startPos !== false) {
+            $candidate = mb_substr($cleanJson, $startPos);
+
+            if (preg_match('/\[[\s\S]*\]/u', $candidate, $matches)) {
+                $parsed = json_decode($matches[0], true);
+                if (is_array($parsed)) {
+                    return $parsed;
+                }
+            }
+
+            $lastBrace = mb_strrpos($candidate, '}');
+            $safetyLoop = 0;
+            while ($lastBrace !== false && $lastBrace > 15 && $safetyLoop < 20) {
+                $safetyLoop++;
+                $sub = mb_substr($candidate, 0, $lastBrace + 1);
+                $attempt = json_decode($sub . ']', true);
+                if (is_array($attempt) && ! empty($attempt)) {
+                    return $attempt;
+                }
+                $lastBrace = mb_strrpos(mb_substr($candidate, 0, $lastBrace), '}');
             }
         }
-        $cleanJson = preg_replace('/^```(?:json)?\s*/i', '', $trimmed);
-        $cleanJson = preg_replace('/\s*```$/', '', (string) $cleanJson);
-        $parsed = json_decode((string) $cleanJson, true);
+
+        $parsed = json_decode($cleanJson, true);
 
         return is_array($parsed) ? $parsed : null;
     }
