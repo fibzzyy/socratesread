@@ -12,16 +12,13 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body>
-    <div class="app-shell">
+    <div class="app-shell teacher-app-shell">
         <button class="scrim" type="button" aria-label="Tutup navigasi" data-menu-close></button>
         <aside class="sidebar" id="teacher-navigation" aria-label="Area guru">
             <a class="brand" href="{{ route('teacher.dashboard') }}" aria-label="SocratesRead, area guru">
-                <span class="brand-logo-wrap">
-                    <img src="{{ asset('images/logo.png') }}" alt="Logo SocratesRead" class="brand-logo">
-                </span>
-                <span class="brand-name">socrates<span>read</span><small>AREA GURU</small></span>
+                <img src="{{ asset('images/logo.png') }}" alt="Logo SocratesRead" class="brand-logo">
+                <span class="brand-name">Socrates<span>Read</span></span>
             </a>
-            <div class="nav-label">PEMANTAUAN BELAJAR</div>
             <nav class="nav-list" aria-label="Menu guru">
                 <a class="nav-link {{ request()->routeIs('teacher.dashboard') ? 'is-active' : '' }}" href="{{ route('teacher.dashboard') }}" @if(request()->routeIs('teacher.dashboard')) aria-current="page" @endif><x-icon name="layout-dashboard"/><span>Ringkasan</span></a>
                 <a class="nav-link {{ request()->routeIs('teacher.classrooms*') ? 'is-active' : '' }}" href="{{ route('teacher.classrooms') }}" @if(request()->routeIs('teacher.classrooms*')) aria-current="page" @endif><x-icon name="users"/><span>Kelas saya</span></a>
@@ -35,7 +32,7 @@
                 <div class="breadcrumb"><a href="{{ route('teacher.dashboard') }}">Area guru</a><span>/</span><strong>@yield('breadcrumb', 'Ringkasan')</strong></div>
                 <div class="topbar-actions">
                     <span class="today-label">{{ now()->locale('id')->translatedFormat('l, d F Y') }}</span>
-                    <button class="icon-button notification-button" type="button" aria-label="Notifikasi"><x-icon name="bell" /><i></i></button>
+                    <x-notification-center />
                     <x-profile-dropdown />
                 </div>
             </header>

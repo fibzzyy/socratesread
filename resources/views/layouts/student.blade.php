@@ -27,8 +27,7 @@
     <div class="app-shell">
         <button class="scrim" type="button" aria-label="Tutup navigasi" data-menu-close></button>
         <aside class="sidebar sidebar-theme" id="primary-navigation" aria-label="Navigasi utama">
-            <a class="brand" href="{{ route('dashboard') }}" aria-label="SocratesRead, beranda"><img class="brand-logo" src="{{ asset('images/socratesread-logo.jpeg') }}" alt=""><span class="brand-name">socrates<span>read</span><small>LEARN · THINK · GROW</small></span></a>
-            <div class="nav-label">MENU UTAMA</div>
+            <a class="brand" href="{{ route('dashboard') }}" aria-label="SocratesRead, beranda"><img class="brand-logo" src="{{ asset('images/logo.png') }}" alt=""><span class="brand-name">Socrates<span>Read</span></span></a>
             <nav class="nav-list" aria-label="Menu utama">
                 <a class="nav-link {{ request()->routeIs('dashboard') ? 'is-active' : '' }}" href="{{ route('dashboard') }}" @if(request()->routeIs('dashboard')) aria-current="page" @endif><x-icon name="layout-dashboard" /><span>Beranda</span></a>
                 <a class="nav-link {{ request()->routeIs('reading') ? 'is-active' : '' }}" href="{{ route('reading') }}" @if(request()->routeIs('reading')) aria-current="page" @endif><x-icon name="book-open-text" /><span>Reading Room</span></a>
@@ -44,11 +43,11 @@
             <div class="sidebar-spacer"></div>
             <details class="profile-menu">
                 <summary class="profile-button">
-                <span class="avatar avatar-sidebar">
+                <span class="avatar avatar-sidebar {{ auth()->user()->avatarUrl() ? '' : 'avatar-empty' }}">
                     @if (auth()->user()->avatarUrl())
                         <img src="{{ auth()->user()->avatarUrl() }}" alt="{{ auth()->user()->name }}" class="avatar-image">
                     @else
-                        {{ mb_strtoupper($userInitials) }}
+                        <x-icon name="user" class="h-4 w-4 text-slate-400" />
                     @endif
                 </span>
                 <span class="profile-copy">
@@ -79,15 +78,8 @@
                     </div>
                     <div class="topbar-actions">
                         <span class="today-label">@if(request()->routeIs('quiz.index'))<x-icon name="calendar-days" />@endif{{ now()->locale('id')->translatedFormat('l, d F Y') }}</span>
-                        <button class="icon-button notification-button" type="button" aria-label="Notifikasi"><x-icon name="bell" /><i></i></button>
-                        <a href="{{ route('profile') }}" class="avatar avatar-top avatar-link" aria-label="Profil {{ auth()->user()->name }}" title="Profil">
-                            @if (auth()->user()->avatarUrl())
-                                <img src="{{ auth()->user()->avatarUrl() }}" alt="{{ auth()->user()->name }}" class="avatar-image">
-                            @else
-                                {{ mb_strtoupper($userInitials) }}
-                            @endif
-                        </a>
-                        @if(request()->routeIs('quiz.index'))<span class="quiz-profile-chevron" aria-hidden="true"><x-icon name="chevron-down" /></span>@endif
+                        <x-notification-center />
+                        <x-profile-dropdown />
                     </div>
                 </header>
             @endunless
