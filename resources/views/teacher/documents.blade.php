@@ -151,7 +151,7 @@
             </div>
 
             <div class="teacher-upload-footer">
-                <p><x-icon name="sparkles"/> AI otomatis merapikan teks materi, menyusun 10 Kuis Socrates & 5 Tantangan Guru (HOTS).</p>
+                <p>AI otomatis merapikan teks materi, menyusun 10 Kuis Socrates &amp; 5 Tantangan Guru (HOTS).</p>
                 <button class="challenge-button" type="submit">
                     <span>Proses dengan AI</span>
                     <x-icon name="arrow-right"/>
@@ -163,7 +163,6 @@
     <section class="panel teacher-documents-panel" aria-labelledby="teacher-documents-list-title">
         <div class="section-heading">
             <div>
-                <p class="section-overline">KOLEKSI GURU</p>
                 <h2 id="teacher-documents-list-title">Bacaan yang diunggah</h2>
             </div>
             <span class="document-count">{{ $documents->count() }} dokumen</span>
@@ -193,29 +192,26 @@
             <article class="teacher-document-row">
                 <span class="teacher-document-icon"><x-icon name="book-open-text"/></span>
                 <div class="teacher-document-copy">
-                    <div class="flex items-center gap-2 flex-wrap">
+                    <div class="teacher-document-heading">
                         <strong>{{ $document->title }}</strong>
-                        <span data-quiz-badge-doc="{{ $document->id }}" class="rounded bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700 border border-indigo-200/60 inline-flex items-center gap-1">
-                            <x-icon name="gamepad-2" class="w-3 h-3 text-indigo-600"/>
-                            <span data-quiz-badge-text>Kuis Socrates: {{ $document->quiz_question_count ?? 10 }} Soal (⏱️ {{ $document->quiz_duration_minutes ?? 15 }}m)</span>
-                        </span>
-                        <span data-doc-challenge-pill="{{ $document->id }}" class="rounded bg-purple-50 px-2 py-0.5 text-[10px] font-bold text-purple-700 border border-purple-200/60 inline-flex items-center gap-1">
-                            <x-icon name="award" class="w-3 h-3 text-purple-600"/>
-                            <span data-doc-challenge-pill-text>{{ $document->teacher_challenges_count }} Tantangan Guru</span>
-                        </span>
+                        <span class="sr-only" data-quiz-badge-doc="{{ $document->id }}"><span data-quiz-badge-text>Kuis Socrates: {{ $document->quiz_question_count ?? 10 }} Soal ({{ $document->quiz_duration_minutes ?? 15 }} menit)</span></span>
+                        <span class="sr-only" data-doc-challenge-pill="{{ $document->id }}"><span data-doc-challenge-pill-text>{{ $document->teacher_challenges_count }} Tantangan Guru</span></span>
                     </div>
-                    <span>{{ $document->category }} · <span class="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700">{{ $document->targetGradeLabel() }}</span> · <span data-doc-chars-id="{{ $document->id }}">{{ number_format(mb_strlen($document->body)) }} karakter</span> · {{ $document->created_at->locale('id')->translatedFormat('d M Y') }}</span>
+                    <div class="teacher-document-meta">
+                        <span>{{ $document->category }}</span>
+                        <span>{{ $document->targetGradeLabel() }}</span>
+                        <span data-doc-chars-id="{{ $document->id }}">{{ number_format(mb_strlen($document->body)) }} karakter</span>
+                        <span>{{ $document->created_at->locale('id')->translatedFormat('d M Y') }}</span>
+                    </div>
                 </div>
-                <div class="flex items-center gap-2 flex-wrap">
-                    <button type="button" class="inline-flex items-center gap-1.5 rounded-lg border border-purple-300 bg-purple-50 px-2.5 py-1.5 text-xs font-bold text-purple-900 hover:bg-purple-100 transition shadow-2xs" data-challenge-btn data-doc-id="{{ $document->id }}" data-doc-title="{{ $document->title }}" data-get-url="{{ route('teacher.documents.challenges.index', $document) }}" data-store-url="{{ route('teacher.documents.challenges.store', $document) }}" data-suggestions-url="{{ route('teacher.documents.challenges.suggestions', $document) }}" data-analyze-url="{{ route('teacher.documents.challenges.analyze', $document) }}" data-recommend-answer-url="{{ route('teacher.documents.challenges.recommend_answer', $document) }}" title="Kelola Tantangan Guru (Esai & PG)">
-                        <x-icon name="award" class="w-3.5 h-3.5 text-purple-600"/>
-                        <span data-challenge-btn-label>Tantangan Guru ({{ $document->teacher_challenges_count }})</span>
+                <div class="teacher-document-actions">
+                    <button type="button" class="teacher-document-action" data-challenge-btn data-doc-id="{{ $document->id }}" data-doc-title="{{ $document->title }}" data-get-url="{{ route('teacher.documents.challenges.index', $document) }}" data-store-url="{{ route('teacher.documents.challenges.store', $document) }}" data-suggestions-url="{{ route('teacher.documents.challenges.suggestions', $document) }}" data-analyze-url="{{ route('teacher.documents.challenges.analyze', $document) }}" data-recommend-answer-url="{{ route('teacher.documents.challenges.recommend_answer', $document) }}" title="Kelola tantangan untuk bacaan ini">
+                        <x-icon name="award"/>
+                        <span data-challenge-btn-label>Tantangan ({{ $document->teacher_challenges_count }})</span>
                     </button>
-                    <form method="POST" action="{{ route('teacher.documents.quiz_duration', $document) }}" data-quiz-settings-form data-doc-id="{{ $document->id }}" class="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg p-1 relative" title="Pengaturan Kuis Socrates untuk Siswa">
+                    <form method="POST" action="{{ route('teacher.documents.quiz_duration', $document) }}" data-quiz-settings-form data-doc-id="{{ $document->id }}" class="teacher-document-quiz-settings" aria-label="Pengaturan kuis untuk {{ $document->title }}">
                         @csrf @method('PATCH')
-                        <div class="flex items-center gap-1">
-                            <span class="text-[10px] text-slate-400 font-bold pl-1">⏱️</span>
-                            <select name="quiz_duration_minutes" class="text-[11px] font-semibold py-0.5 px-1 rounded border-0 bg-transparent text-slate-700 hover:text-amber-600 cursor-pointer focus:ring-0" title="Ubah Durasi Kuis Socrates">
+                            <select name="quiz_duration_minutes" class="teacher-document-quiz-select" aria-label="Durasi kuis">
                                 <option value="5" @selected(($document->quiz_duration_minutes ?? 15) == 5)>5m</option>
                                 <option value="10" @selected(($document->quiz_duration_minutes ?? 15) == 10)>10m</option>
                                 <option value="15" @selected(($document->quiz_duration_minutes ?? 15) == 15)>15m</option>
@@ -224,16 +220,12 @@
                                 <option value="45" @selected(($document->quiz_duration_minutes ?? 15) == 45)>45m</option>
                                 <option value="60" @selected(($document->quiz_duration_minutes ?? 15) == 60)>60m</option>
                             </select>
-                        </div>
-                        <span class="text-slate-300">|</span>
                         @php
                             $maxCapacity = $document->maxRecommendedQuizQuestions();
                             $idealRec = $document->idealRecommendedQuizQuestions();
                             $counts = [5, 10, 15, 20, 25, 30, 40, 50];
                         @endphp
-                        <div class="flex items-center gap-1">
-                            <span class="text-[10px] text-slate-400 font-bold">📝</span>
-                            <select name="quiz_question_count" class="text-[11px] font-semibold py-0.5 px-1 rounded border-0 bg-transparent text-slate-700 hover:text-blue-600 cursor-pointer focus:ring-0" title="Ubah Jumlah Soal Kuis Socrates (5 - {{ $maxCapacity }} Soal disarankan)">
+                            <select name="quiz_question_count" class="teacher-document-quiz-select" aria-label="Jumlah soal kuis">
                                 @foreach($counts as $cnt)
                                     @php
                                         $isDisabled = $cnt > $maxCapacity;
@@ -241,11 +233,10 @@
                                         $isSelected = ($document->quiz_question_count ?? 10) == $cnt;
                                     @endphp
                                     <option value="{{ $cnt }}" @selected($isSelected) @disabled($isDisabled) class="{{ $isDisabled ? 'text-slate-400 bg-slate-100' : '' }}">
-                                        {{ $cnt }} Soal{{ $isIdeal ? ' (Rekomendasi AI ✨)' : ($isDisabled ? ' (Materi terlalu ringkas)' : '') }}
+                                        {{ $cnt }} Soal{{ $isIdeal ? ' (Disarankan)' : ($isDisabled ? ' (Materi terlalu ringkas)' : '') }}
                                     </option>
                                 @endforeach
                             </select>
-                        </div>
                         <span class="quiz-saved-pill hidden text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">✓ Tersimpan</span>
                     </form>
                     <script type="application/json" id="doc-preview-data-{{ $document->id }}">
@@ -263,9 +254,9 @@
                             'challengeMaxXp' => $document->challenge_max_xp ?? 0,
                         ], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) !!}
                     </script>
-                    <button type="button" class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition" data-preview-btn data-doc-id="{{ $document->id }}" title="Pratinjau Materi & Soal">
-                        <x-icon name="eye" class="w-3.5 h-3.5 text-slate-500"/>
-                        <span class="hidden sm:inline">Pratinjau & Soal</span>
+                    <button type="button" class="teacher-document-action" data-preview-btn data-doc-id="{{ $document->id }}" title="Pratinjau materi dan soal">
+                        <x-icon name="eye"/>
+                        <span>Pratinjau</span>
                     </button>
                     <form method="POST" action="{{ route('teacher.documents.destroy', $document) }}"
                           data-confirm-title="Hapus Bacaan Secara Permanen?"

@@ -201,12 +201,8 @@
                 </p>
             </div>
             <div class="flex items-center gap-2 text-xs">
-                <span class="inline-flex items-center gap-1.5 text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-md font-medium">
-                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Tuntas (&ge; {{ $kkm }})
-                </span>
-                <span class="inline-flex items-center gap-1.5 text-rose-700 bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-md font-medium">
-                    <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Belum Tuntas (&lt; {{ $kkm }})
-                </span>
+                <span class="font-medium text-emerald-700">Tuntas (&ge; {{ $kkm }})</span>
+                <span class="font-medium text-rose-700">Belum Tuntas (&lt; {{ $kkm }})</span>
             </div>
         </div>
 

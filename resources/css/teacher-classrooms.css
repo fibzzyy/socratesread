@@ -166,6 +166,7 @@
 .teacher-classrooms-page .classroom-field-error { color: #b42318; font-size: 12px; line-height: 1.4; }
 .teacher-classrooms-page .classroom-submit {
     display: inline-flex;
+    translate: 0 12px;
     width: 150px;
     min-width: 0;
     height: 44px;
@@ -223,20 +224,30 @@
 .teacher-classrooms-page .classroom-count-badge { display: inline-grid; width: 22px; height: 22px; flex: 0 0 22px; place-items: center; border-radius: 999px; color: #526985; background: #eaf0f8; font-size: 11px; font-weight: 700; }
 .teacher-classrooms-page .classroom-tab.is-active .classroom-count-badge { color: #fff; background: rgb(255 255 255 / 22%); }
 .teacher-classrooms-page .classroom-count { margin-left: auto; color: #7287a3; font-size: 13px; }
-.teacher-classrooms-page .classroom-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; min-width: 0; margin-top: 20px; }
+.teacher-classrooms-page .classroom-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; min-width: 0; margin-top: 20px; }
 .teacher-classrooms-page .classroom-card {
     display: grid;
     min-width: 0;
     align-content: start;
-    gap: 18px;
-    padding: 20px;
-    border: 1px solid #dfe8f5;
-    border-radius: 16px;
-    background: #fff;
-    box-shadow: 0 4px 14px rgb(30 64 120 / 4%);
-    transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+    grid-template-columns: minmax(180px, .7fr) minmax(320px, 1.3fr);
+    grid-template-areas: "heading heading" "readers code" " . qr" "archive members";
+    align-items: center;
+    gap: 10px 28px;
+    padding: 18px 0 20px;
+    border: 0;
+    border-bottom: 1px solid #dfe8f5;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    transition: border-color .2s ease;
 }
-.teacher-classrooms-page .classroom-card:hover { border-color: #c9d9ee; box-shadow: 0 7px 18px rgb(30 64 120 / 7%); transform: translateY(-1px); }
+.teacher-classrooms-page .classroom-card:hover { border-bottom-color: #b9cde5; box-shadow: none; transform: none; }
+.teacher-classrooms-page .classroom-card-heading { grid-area: heading; }
+.teacher-classrooms-page .classroom-reader-count { grid-area: readers; align-self: stretch; }
+.teacher-classrooms-page .classroom-join-code { grid-area: code; min-width: 0; }
+.teacher-classrooms-page .classroom-qr-details { grid-area: qr; }
+.teacher-classrooms-page .classroom-members-action { grid-area: members; }
+.teacher-classrooms-page .classroom-archive-action { grid-area: archive; }
 .teacher-classrooms-page .classroom-empty-panel {
     display: flex;
     grid-column: 1 / -1;
@@ -284,7 +295,7 @@
     .teacher-classrooms-page .classroom-create-icon { grid-column: 1; grid-row: 1; width: 76px; height: 76px; border-radius: 20px; }
     .teacher-classrooms-page .classroom-create-copy { grid-column: 2; grid-row: 1; max-width: 420px; }
     .teacher-classrooms-page .classroom-form-fields { grid-column: 1 / -1; grid-row: 2; }
-    .teacher-classrooms-page .classroom-submit { grid-column: 1 / -1; grid-row: 3; justify-self: end; width: 150px; }
+    .teacher-classrooms-page .classroom-submit { grid-column: 1 / -1; grid-row: 3; justify-self: end; width: 150px; translate: none; }
 }
 @media (max-width: 767px) {
     .page-content:has(.teacher-classrooms-page) { padding: 24px 18px 32px; }
@@ -300,6 +311,12 @@
     .teacher-classrooms-page .classroom-create-description { font-size: 12px; }
     .teacher-classrooms-page .classroom-form-fields { grid-column: 1 / -1; grid-row: 2; grid-template-columns: minmax(0, 1fr); gap: 12px; }
     .teacher-classrooms-page .classroom-submit { grid-column: 1 / -1; grid-row: 3; width: 100%; }
+    .teacher-classrooms-page .classroom-card {
+        grid-template-columns: minmax(115px, .8fr) minmax(0, 1.2fr);
+        grid-template-areas: "heading heading" "readers code" " . qr" "archive members";
+        gap: 8px 12px;
+        padding: 16px 0 18px;
+    }
     .teacher-classrooms-page .classroom-tabs { align-items: flex-start; }
     .teacher-classrooms-page .classroom-tab-list { flex-wrap: wrap; }
     .teacher-classrooms-page .classroom-count { align-self: center; }
