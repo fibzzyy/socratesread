@@ -96,6 +96,34 @@
                     </div>
                 </div>
 
+            <!-- Space Khusus di Ujung Kotak Bagian Bacaan -->
+            <div class="reading-passage-footer">
+                <div class="reading-footer-progress">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
+                        <span class="text-xs font-semibold text-slate-600">Progres Membaca:</span>
+                        <strong class="text-xs font-bold text-slate-900" data-read-progress-badge>{{ $initialProgress }}%</strong>
+                    </div>
+                    <div class="reading-footer-track">
+                        <span data-reading-footer-bar style="width:{{ $initialProgress }}%"></span>
+                    </div>
+                </div>
+
+                <div class="reading-footer-actions">
+                    @if ($session->isCompleted())
+                        <button type="button" class="complete-reading-btn is-complete" disabled data-complete-reading data-session-id="{{ $session->id }}" data-progress-url="{{ route('reading.progress') }}">
+                            <x-icon name="check" />
+                            <span data-complete-label>Tugas Selesai & Terkunci</span>
+                        </button>
+                    @else
+                        <button type="button" class="complete-reading-btn" data-complete-reading data-session-id="{{ $session->id }}" data-progress-url="{{ route('reading.progress') }}">
+                            <x-icon name="check" />
+                            <span data-complete-label>Selesai membaca</span>
+                        </button>
+                    @endif
+                </div>
+            </div>
+
         </article>
 
         <aside class="reading-side-column reading-companion-panel" aria-label="Panduan membaca">
@@ -115,24 +143,16 @@
                     <span>Mulai membaca</span>
                     <strong>{{ $session->started_at?->format('H:i') ?? '—' }} WIB</strong>
                 </div>
-                <div class="passage-bottom">
-                    <span class="read-progress-label">
-                        <span class="read-progress-dot"></span> Progres membaca <strong data-read-progress>{{ $initialProgress }}%</strong>
-                    </span>
-                    <div class="progress-track">
-                        <span data-bottom-progress-bar style="width:{{ $initialProgress }}%"></span>
-                    </div>
-                    @if ($session->isCompleted())
-                        <button type="button" class="outline-button is-complete" disabled data-complete-reading data-session-id="{{ $session->id }}" data-progress-url="{{ route('reading.progress') }}">
-                            <span data-complete-label>Tugas Selesai & Terkunci</span>
-                            <x-icon name="check" />
-                        </button>
-                    @else
-                        <button type="button" class="outline-button" data-complete-reading data-session-id="{{ $session->id }}" data-progress-url="{{ route('reading.progress') }}">
-                            <span data-complete-label>Selesai membaca</span>
-                            <x-icon name="check" />
-                        </button>
-                    @endif
+                <div class="session-stat-row {{ $session->completed_at ? '' : 'hidden' }}" data-session-completed-row>
+                    <span>Waktu selesai</span>
+                    <strong data-session-completed-time>{{ $session->completed_at ? $session->completed_at->format('H:i') . ' WIB' : '—' }}</strong>
+                </div>
+                <div class="session-stat-row pt-1">
+                    <span>Progres membaca</span>
+                    <strong data-read-progress>{{ $initialProgress }}%</strong>
+                </div>
+                <div class="progress-track mt-1 mb-1">
+                    <span data-bottom-progress-bar style="width:{{ $initialProgress }}%"></span>
                 </div>
             </section>
 
@@ -325,6 +345,10 @@
 
         if (readProgressEl) readProgressEl.textContent = `${highestProgress}%`;
         if (bottomProgressBar) bottomProgressBar.style.width = `${highestProgress}%`;
+        const footerBar = document.querySelector('[data-reading-footer-bar]');
+        if (footerBar) footerBar.style.width = `${highestProgress}%`;
+        const footerBadge = document.querySelector('[data-read-progress-badge]');
+        if (footerBadge) footerBadge.textContent = `${highestProgress}%`;
         if (sessionProgressBar) sessionProgressBar.style.width = `${highestProgress}%`;
         if (sessionProgressText) sessionProgressText.textContent = `${highestProgress}%`;
         if (sessionStatusLabel && !isSessionCompleted) {
