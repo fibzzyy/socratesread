@@ -231,8 +231,9 @@ class CuratedReadingAndClassroomCleanTest extends TestCase
 
         $formatted = $formatter->format($slideRawText, 'PKN');
 
-        // Harus terpisah menjadi butir-butir daftar Markdown yang rapi
-        $this->assertStringContainsString('- Kapan bahasa Indonesia lahir', $formatted);
+        // Pertanyaan pembuka topik slide dijadikan paragraf pengantar bersih (bukan butir daftar)
+        $this->assertStringContainsString('Kapan bahasa Indonesia lahir', $formatted);
+        $this->assertStringNotContainsString('- Kapan bahasa Indonesia lahir', $formatted);
         $this->assertStringContainsString('- Lahirnya bahasa Indonesia tentu bukanlah hal yang mudah', $formatted);
         $this->assertStringContainsString('- Bahasa Indonesia diresmikan penggunaannya satu hari setelah Proklamasi', $formatted);
 
@@ -254,7 +255,8 @@ class CuratedReadingAndClassroomCleanTest extends TestCase
         $doc28Inline = "- Kapan bahasa Indonesia lahir, bagaimana proses kelahirannya, dan peristiwa apa saja yang melatarbelakanginya? - Lahirnya bahasa Indonesia tentu bukanlah hal yang mudah, pasti penuh tantangan, pemikiran, dan perjuangan keras. - Bahasa Indonesia diresmikan penggunaannya satu hari setelah Proklamasi Kemerdekaan Indonesia, tepatnya pada tanggal 18 Agustus 1945, bersamaan dengan mulai berlakunya Undang-undang Dasar Republik Indonesia 1945.\n\nNaskah Melayu kuno dengan pengaruh Arab";
         $formatted28 = $formatter->format($doc28Inline, 'PKN');
 
-        $this->assertStringContainsString("- Kapan bahasa Indonesia lahir", $formatted28);
+        $this->assertStringContainsString("Kapan bahasa Indonesia lahir", $formatted28);
+        $this->assertStringNotContainsString("- Kapan bahasa Indonesia lahir", $formatted28);
         $this->assertStringContainsString("- Lahirnya bahasa Indonesia tentu bukanlah hal yang mudah", $formatted28);
         $this->assertStringContainsString("- Bahasa Indonesia diresmikan penggunaannya", $formatted28);
         // Pastikan tidak menyatu dalam satu baris dengan inline hyphen

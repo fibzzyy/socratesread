@@ -155,6 +155,13 @@ class ReadingMaterialFormatter
                 return;
             }
 
+            // Jika buffer sebelumnya diawali oleh bullet list, dan baris saat ini adalah fragmen pendek slide tanpa tanda baca titik
+            if (! empty($blocks) && str_starts_with(end($blocks), '- ') && mb_strlen($joined) <= 70 && ! preg_match('/[.?!]$/u', $joined) && ! str_starts_with($joined, '#')) {
+                $blocks[] = '- ' . $this->enhanceInlineTypography(rtrim($joined, '.')) . '.';
+                $paragraphBuffer = [];
+                return;
+            }
+
             $joined = $this->enhanceInlineTypography(trim($joined));
             if ($joined !== '') {
                 $blocks[] = $joined;
@@ -330,7 +337,11 @@ class ReadingMaterialFormatter
                     foreach ($subItems as $subItem) {
                         $subItem = trim(preg_replace('/^[-–—\•\*]\s+/u', '', $subItem) ?? '');
                         if ($subItem !== '') {
-                            $blocks[] = $prefix . $this->enhanceInlineTypography($subItem);
+                            if (str_ends_with($subItem, '?') && ! $isSubBullet) {
+                                $blocks[] = $this->enhanceInlineTypography($subItem);
+                            } else {
+                                $blocks[] = $prefix . $this->enhanceInlineTypography($subItem);
+                            }
                         }
                     }
                 }
