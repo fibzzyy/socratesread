@@ -487,8 +487,6 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => {
             introOverlay.classList.add('is-hidden');
             document.body.classList.remove('overflow-hidden');
-            try { localStorage.setItem('socratesread_intro_seen', 'true'); } catch (e) {}
-            sessionStorage.setItem('socratesread_intro_seen', 'true');
 
             // Detach overlay from render tree after fade transition to save GPU/CPU cycles
             setTimeout(() => {
@@ -539,8 +537,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (bookStage) bookStage.classList.add('is-open');
         introOverlay.classList.add('is-hidden');
         document.body.classList.remove('overflow-hidden');
-        try { localStorage.setItem('socratesread_intro_seen', 'true'); } catch (e) {}
-        sessionStorage.setItem('socratesread_intro_seen', 'true');
 
         setTimeout(() => {
             if (introOverlay.classList.contains('is-hidden')) {
@@ -929,24 +925,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }, true);
     }
 
-    // Check if user already saw the intro (persisted in localStorage & sessionStorage)
-    const hasSeenIntro = (() => {
-        try {
-            return localStorage.getItem('socratesread_intro_seen') === 'true' || sessionStorage.getItem('socratesread_intro_seen') === 'true';
-        } catch (e) {
-            return false;
-        }
-    })();
+    // Clean up any legacy localStorage/sessionStorage flag so opening always displays when opening website
+    try {
+        localStorage.removeItem('socratesread_intro_seen');
+        sessionStorage.removeItem('socratesread_intro_seen');
+    } catch (e) {}
 
-    if (hasSeenIntro) {
-        if (introOverlay) {
-            introOverlay.classList.add('is-hidden');
-            introOverlay.style.display = 'none';
-        }
-    } else {
-        if (introOverlay) {
-            document.body.classList.add('overflow-hidden');
-        }
+    // When opening the website, the 3D book intro opening is always displayed first
+    if (introOverlay) {
+        introOverlay.style.display = 'flex';
+        introOverlay.classList.remove('is-hidden');
+        document.body.classList.add('overflow-hidden');
     }
 
     // =========================================================================
