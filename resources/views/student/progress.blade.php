@@ -221,16 +221,20 @@
         {{-- TAMPILAN 2: DAFTAR KELAS & RINGKASAN PROGRESS SISWA            --}}
         {{-- ============================================================== --}}
 
-        <section class="stage-heading" aria-labelledby="progress-title">
+        <div class="progress-overview">
+        <section class="stage-heading progress-hero" aria-labelledby="progress-title">
             <div>
-                <p class="eyebrow">LANGKAH KECIL, PERKEMBANGAN BESAR</p>
-                <h1 id="progress-title">Progress belajarmu</h1>
-                <p class="welcome-subtitle">Pilih kelas di bawah ini untuk melihat capaian kompetensi membaca, target, dan grafik belajarmu secara mendalam.</p>
+                <p class="eyebrow progress-kicker"><span class="progress-kicker-icon"><x-icon name="sparkles" /></span>Langkah kecil, perkembangan besar</p>
+                <h1 id="progress-title">Progress <span>belajarmu</span></h1>
+                <p class="welcome-subtitle">Pantau perjalanan membaca dan pencapaian kompetensimu.</p>
             </div>
             <div class="date-filter progress-filter">
                 <x-icon name="calendar-days" />
                 <span>Semua waktu</span>
             </div>
+            <span class="progress-sparkle progress-sparkle-one" aria-hidden="true">✦</span>
+            <span class="progress-sparkle progress-sparkle-two" aria-hidden="true">✧</span>
+            <span class="progress-sparkle progress-sparkle-three" aria-hidden="true">✦</span>
         </section>
 
         <!-- Ringkasan Keseluruhan Akun -->
@@ -270,8 +274,8 @@
         </section>
 
         <!-- KELAS SAYA: Kartu-kartu Kelas untuk Diklik -->
-        <section class="mb-8" aria-labelledby="classroom-list-heading">
-            <div class="flex items-center justify-between mb-4">
+        <section class="progress-class-section mb-8" aria-labelledby="classroom-list-heading">
+            <div class="progress-class-heading flex items-center justify-between mb-4">
                 <div>
                     <p class="section-overline text-xs font-semibold text-blue-600 uppercase tracking-wider">PILIH KELAS UNTUK DETAIL PROGRESS</p>
                     <h2 id="classroom-list-heading" class="text-xl font-bold text-slate-800">Kelas yang Kamu Ikuti</h2>
@@ -281,38 +285,40 @@
                 </a>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div class="progress-class-list grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 @forelse ($classroomCards as $card)
-                    <div class="panel p-5 rounded-2xl border border-slate-200/90 bg-white hover:border-blue-400 hover:shadow-md transition-all duration-200 flex flex-col justify-between">
+                    <div class="progress-class-card panel p-5 rounded-2xl border border-slate-200/90 bg-white hover:border-blue-400 hover:shadow-md transition-all duration-200 flex flex-col justify-between">
                         <div>
                             <div class="flex items-start justify-between gap-3 mb-3">
-                                <div class="flex items-center gap-3">
-                                    <span class="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold border border-blue-100">
+                                <div class="flex min-w-0 items-center gap-3">
+                                    <span class="progress-class-card-icon w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold border border-blue-100">
                                         <x-icon name="book-open-text" class="w-5 h-5" />
                                     </span>
-                                    <div>
-                                        <h3 class="font-bold text-slate-800 text-base leading-snug">{{ $card['classroom']->name }}</h3>
+                                    <div class="min-w-0">
+                                        <div class="progress-class-title-row">
+                                            <h3 class="font-bold text-slate-800 text-base leading-snug">{{ $card['classroom']->name }}</h3>
+                                            <span class="progress-class-grade px-2.5 py-1 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600">
+                                                {{ $card['target_grade_label'] }}
+                                            </span>
+                                        </div>
                                         <p class="text-xs text-slate-500">Guru: {{ $card['teacher_name'] }}</p>
                                     </div>
                                 </div>
-                                <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600">
-                                    {{ $card['target_grade_label'] }}
-                                </span>
                             </div>
 
                             <!-- Progress Bar Materi Selesai -->
                             <div class="my-4">
-                                <div class="flex justify-between text-xs text-slate-600 mb-1.5 font-medium">
+                                <div class="progress-card-track-label flex justify-between text-xs text-slate-600 mb-1.5 font-medium">
                                     <span>Materi selesai</span>
                                     <strong class="text-slate-800">{{ $card['completed_readings'] }} / {{ $card['total_documents'] }} materi ({{ $card['progress_percent'] }}%)</strong>
                                 </div>
-                                <div class="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                                    <div class="h-full bg-blue-600 rounded-full transition-all duration-300" style="width: {{ $card['progress_percent'] }}%"></div>
+                                <div class="progress-card-track w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                                    <div class="progress-card-track-fill h-full bg-blue-600 rounded-full transition-all duration-300" style="width: {{ $card['progress_percent'] }}%"></div>
                                 </div>
                             </div>
 
                             <!-- Mini Stat Grid -->
-                            <div class="grid grid-cols-2 gap-2 py-2.5 border-t border-slate-100 text-center mb-4">
+                            <div class="progress-class-mini-stats grid grid-cols-2 gap-2 py-2.5 border-t border-slate-100 text-center mb-4">
                                 <div class="bg-slate-50 p-2 rounded-xl">
                                     <span class="block text-[11px] text-slate-400 font-medium">XP Kelas</span>
                                     <strong class="text-xs font-bold text-slate-800">+{{ $card['xp_earned'] }} XP</strong>
@@ -325,13 +331,13 @@
                         </div>
 
                         <!-- Tombol Buka Progress Kelas -->
-                        <a href="{{ route('progress', ['classroom' => $card['classroom']->id]) }}" class="w-full inline-flex items-center justify-center gap-2 py-2 px-4 text-xs font-bold rounded-xl bg-blue-600 hover:bg-blue-700 text-white transition shadow-sm">
+                        <a href="{{ route('progress', ['classroom' => $card['classroom']->id]) }}" class="progress-class-open w-full inline-flex items-center justify-center gap-2 py-2 px-4 text-xs font-bold rounded-xl bg-blue-600 hover:bg-blue-700 text-white transition shadow-sm">
                             <span>Buka Progress Kelas Ini</span>
                             <x-icon name="arrow-right" class="w-3.5 h-3.5" />
                         </a>
                     </div>
                 @empty
-                    <div class="col-span-full panel p-8 text-center text-slate-500 rounded-2xl border border-dashed border-slate-300">
+                    <div class="progress-class-empty col-span-full panel p-8 text-center text-slate-500 rounded-2xl border border-dashed border-slate-300">
                         <span class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-100 text-slate-400 mb-3">
                             <x-icon name="users" class="w-6 h-6" />
                         </span>
@@ -346,7 +352,7 @@
         </section>
 
         <!-- Jejak Belajar Global -->
-        <section class="panel reflection-panel" aria-labelledby="global-activity-title">
+        <section class="panel reflection-panel progress-global-activity" aria-labelledby="global-activity-title">
             <span class="reflection-mark" aria-hidden="true"><x-icon name="clock" /></span>
             <p class="section-overline">JEJAK BELAJAR TERAKHIR</p>
             <h2 id="global-activity-title">Aktivitas belajar terbaru</h2>
@@ -366,5 +372,6 @@
                 @endforelse
             </div>
         </section>
+        </div>
     @endif
 @endsection
