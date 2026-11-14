@@ -186,7 +186,7 @@
                             </a>
                         @else
                             <a class="challenge-button session-cta" href="{{ route('quiz.timed', ['document' => $document->id]) }}">
-                                <span>Buka Challenge Socrates</span> <x-icon name="arrow-right" />
+                                <span>Buka Tantangan Socrates</span> <x-icon name="arrow-right" />
                             </a>
                         @endif
                     @else
@@ -204,7 +204,7 @@
                                 <span>Tantangan Bacaan Terkunci</span>
                             </div>
                             <p class="text-[11px] text-amber-800 leading-normal">
-                                Challenge Socrates & Tantangan Guru terbuka otomatis setelah membaca minimal 2 menit atau menekan Selesai Membaca.
+                                Tantangan Socrates & Tantangan Guru terbuka otomatis setelah membaca minimal 2 menit atau menekan Selesai Membaca.
                             </p>
                             <div class="font-mono font-extrabold text-xs text-amber-800 bg-white/90 py-1.5 px-2 rounded-xl border border-amber-200 text-center">
                                 ⏱️ Sisa waktu membaca: <span id="tcCountdownDisplay">02:00</span>
@@ -222,7 +222,7 @@
                             <a class="flex items-center justify-between p-2.5 rounded-xl border border-indigo-200 bg-indigo-50/80 hover:bg-indigo-100 text-indigo-950 text-xs font-bold transition shadow-xs" href="{{ route('quiz.timed', ['document' => $document->id]) }}">
                                 <div class="flex items-center gap-2">
                                     <x-icon name="gamepad-2" class="w-4 h-4 text-indigo-600 shrink-0" />
-                                    <span>1. Challenge Socrates (PG · {{ $document->quiz_question_count ?? 10 }} Soal · {{ $document->quiz_duration_minutes ?? 15 }}m)</span>
+                                    <span>1. Tantangan Socrates (PG · {{ $document->quiz_question_count ?? 10 }} Soal · {{ $document->quiz_duration_minutes ?? 15 }}m)</span>
                                 </div>
                                 <x-icon name="arrow-right" class="w-3.5 h-3.5 text-indigo-500 shrink-0" />
                             </a>
@@ -230,7 +230,7 @@
                             <div id="quizItemLocked" class="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-500 text-xs font-semibold">
                                 <div class="flex items-center gap-2">
                                     <x-icon name="lock" class="w-4 h-4 text-slate-400 shrink-0" />
-                                    <span>1. Challenge Socrates (Terbuka setelah 2m)</span>
+                                    <span>1. Tantangan Socrates (Terbuka setelah 2m)</span>
                                 </div>
                                 <span id="quizItemCountdown" class="text-[10px] font-mono font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">02:00</span>
                             </div>
@@ -497,7 +497,7 @@
             } else {
                 primaryWrapper.innerHTML = `
                     <a class="challenge-button session-cta animate-scale-in" href="${quizUrl}">
-                        <span>Buka Challenge Socrates</span> <svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                        <span>Buka Tantangan Socrates</span> <svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                     </a>
                 `;
             }
@@ -508,7 +508,7 @@
                 <a class="flex items-center justify-between p-2.5 rounded-xl border border-indigo-200 bg-indigo-50/80 hover:bg-indigo-100 text-indigo-950 text-xs font-bold transition shadow-xs animate-scale-in" href="${quizUrl}">
                     <div class="flex items-center gap-2">
                         <span>🎮</span>
-                        <span>1. Challenge Socrates (PG · ${quizCount} Soal · ${quizMinutes}m)</span>
+                        <span>1. Tantangan Socrates (PG · ${quizCount} Soal · ${quizMinutes}m)</span>
                     </div>
                     <span class="text-indigo-500 font-bold">→</span>
                 </a>

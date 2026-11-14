@@ -23,12 +23,11 @@
                 <a class="nav-link is-active" href="{{ route('dashboard') }}" aria-current="page"><x-icon name="layout-dashboard" /><span>Beranda</span></a>
                 <a class="nav-link" href="{{ route('reading') }}"><x-icon name="book-open-text" /><span>Reading Room</span></a>
                 <a class="nav-link {{ request()->routeIs('classrooms.*') ? 'is-active' : '' }}" href="{{ route('classrooms.index') }}"><x-icon name="users" /><span>Kelas saya</span></a>
-                <a class="nav-link {{ request()->routeIs('settings.profile', 'profile') ? 'is-active' : '' }}" href="{{ route('profile') }}"><x-icon name="user" /><span>Profil</span></a>
             </nav>
 
             <div class="nav-label nav-label-spaced">BELAJAR</div>
             <nav class="nav-list" aria-label="Materi belajar">
-                <a class="nav-link" href="{{ route('quiz.index') }}"><x-icon name="gamepad-2" /><span>Challenge Socrates</span></a>
+                <a class="nav-link" href="{{ route('quiz.index') }}"><x-icon name="brain-circuit" /><span>Tantangan Socrates</span></a>
                 <a class="nav-link" href="{{ route('progress') }}"><x-icon name="chart-no-axes-combined" /><span>Kemajuan</span></a>
                 <a class="nav-link" href="{{ route('achievements') }}"><x-icon name="award" /><span>Pencapaian</span></a>
             </nav>
@@ -38,9 +37,12 @@
         </aside>
 
         <main class="main-content" id="dashboard">
-            <header class="topbar">
+            <header class="topbar student-topbar-pill quiz-topbar">
                 <button class="icon-button menu-toggle" type="button" aria-label="Buka navigasi" aria-controls="primary-navigation" aria-expanded="false" data-menu-toggle><x-icon name="menu" /></button>
-                <div class="breadcrumb"><a href="{{ route('dashboard') }}">Ruang belajar</a><span>/</span><strong>Dashboard Siswa</strong></div>
+                <div class="breadcrumb">
+                    <a href="{{ route('dashboard') }}" class="quiz-home-link topbar-home-link" aria-label="Beranda"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7M5 9v12h14V9M9 21v-7h6v7" /></svg></a>
+                    <a href="{{ route('dashboard') }}" class="hover:text-blue-600 transition-colors">Ruang belajar</a><span>/</span><strong>Beranda</strong>
+                </div>
                 <div class="topbar-actions">
                     <span class="today-label">{{ now()->locale('id')->translatedFormat('l, d F Y') }}</span>
                     <x-notification-center />
@@ -151,7 +153,27 @@
                 @endif
 
                 <section class="hero-card" aria-label="Tantangan membaca hari ini">
-                    <div class="hero-copy"><h2>Baca dengan rasa ingin tahu.<br><span>Pikirkan lebih jauh.</span></h2><p>Satu bacaan, satu pertanyaan hebat, satu langkah lebih dekat pada pemahaman.</p><a class="hero-cta" href="#bacaan">Lanjutkan perjalanan <x-icon name="arrow-right" /></a></div>
+                    <div class="hero-copy">
+                        <span class="hero-kicker"><span class="sparkle" aria-hidden="true"><x-icon name="target" /></span> MISI HARI INI</span>
+                        <h2>Baca dengan rasa ingin tahu.<br><span>Pikirkan lebih jauh.</span></h2>
+                        <p>Satu bacaan, satu pertanyaan hebat, satu langkah lebih dekat pada pemahaman.</p>
+                        @if ($activeSession && $activeSession->document)
+                            <a class="hero-cta" href="{{ route('reading', ['document' => $activeSession->document_id]) }}" title="Lanjutkan {{ $activeSession->document->title }}">
+                                <span>Lanjutkan: {{ \Illuminate\Support\Str::limit($activeSession->document->title, 26) }} ({{ $activeSession->progress_percent ?? 0 }}%)</span>
+                                <x-icon name="arrow-right" />
+                            </a>
+                        @elseif (! $hasEnrolledClass)
+                            <a class="hero-cta" href="{{ route('classrooms.index') }}">
+                                <span>Gabung Kelas Belajar</span>
+                                <x-icon name="arrow-right" />
+                            </a>
+                        @else
+                            <a class="hero-cta" href="#bacaan">
+                                <span>Mulai Membaca</span>
+                                <x-icon name="arrow-right" />
+                            </a>
+                        @endif
+                    </div>
                     <div class="hero-art" aria-hidden="true"><img class="burhan-owl" src="{{ asset('images/burhan.png') }}" alt=""></div>
                 </section>
 

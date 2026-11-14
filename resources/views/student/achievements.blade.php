@@ -2,11 +2,7 @@
 
 @section('title', 'Ranking Angkatan Kelas ' . $selectedGrade . ' - Pencapaian')
 
-@section('breadcrumb')
-    <a href="{{ route('achievements') }}" class="text-slate-500 hover:text-blue-600">Pencapaian</a>
-    <span class="mx-1">/</span>
-    <strong>Ranking Angkatan Kelas {{ $selectedGrade }}</strong>
-@endsection
+@section('breadcrumb', 'Pencapaian')
 
 @section('content')
     @php
@@ -138,7 +134,7 @@
                     @endphp
                     <div class="achievement-place achievement-place-second w-full max-w-xs sm:max-w-none sm:w-1/3 flex flex-col items-center order-2 sm:order-1">
                         <div class="achievement-profile relative mb-3 flex flex-col items-center">
-                            <span class="achievement-trophy achievement-trophy-second" aria-hidden="true"><img src="{{ asset('images/podium-trophies/second.png') }}" alt=""></span>
+                            <span class="achievement-trophy achievement-trophy-second" aria-hidden="true"><img src="{{ asset('images/podium-trophies/second.png') }}" alt="" class="w-8 h-7 max-h-7 max-w-8 object-contain"></span>
                             <div class="achievement-avatar w-16 h-16 rounded-2xl ring-4 ring-slate-300 bg-slate-100 grid place-items-center overflow-hidden shadow-md">
                                 @if ($second->avatar_url)
                                     <img src="{{ $second->avatar_url }}" alt="{{ $second->name }}" class="w-full h-full object-cover">
@@ -168,7 +164,7 @@
                     @endphp
                     <div class="achievement-place achievement-place-first w-full max-w-xs sm:max-w-none sm:w-1/3 flex flex-col items-center order-1 sm:order-2">
                         <div class="achievement-profile relative mb-3 flex flex-col items-center">
-                            <span class="achievement-trophy achievement-trophy-first" aria-hidden="true"><img src="{{ asset('images/podium-trophies/first.png') }}" alt=""></span>
+                            <span class="achievement-trophy achievement-trophy-first" aria-hidden="true"><img src="{{ asset('images/podium-trophies/first.png') }}" alt="" class="w-10 h-9 max-h-9 max-w-10 object-contain"></span>
                             <div class="achievement-avatar w-20 h-20 rounded-2xl ring-4 ring-amber-400 bg-amber-50 grid place-items-center overflow-hidden shadow-lg">
                                 @if ($first->avatar_url)
                                     <img src="{{ $first->avatar_url }}" alt="{{ $first->name }}" class="w-full h-full object-cover">
@@ -205,7 +201,7 @@
                     @endphp
                     <div class="achievement-place achievement-place-third w-full max-w-xs sm:max-w-none sm:w-1/3 flex flex-col items-center order-3">
                         <div class="achievement-profile relative mb-3 flex flex-col items-center">
-                            <span class="achievement-trophy achievement-trophy-third" aria-hidden="true"><img src="{{ asset('images/podium-trophies/third.png') }}" alt=""></span>
+                            <span class="achievement-trophy achievement-trophy-third" aria-hidden="true"><img src="{{ asset('images/podium-trophies/third.png') }}" alt="" class="w-8 h-7 max-h-7 max-w-8 object-contain"></span>
                             <div class="achievement-avatar w-16 h-16 rounded-2xl ring-4 ring-amber-700/40 bg-amber-50/50 grid place-items-center overflow-hidden shadow-md">
                                 @if ($third->avatar_url)
                                     <img src="{{ $third->avatar_url }}" alt="{{ $third->name }}" class="w-full h-full object-cover">
@@ -383,7 +379,7 @@
     <section class="academy-collection" aria-labelledby="badges-heading">
         <header class="academy-collection-heading">
             <span class="academy-heading-seal"><x-icon name="medal" /></span>
-            <div><p class="academy-overline">FANTASY ACADEMY · ROYAL EMBLEM</p><h3 id="badges-heading">Koleksi Lencana</h3><p>Medali kehormatan untuk perjalanan membaca dan berpikir kritis.</p></div>
+            <div><p class="academy-overline">FANTASY ACADEMY · ROYAL EMBLEM</p><h3 id="badges-heading">Lencana Prestasi Belajar</h3><p>Koleksi medali kehormatan untuk perjalanan membaca dan berpikir kritis.</p></div>
             <span class="academy-xp-total"><x-icon name="sparkles" /> {{ number_format($studentXp) }} XP</span>
         </header>
 
@@ -396,7 +392,7 @@
                     $progress = $earned ? 100 : min(100, max(0, (int) floor((($studentXp - $previousXp) / ($badge['xp'] - $previousXp)) * 100)));
                 @endphp
                 <button type="button" class="academy-badge-card {{ $earned ? 'is-earned' : 'is-locked' }} tone-{{ $badge['tone'] }}" data-academy-badge data-name="{{ $badge['name'] }}" data-description="{{ $badge['desc'] }}" data-requirement="{{ number_format($badge['xp']) }} XP" data-xp-threshold="{{ $badge['xp'] }}" aria-haspopup="dialog">
-                    <span class="academy-medal-wrap"><img class="academy-medal-art" src="{{ asset('images/achievement-badges/' . $badge['image']) }}" alt=""></span>
+                    <span class="academy-medal-wrap"><img class="academy-medal-art max-h-18 max-w-16 w-auto h-auto object-contain mx-auto" src="{{ asset('images/achievement-badges/' . $badge['image']) }}" alt=""></span>
                     <span class="academy-badge-copy"><strong>{{ $badge['name'] }}</strong><span>{{ $badge['desc'] }}</span><span class="academy-requirement">{{ number_format($badge['xp']) }} XP</span></span>
                     @if (! $earned)
                         <span class="academy-progress"><span style="width: {{ $progress }}%"></span></span>
@@ -412,7 +408,7 @@
         <div class="academy-mission-grid">
             @foreach ($badges as $badge)
                 <button type="button" class="academy-mission-card academy-mission-{{ $badge['id'] }} {{ $badge['is_unlocked'] ? 'is-earned' : 'is-locked' }}" data-academy-badge data-name="{{ $badge['name'] }}" data-description="{{ $badge['description'] }}" data-requirement="Progres {{ $badge['progress'] }}" aria-haspopup="dialog">
-                    <span class="academy-mission-art"><img src="{{ asset('images/activity-badges/' . $badge['id'] . '.png') }}" alt="" loading="lazy"></span><span class="academy-mission-copy"><strong>{{ $badge['name'] }}</strong><span>{{ $badge['description'] }}</span><small>{{ $badge['is_unlocked'] ? '✓ Tercapai' : 'Progres ' . $badge['progress'] }}</small></span>
+                    <span class="academy-mission-art"><img src="{{ asset('images/activity-badges/' . $badge['id'] . '.png') }}" alt="" loading="lazy" class="w-11 h-11 max-w-11 max-h-11 object-contain"></span><span class="academy-mission-copy"><strong>{{ $badge['name'] }}</strong><span>{{ $badge['description'] }}</span><small>{{ $badge['is_unlocked'] ? '✓ Tercapai' : 'Progres ' . $badge['progress'] }}</small></span>
                 </button>
             @endforeach
         </div>
