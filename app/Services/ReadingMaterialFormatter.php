@@ -146,18 +146,24 @@ class ReadingMaterialFormatter
 
             // Buang baris metadata cover teracak / berspasi per huruf (misal: /IQIRXIVMER..., 1EXIQEXMOE...)
             $tNoZero = str_replace("\0", '', $trimmed);
-            if (preg_match('#^/(?:IQIR|IFYH|6ITY|1EXI|4IRY)#i', $tNoZero)
-                || preg_match('/^(?:6ITY|1EXI|4IRY|6MWI|8IOR)/i', $tNoZero)
-                || preg_match('/^(?:[\/\p{L}\p{N}%&_()\-]\s+){5,}/u', $tNoZero)
-                || preg_match('/^[-–—\s]*\d+\s*&\s*\d+/u', $tNoZero)) {
+            $c = preg_replace('/[\s\0]+/', '', $tNoZero);
+            if (preg_match('#^/(?:IQIR|IFYH|6ITY|1EXI|4IRY)#i', $c)
+                || preg_match('/^(?:6ITY|1EXI|4IRY|6MWI|8IOR)/i', $c)
+                || preg_match('/^(?:IQIRXIVMER|1EXIQEXMOE|4IRYPMW|6ITYFPMO|71%|1%|71\/)/i', $c)
+                || preg_match('/^[-–—\s]*\d+\s*&\s*\d+/u', $c)
+                || preg_match('/^[-–—\s]*[A-Z0-9&]{2,10}\s+Barisan/i', $tNoZero)
+                || preg_match('/^(?:[\/\p{L}\p{N}%&_()\-]\s+){4,}/u', $tNoZero)) {
                 continue;
             }
 
-            // Buang running header/footer buku cetak
+            // Buang running header/footer buku cetak, kementerian, penerbit, peta materi, instruksi tugas
             if (preg_match('/^(?:Matematika|Bahasa\s+Indonesia|Buku\s+Siswa)\s+untuk\s+SMA.*Kelas\s+[X\d]+/iu', $tNoZero)
                 || preg_match('/^Bab\s+\d+\s*\|\s*/iu', $tNoZero)
                 || preg_match('/^(?:World\s+Our\s+World|Data\s+source:\s*United\s+Nations|CC\s+BY\b)/iu', $tNoZero)
-                || preg_match('/^(?:Bab|Eksponen\s*\d*)$/iu', $tNoZero)) {
+                || preg_match('/^(?:Bab|Eksponen\s*\d*|\d+\s*Bab|Barisan\s+dan\s+Deret)$/iu', $tNoZero)
+                || preg_match('/^[-–—\s]*\d+\s*$/u', $tNoZero)
+                || preg_match('/^(?:ISBN|Kementerian|Republik\s+Indonesia|Hak\s+Cipta|Diterbitkan\s+oleh)\b/iu', $tNoZero)
+                || preg_match('/^(?:Peta\s+Materi|Ayo,?\s+Bereksplorasi|Ayo,?\s+Berpikir|Ayo,?\s+Berdiskusi|Jawablah\s+pertanyaan\s+berikut\s+dengan\s+berdiskusi)\b/iu', $tNoZero)) {
                 continue;
             }
 

@@ -532,6 +532,24 @@
 
             if (!modal) return;
 
+            const renderKaTeXIn = (container) => {
+                if (typeof window.renderMathInElement === 'function' && container) {
+                    try {
+                        window.renderMathInElement(container, {
+                            delimiters: [
+                                { left: '$$', right: '$$', display: true },
+                                { left: '$', right: '$', display: false },
+                                { left: '\\(', right: '\\)', display: false },
+                                { left: '\\[', right: '\\]', display: true }
+                            ],
+                            throwOnError: false
+                        });
+                    } catch (e) {
+                        console.warn('KaTeX render warning:', e);
+                    }
+                }
+            };
+
             const switchTab = (activeTab) => {
                 const tabs = [
                     { id: 'text', btn: tabTextBtn, content: tabTextContent },
@@ -548,6 +566,8 @@
                         tab.content.classList.add('hidden');
                     }
                 });
+
+                setTimeout(() => renderKaTeXIn(modal), 40);
             };
 
             tabTextBtn.addEventListener('click', () => switchTab('text'));
@@ -747,6 +767,7 @@
                 switchTab('text');
                 modal.classList.remove('hidden');
                 document.body.classList.add('overflow-hidden');
+                setTimeout(() => renderKaTeXIn(modal), 60);
             };
 
             const closeModal = () => {
@@ -1448,6 +1469,7 @@
 
                     challengeListContainer.appendChild(card);
                 });
+                setTimeout(() => renderKaTeXIn(challengeListContainer), 40);
             };
 
             const syncDocumentChallengeSummary = (docId, totalChallenges, challenges = [], maxXp = 0) => {

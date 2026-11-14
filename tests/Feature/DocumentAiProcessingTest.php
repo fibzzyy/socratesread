@@ -250,4 +250,42 @@ TEXT;
         $challenges = $processor->generateHeuristicTeacherChallengeSuggestions($mathWithEllipsis, 'Barisan', 'Matematika');
         $this->assertCount(5, $challenges);
     }
+
+    public function test_domain_6_barisan_dan_deret_aritmetika_questions_and_challenges(): void
+    {
+        $mockModel = Mockery::mock(LanguageModel::class);
+        $mockModel->shouldReceive('isConfigured')->andReturn(false);
+        $processor = new DocumentAiProcessor($mockModel);
+
+        $seqText = <<<'TEXT'
+Tujuan Pembelajaran
+Setelah mempelajari bab ini, diharapkan kamu dapat menyelesaikan permasalahan kehidupan sehari-hari yang berkaitan dengan barisan dan deret.
+Barisan dan deret sangat erat kaitannya dengan konsep pola bilangan yang telah kamu pelajari pada jenjang SMP.
+Barisan bilangan dapat dinyatakan dalam bentuk U1, U2, U3, ..., Un.
+Rumus umum menentukan suku ke-n pada barisan aritmetika adalah Un = a + (n - 1)b di mana a adalah suku pertama dan b adalah beda.
+Beda pada barisan aritmetika dinyatakan dengan b = Un - U(n-1).
+Eksplorasi Gedung Pertunjukan Seni: Baris ke-1 = 20, Baris ke-2 = 24, Baris ke-3 = 28, Baris ke-4 = 32, Baris ke-5 = 36 kursi.
+Tabungan Rudi: U5 = 70.000 dengan rumus a + 4b = 70.000.
+TEXT;
+
+        $quiz = $processor->generateHeuristicQuizQuestions($seqText, 'p014', 'MATEMATIKA', 10);
+        $this->assertCount(10, $quiz);
+
+        foreach ($quiz as $q) {
+            $this->assertNotEmpty($q['question']);
+            $this->assertCount(4, $q['options']);
+            foreach ($q['options'] as $opt) {
+                $text = trim($opt['text']);
+                $this->assertFalse(str_ends_with($text, ' yang'), "Option should not end with 'yang': {$text}");
+                $this->assertFalse(str_starts_with($text, 'Setelah mempelajari bab'), "Option should not be learning objective boilerplate: {$text}");
+                $this->assertFalse(str_contains($text, 'Peta Materi'), "Option should not contain Peta Materi: {$text}");
+            }
+        }
+
+        $challenges = $processor->generateHeuristicTeacherChallengeSuggestions($seqText, 'p014', 'MATEMATIKA');
+        $this->assertCount(5, $challenges);
+        $this->assertStringContainsString('U_n', $challenges[1]['question']);
+        $this->assertStringContainsString('gedung pertunjukan', $challenges[2]['question']);
+        $this->assertStringContainsString('Rudi', $challenges[3]['question']);
+    }
 }

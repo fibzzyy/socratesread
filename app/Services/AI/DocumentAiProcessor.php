@@ -1197,6 +1197,60 @@ INSTRUCTIONS;
             ], $mtkChallenges);
         }
 
+        // Domain 6: Matematika — Barisan dan Deret Aritmetika & Geometri (Kelas 10)
+        if (
+            (str_contains($bodyLower, 'barisan') && (str_contains($bodyLower, 'aritmetika') || str_contains($bodyLower, 'deret') || str_contains($bodyLower, 'geometri') || str_contains($bodyLower, 'pola bilangan')))
+            || (str_contains($titleLower, 'barisan') || str_contains($titleLower, 'deret') || (isset($category) && str_contains(mb_strtolower($category), 'matematika') && (str_contains($bodyLower, 'suku ke-n') || str_contains($bodyLower, 'aritmetika'))))
+        ) {
+            $seqChallenges = [
+                [
+                    'bloom' => 'C3',
+                    'difficulty' => 'easy',
+                    'question' => 'Jelaskan konsep dasar barisan aritmetika dan bagaimana peran nilai beda ($b = U_n - U_{n-1}$) dalam memastikan bahwa suatu barisan bertambah atau berkurang secara teratur!',
+                    'rubric' => 'Barisan aritmetika adalah susunan bilangan dengan selisih antardua suku berurutan selalu konstan. Nilai beda $b$ dihitung dengan $b = U_n - U_{n-1}$. Jika $b > 0$, barisan bertambah secara teratur (barisan naik); jika $b < 0$, barisan berkurang secara teratur (barisan turun). Nilai beda yang tetap menjamin grafik pertumbuhan barisan membentuk garis linier.',
+                    'reference_excerpt' => 'Barisan bilangan U1, U2, U3, ..., Un. Selisih antara dua suku berurutan disebut beda yang dinyatakan dengan b = Un - U(n-1).',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'difficulty' => 'medium',
+                    'question' => 'Buktikan bagaimana rumus umum suku ke-$n$ barisan aritmetika ($U_n = a + (n - 1)b$) diturunkan langkah demi langkah dari suku pertama $a$ dan penambahan beda $b$!',
+                    'rubric' => 'Penurunan rumus: Suku pertama $U_1 = a$. Suku kedua $U_2 = a + b$. Suku ketiga $U_3 = a + 2b = a + (3 - 1)b$. Suku keempat $U_4 = a + 3b = a + (4 - 1)b$. Dengan mengamati pola berulang, pada suku ke-$n$ nilai beda $b$ ditambahkan sebanyak $(n - 1)$ kali dari suku awal $a$, terbukti secara deduktif bahwa $U_n = a + (n - 1)b$.',
+                    'reference_excerpt' => 'Jadi, rumus umum menentukan suku ke-n pada barisan aritmetika adalah Un = a + (n - 1)b di mana a adalah suku pertama, b adalah beda, dan n adalah nomor suku.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'difficulty' => 'medium',
+                    'question' => 'Pada studi kasus gedung pertunjukan seni di materi, banyak kursi pada baris ke-1 adalah 20, baris ke-2 adalah 24, dan baris ke-3 adalah 28. Analisis cara menentukan banyak kursi pada baris ke-12 dan evaluasi keunggulan penerapan rumus barisan aritmetika dibandingkan menghitung manual!',
+                    'rubric' => 'Analisis matematis: Diketahui suku pertama $a = 20$ dan beda $b = 24 - 20 = 4$. Untuk baris ke-12 ($n = 12$): $U_{12} = a + (12 - 1)b = 20 + 11(4) = 20 + 44 = 64$ kursi. Keunggulan rumus aritmetika: Menghitung kapasitas baris tinggi (misal baris ke-50 atau ke-100) secara instan, presisi tanpa resiko kekeliruan akumulasi manual, dan dapat digunakan merancang tata ruang arsitektur secara efisien.',
+                    'reference_excerpt' => 'Eksplorasi Gedung Pertunjukan Seni: Baris ke-1 = 20, Baris ke-2 = 24, Baris ke-3 = 28, Baris ke-4 = 32, Baris ke-5 = 36. Pola bilangan bertambah 4 di tiap baris.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'difficulty' => 'hard',
+                    'question' => 'Rudi menabung dengan selisih tetap antarbulan. Jika tabungan pada bulan ke-5 adalah Rp70.000 ($a + 4b = 70.000$) dan selisih kenaikan tabungan antarbulan adalah Rp10.000 ($b = 10.000$), uraikan langkah penyelesaian untuk menentukan besar tabungan awal Rudi ($a$) dan evaluasi implikasi perencanaan keuangan dari pola tabungan aritmetika tersebut!',
+                    'rubric' => 'Langkah penyelesaian: Substitusikan $b = 10.000$ ke persamaan $U_5 = a + 4b = 70.000 \implies a + 4(10.000) = 70.000 \implies a + 40.000 = 70.000 \implies a = 30.000$ rupiah tabungan awal. Evaluasi keuangan: Pola tabungan aritmetika melatih disiplin menabung dengan peningkatan target simpanan yang terukur dan realistis, sehingga penabung tidak terbebani di awal dan total tabungan terakumulasi secara pasti.',
+                    'reference_excerpt' => 'Alternatif Penyelesaian: U5 = 70.000, a + (5 - 1)b = 70.000, a + 4b = 70.000. Selisih nominal uang yang ditabung antarbulan dan besar uang yang ditabung pertama kali.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'difficulty' => 'hard',
+                    'question' => 'Evaluasi perbedaan mendasar antara pola barisan aritmetika ($U_n = a + (n - 1)b$) dengan barisan geometri ($U_n = a \cdot r^{n-1}$), serta berikan masing-masing 1 contoh penerapan konkret keduanya dalam memecahkan masalah kehidupan nyata!',
+                    'rubric' => 'Evaluasi perbedaan: Barisan aritmetika bekerja dengan operasi penjumlahan/pengurangan konstan (beda $b$) menghasilkan pola linier. Barisan geometri bekerja dengan operasi perkalian/pembagian konstan (rasio $r$) menghasilkan pola eksponensial. Contoh aritmetika: Penambahan kapasitas susunan kursi gedung bioskop atau penambahan tabungan dengan nominal tetap bulanan. Contoh geometri: Pertumbuhan pembelahan sel bakteri setiap satuan waktu atau perhitungan bunga majemuk tabungan bank.',
+                    'reference_excerpt' => 'Perbedaan barisan dan deret aritmetika dengan barisan dan deret geometri. Barisan aritmetika berkaitan dengan penambahan konstan, sedangkan barisan geometri berkaitan dengan rasio kelipatan.',
+                ],
+            ];
+
+            return array_map(fn ($item) => [
+                'type' => 'essay',
+                'question' => $item['question'],
+                'context' => null,
+                'rubric' => $item['rubric'],
+                'reference_excerpt' => $item['reference_excerpt'],
+                'difficulty' => $item['difficulty'],
+                'difficulty_weight' => TeacherChallenge::weightForDifficulty($item['difficulty']),
+            ], $seqChallenges);
+        }
+
         return null;
     }
 
@@ -2913,6 +2967,126 @@ INSTRUCTIONS;
             $items = $mtkPool;
         }
 
+        // Domain 6: Matematika — Barisan dan Deret Aritmetika & Geometri (Kelas 10)
+        if (
+            (str_contains($bodyLower, 'barisan') && (str_contains($bodyLower, 'aritmetika') || str_contains($bodyLower, 'deret') || str_contains($bodyLower, 'geometri') || str_contains($bodyLower, 'pola bilangan')))
+            || (str_contains($titleLower, 'barisan') || str_contains($titleLower, 'deret') || (isset($category) && str_contains(mb_strtolower($category), 'matematika') && (str_contains($bodyLower, 'suku ke-n') || str_contains($bodyLower, 'aritmetika'))))
+        ) {
+            $seqPool = [
+                [
+                    'bloom' => 'C1',
+                    'question' => 'Pada barisan aritmetika, rumus umum untuk menentukan nilai suku ke-$n$ ($U_n$) dengan suku pertama $a$ dan beda $b$ adalah...',
+                    'correct' => '$U_n = a + (n - 1)b$',
+                    'distractors' => [
+                        '$U_n = a + nb$',
+                        '$U_n = a \cdot r^{n-1}$',
+                        '$U_n = \frac{n}{2}(a + b)$',
+                    ],
+                    'explanation' => 'Rumus suku ke-$n$ barisan aritmetika diturunkan dari penambahan beda $b$ sebanyak $(n - 1)$ kali dari suku awal $a$, yaitu $U_n = a + (n - 1)b$.',
+                ],
+                [
+                    'bloom' => 'C1',
+                    'question' => 'Karakteristik fundamental yang mendefinisikan suatu barisan bilangan sebagai barisan aritmetika adalah...',
+                    'correct' => 'Selisih antara dua suku yang berurutan selalu konstan ($b = U_n - U_{n-1}$)',
+                    'distractors' => [
+                        'Perbandingan rasio antara dua suku yang berurutan selalu bernilai sama',
+                        'Jumlah seluruh suku selalu bernilai bilangan bulat genap',
+                        'Setiap suku bernilai dua kali lipat dari suku sebelumnya',
+                    ],
+                    'explanation' => 'Barisan aritmetika dicirikan oleh selisih tetap (beda $b$) antarsuku yang berdekatan: $b = U_2 - U_1 = U_3 - U_2 = U_n - U_{n-1}$.',
+                ],
+                [
+                    'bloom' => 'C2',
+                    'question' => 'Diketahui suatu barisan bilangan: $4, 6, 8, 10, \dots$. Berapakah nilai beda ($b$) pada barisan tersebut?',
+                    'correct' => '$b = 2$',
+                    'distractors' => [
+                        '$b = 4$',
+                        '$b = 3$',
+                        '$b = 1$',
+                    ],
+                    'explanation' => 'Beda dihitung dari selisih suku kedua dan suku pertama: $b = U_2 - U_1 = 6 - 4 = 2$.',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Pada barisan aritmetika $4, 6, 8, 10, \dots$, berapakah nilai suku ke-10 ($U_{10}$)?',
+                    'correct' => '$U_{10} = 22$',
+                    'distractors' => [
+                        '$U_{10} = 20$',
+                        '$U_{10} = 24$',
+                        '$U_{10} = 26$',
+                    ],
+                    'explanation' => 'Dengan $a = 4$ dan $b = 2$, maka $U_{10} = a + (10 - 1)b = 4 + 9(2) = 4 + 18 = 22$.',
+                ],
+                [
+                    'bloom' => 'C3',
+                    'question' => 'Suatu barisan aritmetika memiliki suku pertama $a = 5$ dan beda $b = 3$. Nilai dari suku ke-7 ($U_7$) adalah...',
+                    'correct' => '$U_7 = 23$',
+                    'distractors' => [
+                        '$U_7 = 26$',
+                        '$U_7 = 21$',
+                        '$U_7 = 35$',
+                    ],
+                    'explanation' => 'Menggunakan rumus $U_n = a + (n - 1)b$, maka $U_7 = 5 + (7 - 1) \times 3 = 5 + 18 = 23$.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Dalam gedung pertunjukan seni, baris ke-1 memuat 20 kursi, baris ke-2 memuat 24 kursi, dan baris ke-3 memuat 28 kursi. Banyak kursi pada baris ke-5 adalah...',
+                    'correct' => '36 kursi',
+                    'distractors' => [
+                        '32 kursi',
+                        '40 kursi',
+                        '44 kursi',
+                    ],
+                    'explanation' => 'Pola penambahan kursi tiap baris adalah beda konstan $b = 4$. Maka baris ke-5 adalah $U_5 = 20 + (5 - 1) \times 4 = 20 + 16 = 36$ kursi.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Jika pada barisan aritmetika diketahui suku pertama $U_1 = 7$ dan suku ketiga $U_3 = 15$, maka beda ($b$) barisan tersebut adalah...',
+                    'correct' => '$b = 4$',
+                    'distractors' => [
+                        '$b = 8$',
+                        '$b = 3$',
+                        '$b = 2$',
+                    ],
+                    'explanation' => '$U_3 - U_1 = 2b \implies 15 - 7 = 8 \implies 2b = 8 \implies b = 4$.',
+                ],
+                [
+                    'bloom' => 'C4',
+                    'question' => 'Manakah di antara barisan bilangan berikut yang BUKAN merupakan barisan aritmetika?',
+                    'correct' => '$2, 4, 8, 16, \dots$ (kelipatan rasio tetap)',
+                    'distractors' => [
+                        '$3, 7, 11, 15, \dots$ (selisih tetap $+4$)',
+                        '$10, 7, 4, 1, \dots$ (selisih tetap $-3$)',
+                        '$-5, -2, 1, 4, \dots$ (selisih tetap $+3$)',
+                    ],
+                    'explanation' => 'Barisan $2, 4, 8, 16, \dots$ memiliki perbandingan perkalian tetap ($\times 2$), sehingga merupakan barisan geometri, bukan barisan aritmetika.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'question' => 'Rudi menabung di koperasi sekolah dengan pertambahan simpanan tetap tiap bulan. Jika pada bulan ke-5 tabungan Rudi tercatat Rp70.000 ($a + 4b = 70.000$) dan selisih kenaikan tabungan antarbulan $b = \text{Rp10.000}$, maka besaran tabungan Rudi pada bulan pertama adalah...',
+                    'correct' => '$\text{Rp30.000}$',
+                    'distractors' => [
+                        '$\text{Rp20.000}$',
+                        '$\text{Rp40.000}$',
+                        '$\text{Rp50.000}$',
+                    ],
+                    'explanation' => '$a + 4(10.000) = 70.000 \implies a + 40.000 = 70.000 \implies a = 70.000 - 40.000 = \text{Rp30.000}$.',
+                ],
+                [
+                    'bloom' => 'C5',
+                    'question' => 'Dalam konteks pemodelan matematika dunia nyata, mengapa pertumbuhan kapasitas gedung bertingkat atau kenaikan gaji tahunan tetap lebih tepat dimodelkan dengan barisan aritmetika daripada barisan geometri?',
+                    'correct' => 'Karena peningkatannya terjadi melalui penambahan kuantitas tetap (linier), bukan kelipatan persentase eksponensial',
+                    'distractors' => [
+                        'Karena barisan geometri hanya berlaku untuk besaran uang berskala internasional',
+                        'Karena rumus barisan aritmetika menghasilkan perhitungan yang selalu lebih besar dari barisan geometri',
+                        'Karena barisan aritmetika tidak membutuhkan data suku pertama untuk menentukan suku berikutnya',
+                    ],
+                    'explanation' => 'Barisan aritmetika memodelkan pertumbuhan linier dengan selisih tetap ($b$), sangat sesuai untuk alokasi fisik tetap dan kenaikan nominal berkala.',
+                ],
+            ];
+            $items = $seqPool;
+        }
+
         if (empty($items)) {
             return null;
         }
@@ -3357,6 +3531,22 @@ INSTRUCTIONS;
                 if (preg_match('/^Saya\s+setuju\b/iu', $s)) {
                     continue;
                 }
+                // Tolak kalimat tujuan pembelajaran / capaian kurikulum yang bukan materi ajar
+                if (preg_match('/^(?:Setelah\s+mempelajari\s+bab|Kamu\s+diharapkan|Diharapkan\s+kamu|Pada\s+akhir\s+fase|Peserta\s+didik\s+mampu)\b/iu', $s)) {
+                    continue;
+                }
+                // Tolak instruksi tugas / eksplorasi / diskusi kelompok
+                if (preg_match('/^(?:Ayo,?\s+Bereksplorasi|Ayo,?\s+Berdiskusi|Ayo,?\s+Berpikir|Ayo,?\s+Berkolaborasi|Jawablah\s+pertanyaan|Diskusikan\s+dengan|Kerjakan\s+latihan|Perhatikan\s+Tabel|Tabel\s+\d+\.\d+)\b/iu', $s)) {
+                    continue;
+                }
+                // Tolak bagan peta materi atau diagram alur teks
+                if (preg_match('/\b(?:Peta\s+Materi|Bagan\s+Alur|Diagram\s+Konsep)\b/iu', $s)) {
+                    continue;
+                }
+                // Tolak kalimat terpotong di kata penghubung/preposisi (dangling sentence)
+                if (preg_match('/\b(?:yang|dan|atau|dari|untuk|pada|dengan|dalam|oleh|sebagai|adalah|merupakan|yaitu|yakni|bahwa)$/iu', $s)) {
+                    continue;
+                }
 
                 $key = mb_strtolower($s);
                 if (! isset($seen[$key])) {
@@ -3512,6 +3702,12 @@ INSTRUCTIONS;
                 return true;
             }
             if (preg_match('/^(?:matematika\s+untuk|bahasa\s+indonesia\s+untuk|sma\/ma\/smk|buku\s+siswa|bab\s+\d+|kelas\s+[x\d]+|world\s+our\s+world|data\s+source|cc\s+by)/iu', $t)) {
+                return true;
+            }
+            if (preg_match('/^(?:setelah\s+mempelajari|diharapkan\s+kamu|kamu\s+diharapkan|ayo,?\s+bereksplorasi|ayo,?\s+berkolaborasi|ayo,?\s+berpikir|jawablah\s+pertanyaan|peta\s+materi|kementerian\s+pendidikan|tabel\s+\d+|gambar\s+\d+)/iu', $t)) {
+                return true;
+            }
+            if (preg_match('/\b(?:yang|dan|atau|dari|untuk|pada|dengan|dalam|oleh|sebagai|adalah|merupakan|yaitu|yakni|bahwa)$/iu', $t)) {
                 return true;
             }
             if (mb_strlen($t) < 8 && str_word_count($t) < 2) {
@@ -4019,13 +4215,17 @@ INSTRUCTIONS;
         // Ambil klausa pertama yang bermakna apabila panjang melebihi batas opsi PG
         $clauses = preg_split('/(?<=.{38})[.;]\s+|,\s*(?=sehingga|agar|dengan tujuan|yang\s+(?:berfungsi|berperan))/iu', $clean, 2) ?: [];
         if (! empty($clauses[0]) && mb_strlen(trim($clauses[0])) <= $maxChars) {
-            return rtrim(trim($clauses[0]), '.,;:');
+            $candidate = rtrim(trim($clauses[0]), '.,;:');
+        } else {
+            $cut = mb_substr($clean, 0, $maxChars - 1);
+            $lastSpace = mb_strrpos($cut, ' ');
+            $candidate = rtrim(($lastSpace !== false ? mb_substr($cut, 0, $lastSpace) : $cut), '.,;: ');
         }
 
-        $cut = mb_substr($clean, 0, $maxChars - 1);
-        $lastSpace = mb_strrpos($cut, ' ');
+        // Pastikan opsi jawaban tidak pernah terpotong menggantung di kata sambung atau preposisi
+        $candidate = preg_replace('/\s+(?:yang|dan|atau|dari|untuk|pada|dengan|dalam|oleh|sebagai|adalah|merupakan|yaitu|yakni|bahwa)$/iu', '', $candidate) ?? $candidate;
 
-        return rtrim(($lastSpace !== false ? mb_substr($cut, 0, $lastSpace) : $cut), '.,;: ') . '';
+        return trim($candidate);
     }
 
     /**

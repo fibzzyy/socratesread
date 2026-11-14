@@ -61,17 +61,23 @@ class PdfTextExtractor
                     continue;
                 }
                 // Baris cover font-shifted teracak (misal /IQIRXIVMER..., 1EXIQEXMOE..., dll)
-                if (preg_match('#^/(?:IQIR|IFYH|6ITY|1EXI|4IRY)#i', $t)
-                    || preg_match('/^(?:6ITY|1EXI|4IRY|6MWI|8IOR)/i', $t)
-                    || preg_match('/^(?:[\/\p{L}\p{N}%&_()\-]\s+){5,}/u', $t)
-                    || preg_match('/^[-–—\s]*\d+\s*&\s*\d+/u', $t)) {
+                $c = preg_replace('/[\s\0]+/', '', $t);
+                if (preg_match('#^/(?:IQIR|IFYH|6ITY|1EXI|4IRY)#i', $c)
+                    || preg_match('/^(?:6ITY|1EXI|4IRY|6MWI|8IOR)/i', $c)
+                    || preg_match('/^(?:IQIRXIVMER|1EXIQEXMOE|4IRYPMW|6ITYFPMO|71%|1%|71\/)/i', $c)
+                    || preg_match('/^[-–—\s]*\d+\s*&\s*\d+/u', $c)
+                    || preg_match('/^[-–—\s]*[A-Z0-9&]{2,10}\s+Barisan/i', $t)
+                    || preg_match('/^(?:[\/\p{L}\p{N}%&_()\-]\s+){4,}/u', $t)) {
                     continue;
                 }
-                // Running header & footer buku cetak
+                // Running header & footer buku cetak, kementerian, penerbit, peta materi, instruksi tugas
                 if (preg_match('/^(?:Matematika|Bahasa\s+Indonesia|Buku\s+Siswa)\s+untuk\s+SMA.*Kelas\s+[X\d]+/iu', $t)
                     || preg_match('/^Bab\s+\d+\s*\|\s*/iu', $t)
                     || preg_match('/^(?:World\s+Our\s+World|Data\s+source:\s*United\s+Nations|CC\s+BY\b)/iu', $t)
-                    || preg_match('/^(?:Bab|Eksponen\s*\d*)$/iu', $t)) {
+                    || preg_match('/^(?:Bab|Eksponen\s*\d*|\d+\s*Bab|Barisan\s+dan\s+Deret)$/iu', $t)
+                    || preg_match('/^[-–—\s]*\d+\s*$/u', $t)
+                    || preg_match('/^(?:ISBN|Kementerian|Republik\s+Indonesia|Hak\s+Cipta|Diterbitkan\s+oleh)\b/iu', $t)
+                    || preg_match('/^(?:Peta\s+Materi|Ayo,?\s+Bereksplorasi|Ayo,?\s+Berpikir|Ayo,?\s+Berdiskusi|Jawablah\s+pertanyaan\s+berikut\s+dengan\s+berdiskusi)\b/iu', $t)) {
                     continue;
                 }
                 $cleanedLines[] = $line;
