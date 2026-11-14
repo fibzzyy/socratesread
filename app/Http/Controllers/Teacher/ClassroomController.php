@@ -16,11 +16,23 @@ class ClassroomController extends Controller
     {
         $teacherId = auth()->id();
         $status = $request->query('status', 'active');
+        $search = trim((string) $request->query('q', ''));
 
         $query = TeacherClass::query()
             ->where('teacher_id', $teacherId)
             ->withCount(['students' => fn ($students) => $students->where('role', 'student')])
             ->latest();
+
+        if ($search !== '') {
+            $query->where(function ($classrooms) use ($search) {
+                $classrooms->where('name', 'like', "%{$search}%")
+                    ->orWhere('join_code', 'like', "%{$search}%");
+
+                if (in_array($search, ['10', '11', '12'], true)) {
+                    $classrooms->orWhere('target_grade', (int) $search);
+                }
+            });
+        }
 
         if ($status === 'archived') {
             $query->where('is_active', false);
@@ -42,7 +54,7 @@ class ClassroomController extends Controller
         $activeCount = TeacherClass::query()->where('teacher_id', $teacherId)->where('is_active', true)->count();
         $archivedCount = TeacherClass::query()->where('teacher_id', $teacherId)->where('is_active', false)->count();
 
-        return view('teacher.classrooms', compact('classrooms', 'status', 'activeCount', 'archivedCount'));
+        return view('teacher.classrooms', compact('classrooms', 'status', 'search', 'activeCount', 'archivedCount'));
     }
 
     public function members(TeacherClass $classroom): View

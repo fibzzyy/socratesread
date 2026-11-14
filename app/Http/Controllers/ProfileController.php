@@ -46,6 +46,7 @@ class ProfileController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'avatar' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
             'avatar_base64' => ['nullable', 'string'],
+            'cover' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
         ];
 
         if ($user->role === 'teacher') {
@@ -91,7 +92,15 @@ class ProfileController extends Controller
             $validated['avatar_path'] = $newAvatarPath;
         }
 
-        unset($validated['avatar'], $validated['avatar_base64']);
+        if ($request->hasFile('cover')) {
+            $newCoverPath = $request->file('cover')->store('covers', 'public');
+            if ($user->cover_path && Storage::disk('public')->exists($user->cover_path)) {
+                Storage::disk('public')->delete($user->cover_path);
+            }
+            $validated['cover_path'] = $newCoverPath;
+        }
+
+        unset($validated['avatar'], $validated['avatar_base64'], $validated['cover']);
         if ($user->role === 'teacher') {
             $validated['teacher_identifier_type'] = 'nuptk';
         }

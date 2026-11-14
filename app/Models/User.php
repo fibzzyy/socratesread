@@ -26,6 +26,7 @@ class User extends Authenticatable
         'password',
         'role',
         'avatar_path',
+        'cover_path',
         'school_origin',
         'nip_nuptk',
         'teacher_identifier_type',
@@ -79,6 +80,15 @@ class User extends Authenticatable
         }
 
         return route('avatar', ['user' => $this->id, 'v' => $this->updated_at?->timestamp]);
+    }
+
+    public function coverUrl(): ?string
+    {
+        if (! $this->cover_path) {
+            return null;
+        }
+
+        return route('cover', ['user' => $this->id, 'v' => $this->updated_at?->timestamp]);
     }
 
     public function initials(): string

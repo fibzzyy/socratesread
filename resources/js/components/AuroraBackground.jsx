@@ -1,100 +1,85 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 
 /**
- * AuroraBackground (Inspired by 21st.dev & ReactBits.dev)
- * Fluid celestial aurora borealis effect with interactive pointer parallax
- * and randomized twinkling starfield.
+ * AuroraBackground (Optimized Lightweight Edition - Luminous Twilight Sky)
+ * Hardware-accelerated celestial background using smooth multi-stop CSS gradients.
+ * Brighter atmospheric twilight palette so Athena the owl stands out clearly.
+ * Zero heavy blur filters, zero per-frame React state re-renders.
  */
 export default function AuroraBackground({ children, className = '' }) {
     const containerRef = useRef(null);
-    const [mousePos, setMousePos] = useState({ x: 0.5, y: 0.5 });
-    const [stars, setStars] = useState([]);
+    const ribbonRef = useRef(null);
+    const tickingRef = useRef(false);
 
-    // Generate responsive randomized starfield on mount
     useEffect(() => {
-        const starCount = window.innerWidth < 640 ? 35 : 70;
-        const generatedStars = Array.from({ length: starCount }).map((_, i) => ({
-            id: i,
-            x: Math.random() * 100,
-            y: Math.random() * 100,
-            size: Math.random() * 2 + 1,
-            opacity: Math.random() * 0.7 + 0.3,
-            duration: Math.random() * 3 + 2,
-            delay: Math.random() * 4,
-        }));
-        setStars(generatedStars);
-    }, []);
+        // Only attach pointer tracking for fine-pointer desktop devices
+        const isFinePointer = window.matchMedia && window.matchMedia('(pointer: fine)').matches;
+        if (!isFinePointer) return;
 
-    const handlePointerMove = (e) => {
-        if (!containerRef.current) return;
-        const rect = containerRef.current.getBoundingClientRect();
-        const x = (e.clientX - rect.left) / rect.width;
-        const y = (e.clientY - rect.top) / rect.height;
-        setMousePos({
-            x: Math.max(0, Math.min(1, x)),
-            y: Math.max(0, Math.min(1, y)),
-        });
-    };
+        const handlePointerMove = (e) => {
+            if (!containerRef.current || !ribbonRef.current) return;
+            const clientX = e.clientX;
+            const clientY = e.clientY;
+
+            if (!tickingRef.current) {
+                tickingRef.current = true;
+                window.requestAnimationFrame(() => {
+                    if (containerRef.current && ribbonRef.current) {
+                        const rect = containerRef.current.getBoundingClientRect();
+                        const x = (clientX - rect.left) / (rect.width || 1);
+                        const y = (clientY - rect.top) / (rect.height || 1);
+                        const moveX = ((x - 0.5) * 16).toFixed(1);
+                        const moveY = ((y - 0.5) * 16).toFixed(1);
+                        ribbonRef.current.style.transform = `translate3d(${moveX}px, ${moveY}px, 0)`;
+                    }
+                    tickingRef.current = false;
+                });
+            }
+        };
+
+        window.addEventListener('pointermove', handlePointerMove, { passive: true });
+        return () => {
+            window.removeEventListener('pointermove', handlePointerMove);
+        };
+    }, []);
 
     return (
         <div
             ref={containerRef}
-            onPointerMove={handlePointerMove}
             className={`relative w-full h-full overflow-hidden pointer-events-none ${className}`}
-            style={{
-                '--mouse-x': `${mousePos.x * 100}%`,
-                '--mouse-y': `${mousePos.y * 100}%`,
-            }}
         >
-            {/* Ambient Dark Deep Space Base */}
-            <div className="absolute inset-0 bg-[#060A17] opacity-90 transition-opacity" />
-
-            {/* Dynamic Aurora Ribbons (Layer 1: Deep Sapphire / Indigo Glow) */}
+            {/* Luminous Deep Twilight Atmosphere (Not pitch black, high contrast for mascot) */}
             <div
-                className="absolute inset-0 transition-transform duration-700 ease-out will-change-transform"
+                className="absolute inset-0"
                 style={{
-                    transform: `translate3d(${(mousePos.x - 0.5) * 28}px, ${(mousePos.y - 0.5) * 28}px, 0)`,
-                    background: `
-                        radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 40%), rgba(59, 130, 246, 0.28) 0%, transparent 60%),
-                        radial-gradient(ellipse 80% 50% at 50% -10%, rgba(99, 102, 241, 0.35) 0%, transparent 70%),
-                        radial-gradient(ellipse 60% 40% at 85% 60%, rgba(139, 92, 246, 0.22) 0%, transparent 60%),
-                        radial-gradient(ellipse 50% 50% at 15% 75%, rgba(14, 165, 233, 0.20) 0%, transparent 60%)
-                    `,
-                    filter: 'blur(45px)',
+                    background: 'radial-gradient(ellipse 110% 85% at 50% 18%, #1e40af 0%, #1e3a8a 35%, #172554 70%, #0f172a 100%)',
                 }}
             />
 
-            {/* Dynamic Aurora Ribbons (Layer 2: Luminous Cyan & Violet Ethereal Swirls) */}
+            {/* Dynamic Aurora Ribbons (Smooth multi-stop gradients with soft cyan, sky blue, and violet glow) */}
             <div
-                className="absolute inset-0 mix-blend-screen opacity-70 animate-pulse pointer-events-none"
+                ref={ribbonRef}
+                className="absolute inset-0 transition-transform duration-500 ease-out will-change-transform pointer-events-none"
                 style={{
-                    animationDuration: '6s',
                     background: `
-                        radial-gradient(circle at 30% 25%, rgba(6, 182, 212, 0.18) 0%, transparent 50%),
-                        radial-gradient(circle at 70% 70%, rgba(168, 85, 247, 0.22) 0%, transparent 50%)
+                        radial-gradient(ellipse 85% 65% at 50% 20%, rgba(147, 197, 253, 0.32) 0%, rgba(59, 130, 246, 0.18) 35%, transparent 70%),
+                        radial-gradient(ellipse 75% 55% at 85% 65%, rgba(192, 132, 252, 0.24) 0%, rgba(139, 92, 246, 0.10) 40%, transparent 65%),
+                        radial-gradient(ellipse 70% 55% at 15% 70%, rgba(56, 189, 248, 0.22) 0%, rgba(14, 165, 233, 0.08) 40%, transparent 65%)
                     `,
-                    filter: 'blur(55px)',
                 }}
             />
 
-            {/* Twinkling Starfield */}
-            <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-                {stars.map((star) => (
-                    <div
-                        key={star.id}
-                        className="absolute rounded-full bg-white will-change-opacity"
-                        style={{
-                            left: `${star.x}%`,
-                            top: `${star.y}%`,
-                            width: `${star.size}px`,
-                            height: `${star.size}px`,
-                            opacity: star.opacity,
-                            boxShadow: star.size > 1.8 ? '0 0 6px rgba(255, 255, 255, 0.9)' : 'none',
-                            animation: `auroraStarTwinkle ${star.duration}s ease-in-out ${star.delay}s infinite alternate`,
-                        }}
-                    />
-                ))}
-            </div>
+            {/* Subtle Ethereal Highlight Swirl with gentle warm starlight accents */}
+            <div
+                className="absolute inset-0 opacity-70 pointer-events-none"
+                style={{
+                    background: `
+                        radial-gradient(circle at 50% 12%, rgba(254, 240, 138, 0.20) 0%, rgba(251, 191, 36, 0.08) 35%, transparent 55%),
+                        radial-gradient(circle at 30% 30%, rgba(125, 211, 252, 0.16) 0%, transparent 50%),
+                        radial-gradient(circle at 70% 45%, rgba(216, 180, 254, 0.16) 0%, transparent 50%)
+                    `,
+                }}
+            />
 
             {/* Inner Content Slot */}
             {children}

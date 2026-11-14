@@ -47,15 +47,12 @@
         <!-- React Island: 21st.dev / ReactBits Aurora Background & Interactive Celestial Particle Canvas -->
         <div id="react-opening-aurora" class="absolute inset-0 w-full h-full overflow-hidden pointer-events-none z-0" aria-hidden="true"></div>
 
-        <!-- Aurora Ambient Glow Background (CSS Fallback) -->
-        <div class="aurora-ambient-glow" aria-hidden="true"></div>
-
         <!-- Celestial Starry Sparkles Canvas / Accents -->
         <div id="stars-canvas" class="stars-canvas" aria-hidden="true"></div>
 
         <button id="btn-skip-intro" class="btn-skip-intro" type="button"
             aria-label="Lewati intro dan langsung ke halaman utama">
-            Lewati Intro (Esc)
+            Lewati Intro
         </button>
 
         <!-- 3D Book Stage -->
@@ -117,7 +114,7 @@
                     </div>
                 </div>
 
-                <!-- Cascading Flipping Paper Leaves (Realistic Book Flutter to Middle Spread) -->
+                <!-- Cascading Flipping Paper Leaves (Lightweight Book Flutter to Middle Spread) -->
                 <div class="book-fanning-leaves" aria-hidden="true">
                     <div class="book-flip-leaf leaf-1">
                         <div class="leaf-face leaf-front">
@@ -128,22 +125,6 @@
                         </div>
                     </div>
                     <div class="book-flip-leaf leaf-2">
-                        <div class="leaf-face leaf-front">
-                            <div class="leaf-lines"></div>
-                        </div>
-                        <div class="leaf-face leaf-back">
-                            <div class="leaf-lines"></div>
-                        </div>
-                    </div>
-                    <div class="book-flip-leaf leaf-3">
-                        <div class="leaf-face leaf-front">
-                            <div class="leaf-lines"></div>
-                        </div>
-                        <div class="leaf-face leaf-back">
-                            <div class="leaf-lines"></div>
-                        </div>
-                    </div>
-                    <div class="book-flip-leaf leaf-4">
                         <div class="leaf-face leaf-front">
                             <div class="leaf-lines"></div>
                         </div>
@@ -167,28 +148,30 @@
 
                         <!-- Header gold ornament -->
                         <div class="w-full text-center pt-2">
-                            <span class="text-[10px] tracking-[0.3em] font-bold text-amber-400 uppercase">Ars
+                            <span class="text-[8px] sm:text-[10px] tracking-[0.2em] sm:tracking-[0.3em] font-bold text-amber-400 uppercase">Ars
                                 Cogitandi</span>
-                            <div class="w-16 h-px bg-amber-400/40 mx-auto mt-1"></div>
+                            <div class="w-10 sm:w-16 h-px bg-amber-400/40 mx-auto mt-1"></div>
                         </div>
 
                         <!-- Center Medallion with User's Uploaded Logo -->
                         <div class="flex flex-col items-center text-center my-auto px-2">
-                            <img src="{{ asset('images/logo.png') }}" alt="Logo SocratesRead"
-                                class="w-20 h-20 sm:w-28 sm:h-28 object-contain mb-3 sm:mb-4">
+                            <div class="w-14 h-14 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-full bg-white p-1.5 sm:p-3 shadow-lg sm:shadow-xl border sm:border-2 border-amber-400/70 flex items-center justify-center mb-2 sm:mb-4 ring-2 sm:ring-4 ring-amber-400/20">
+                                <img src="{{ asset('images/logo.png') }}" alt="Logo SocratesRead"
+                                    class="w-full h-full object-contain">
+                            </div>
 
-                            <h1 class="font-serif-reading text-xl sm:text-3xl font-bold text-amber-100 tracking-wide">
+                            <h1 class="font-serif-reading text-sm sm:text-2xl md:text-3xl font-bold text-amber-100 tracking-wide">
                                 SocratesRead
                             </h1>
-                            <p class="text-[10px] sm:text-xs text-blue-200/80 mt-0.5 sm:mt-1 font-medium tracking-wider">
+                            <p class="text-[7.5px] sm:text-[10px] md:text-xs text-blue-200/80 mt-0.5 sm:mt-1 font-medium tracking-wider">
                                 LEARN THROUGH QUESTIONS
                             </p>
                         </div>
 
                         <!-- Footer Gold Note -->
                         <div class="w-full text-center pb-2">
-                            <div class="w-12 h-px bg-amber-400/30 mx-auto mb-2"></div>
-                            <span class="text-[9px] sm:text-[10px] tracking-widest text-amber-400/90 uppercase">Ketuk Untuk
+                            <div class="w-8 sm:w-12 h-px bg-amber-400/30 mx-auto mb-1.5 sm:mb-2"></div>
+                            <span class="text-[7.5px] sm:text-[10px] tracking-wider sm:tracking-widest text-amber-400/90 uppercase">Ketuk Untuk
                                 Membuka</span>
                         </div>
                     </div>

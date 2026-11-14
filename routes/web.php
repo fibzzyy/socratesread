@@ -55,6 +55,17 @@ Route::get('/avatar/{user}', function (\App\Models\User $user) {
     );
 })->name('avatar');
 
+Route::get('/cover/{user}', function (\App\Models\User $user) {
+    if (! $user->cover_path || ! \Illuminate\Support\Facades\Storage::disk('public')->exists($user->cover_path)) {
+        abort(404);
+    }
+
+    return response()->file(
+        \Illuminate\Support\Facades\Storage::disk('public')->path($user->cover_path),
+        ['Cache-Control' => 'public, max-age=86400']
+    );
+})->name('cover');
+
 Route::get('/', \App\Http\Controllers\LandingPageController::class)->name('home');
 
 Route::middleware('auth')->group(function () {
